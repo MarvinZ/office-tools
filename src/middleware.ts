@@ -4,6 +4,7 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/api/workers/(.*)", // QStash workers — auth handled via signature verification
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
