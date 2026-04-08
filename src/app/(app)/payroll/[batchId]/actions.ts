@@ -44,12 +44,21 @@ export async function sendPayrollBatch(
   const baseUrl = `${protocol}://${host}`;
 
   // Fan-out: one QStash message per email
-  await qstash.batchJSON(
-    emailRecords.map((record) => ({
-      url: `${baseUrl}/api/workers/payroll/send-email`,
-      body: { emailId: record.id },
-    }))
-  );
+  const workerUrl = `${baseUrl}/api/workers/payroll/send-email`;
+  console.log("[QStash] Sending batch to:", workerUrl);
+
+  try {
+    const result = await qstash.batchJSON(
+      emailRecords.map((record) => ({
+        url: workerUrl,
+        body: { emailId: record.id },
+      }))
+    );
+    console.log("[QStash] Batch result:", JSON.stringify(result));
+  } catch (err) {
+    console.error("[QStash] Batch failed:", err);
+    return { error: "Failed to queue emails. Please try again." };
+  }
 
   return { queued: emailRecords.length };
 }
