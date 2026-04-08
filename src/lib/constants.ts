@@ -10,4 +10,4 @@ export const DEV_TENANT_CLERK_ORG_ID = "dev_org_company1";
 export const DEV_EMAIL_OVERRIDE = "marvinzzz@gmail.com";
 
 // TODO: remove row limit once end-to-end flow is validated
-export const DEV_ROW_LIMIT = 3;
+export const DEV_ROW_LIMIT = 20;

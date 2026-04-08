@@ -1,19 +1,18 @@
 "use server";
 
+import { headers } from "next/headers";
 import { DEV_TENANT_ID, DEV_EMAIL_OVERRIDE, DEV_ROW_LIMIT } from "@/lib/constants";
 import { parsePayrollFromUrl } from "@/lib/payroll/parser";
-import { buildPayrollEmail } from "@/lib/payroll/email-template";
 import { getBatch, updateBatchStatus } from "@/services/payroll/batches";
 import { getUpload } from "@/services/payroll/uploads";
-import { createBatchEmails, updateEmailStatus } from "@/services/payroll/emails";
-import { resend } from "@/lib/resend";
+import { createBatchEmails } from "@/services/payroll/emails";
+import { qstash } from "@/lib/qstash";
 
-export type SendResult = {
-  sent: number;
-  failed: number;
-};
+export type QueueResult = { queued: number };
 
-export async function sendPayrollBatch(batchId: string): Promise<SendResult | { error: string }> {
+export async function sendPayrollBatch(
+  batchId: string
+): Promise<QueueResult | { error: string }> {
   const tenantId = DEV_TENANT_ID; // TODO: resolve from Clerk org
 
   const batch = await getBatch(batchId, tenantId);
@@ -23,13 +22,11 @@ export async function sendPayrollBatch(batchId: string): Promise<SendResult | { 
   const upload = await getUpload(batch.uploadId, tenantId);
   if (!upload) return { error: "Upload not found." };
 
-  // Parse file from blob
   const allRows = await parsePayrollFromUrl(upload.blobUrl);
   const rows = allRows.slice(0, DEV_ROW_LIMIT); // TODO: remove limit
-
   if (!rows.length) return { error: "No rows found in file." };
 
-  // Create email records in DB
+  // Create one email record per row
   const emailRecords = await createBatchEmails(
     batchId,
     tenantId,
@@ -37,34 +34,22 @@ export async function sendPayrollBatch(batchId: string): Promise<SendResult | { 
     DEV_EMAIL_OVERRIDE // TODO: use row.email once column exists
   );
 
-  // Mark batch as processing
-  await updateBatchStatus(batchId, "processing");
+  // Mark batch as queued
+  await updateBatchStatus(batchId, "queued");
 
-  let sent = 0;
-  let failed = 0;
+  // Resolve the base URL for the worker
+  const headersList = await headers();
+  const host = headersList.get("host")!;
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const baseUrl = `${protocol}://${host}`;
 
-  // Send each email and update status
-  for (const [i, row] of rows.entries()) {
-    const emailRecord = emailRecords[i];
+  // Fan-out: one QStash message per email
+  await qstash.batchJSON(
+    emailRecords.map((record) => ({
+      url: `${baseUrl}/api/workers/payroll/send-email`,
+      body: { emailId: record.id },
+    }))
+  );
 
-    const { error } = await resend.emails.send({
-      from: "OfficeTools <onboarding@resend.dev>",
-      to: DEV_EMAIL_OVERRIDE,
-      subject: `Comprobante de pago — ${row.empleado}`,
-      html: buildPayrollEmail(row),
-    });
-
-    if (error) {
-      await updateEmailStatus(emailRecord.id, "failed", error.message);
-      failed++;
-    } else {
-      await updateEmailStatus(emailRecord.id, "sent");
-      sent++;
-    }
-  }
-
-  // Final batch status
-  await updateBatchStatus(batchId, failed === rows.length ? "failed" : "sent");
-
-  return { sent, failed };
+  return { queued: emailRecords.length };
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PayrollRow } from "@/lib/payroll/parser";
-import { sendPayrollBatch, type SendResult } from "../actions";
+import { sendPayrollBatch } from "../actions";
 
 const fmt = (n: number) => (n === 0 ? "—" : `₡${n.toLocaleString("es-CR")}`);
 
@@ -14,12 +14,12 @@ type Props = {
 };
 
 export default function BatchReview({ batchId, filename, rows, isDuplicate }: Props) {
-  const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
-  const [result, setResult] = useState<SendResult | null>(null);
+  const [status, setStatus] = useState<"idle" | "queuing" | "queued">("idle");
+  const [queued, setQueued] = useState(0);
   const [error, setError] = useState("");
 
   async function handleSend() {
-    setStatus("sending");
+    setStatus("queuing");
     setError("");
 
     const res = await sendPayrollBatch(batchId);
@@ -30,26 +30,29 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
       return;
     }
 
-    setResult(res);
-    setStatus("done");
+    setQueued(res.queued);
+    setStatus("queued");
   }
 
-  if (status === "done" && result) {
+  if (status === "queued") {
     return (
       <div className="flex flex-col gap-6">
-        <div className={`rounded-2xl border p-6 ${result.failed === 0 ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950" : "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950"}`}>
-          <p className={`text-base font-semibold ${result.failed === 0 ? "text-green-700 dark:text-green-400" : "text-yellow-700 dark:text-yellow-400"}`}>
-            {result.failed === 0
-              ? `All ${result.sent} emails sent successfully.`
-              : `${result.sent} sent, ${result.failed} failed.`}
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-6 dark:border-green-900 dark:bg-green-950">
+          <p className="text-base font-semibold text-green-700 dark:text-green-400">
+            {queued} email{queued !== 1 ? "s" : ""} queued for delivery.
           </p>
           <p className="mt-1 text-sm text-zinc-500">
-            Emails were sent to marvinzzz@gmail.com (dev override).
+            Emails are being sent in the background. Check History for status updates.
           </p>
         </div>
-        <a href="/payroll" className="self-start text-sm text-zinc-500 hover:text-black dark:hover:text-white">
-          ← Process another file
-        </a>
+        <div className="flex gap-4">
+          <a href="/payroll/history" className="text-sm text-black underline dark:text-white">
+            View history →
+          </a>
+          <a href="/payroll" className="text-sm text-zinc-500 hover:text-black dark:hover:text-white">
+            Process another file
+          </a>
+        </div>
       </div>
     );
   }
@@ -59,12 +62,12 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
       {/* File info */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-black dark:text-white">{filename}</p>
-          <p className="text-xs text-zinc-400">
-            {rows.length} employee{rows.length !== 1 ? "s" : ""} · Dev limit: {rows.length} rows · Sending to marvinzzz@gmail.com
+          <p className="font-medium text-black dark:text-white">{filename}</p>
+          <p className="mt-0.5 text-sm text-zinc-400">
+            {rows.length} employee{rows.length !== 1 ? "s" : ""} · Sending to marvinzzz@gmail.com
           </p>
         </div>
-        <a href="/payroll" className="text-xs text-zinc-400 hover:text-black dark:hover:text-white">
+        <a href="/payroll" className="text-sm text-zinc-400 hover:text-black dark:hover:text-white">
           ← Change file
         </a>
       </div>
@@ -83,7 +86,7 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
               {["Empleado", "Cédula", "Puesto", "Salario", "Total Bruto", "CCSS", "Bco Popular", "Embargos", "Neto a Pagar"].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 whitespace-nowrap">
+                <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   {h}
                 </th>
               ))}
@@ -92,15 +95,15 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
           <tbody>
             {rows.map((row, i) => (
               <tr key={i} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-                <td className="px-4 py-3 font-medium text-black dark:text-white whitespace-nowrap">{row.empleado}</td>
-                <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">{row.cedula}</td>
-                <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">{row.puesto}</td>
-                <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{fmt(row.salario)}</td>
-                <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{fmt(row.total)}</td>
-                <td className="px-4 py-3 text-red-500 whitespace-nowrap">{fmt(row.ccss)}</td>
-                <td className="px-4 py-3 text-red-500 whitespace-nowrap">{fmt(row.bcoPop)}</td>
-                <td className="px-4 py-3 text-red-500 whitespace-nowrap">{fmt(row.embargos)}</td>
-                <td className="px-4 py-3 font-semibold text-green-600 whitespace-nowrap">{fmt(row.netoAPagar)}</td>
+                <td className="whitespace-nowrap px-4 py-3 font-medium text-black dark:text-white">{row.empleado}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-zinc-500">{row.cedula}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-zinc-500">{row.puesto}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">{fmt(row.salario)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">{fmt(row.total)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-red-500">{fmt(row.ccss)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-red-500">{fmt(row.bcoPop)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-red-500">{fmt(row.embargos)}</td>
+                <td className="whitespace-nowrap px-4 py-3 font-semibold text-green-600">{fmt(row.netoAPagar)}</td>
               </tr>
             ))}
           </tbody>
@@ -111,19 +114,19 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
       <div className="flex items-center gap-4">
         <button
           onClick={handleSend}
-          disabled={status === "sending"}
+          disabled={status === "queuing"}
           className="rounded-full bg-black px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
         >
-          {status === "sending" ? (
+          {status === "queuing" ? (
             <span className="flex items-center gap-2">
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black" />
-              Sending...
+              Queuing...
             </span>
           ) : (
             `Send ${rows.length} payroll email${rows.length !== 1 ? "s" : ""}`
           )}
         </button>
-        <p className="text-xs text-zinc-400">One email per employee.</p>
+        <p className="text-sm text-zinc-400">One email per employee, sent in the background.</p>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
