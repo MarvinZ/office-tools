@@ -37,7 +37,7 @@ export default function FileManager() {
     const result = await uploadFile(formData);
 
     if ("error" in result) {
-      setError(result.error);
+      setError(result.error ?? "Upload failed.");
     } else {
       await loadFiles();
     }
