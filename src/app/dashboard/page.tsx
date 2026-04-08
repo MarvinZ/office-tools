@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
-import SendEmailForm from "./send-email-form";
+import PayrollProcessor from "./payroll-processor";
 import FileManager from "./file-manager";
+import SendEmailForm from "./send-email-form";
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -13,13 +14,25 @@ export default async function DashboardPage() {
         </h1>
         <p className="mt-1 text-sm text-zinc-500">Here's your dashboard.</p>
       </div>
+
+      {/* Payroll tool */}
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-4 text-sm font-semibold text-black dark:text-white">Files</h2>
-        <FileManager />
+        <h2 className="mb-1 text-base font-semibold text-black dark:text-white">Payroll</h2>
+        <p className="mb-6 text-sm text-zinc-500">Upload a payroll file, review the data, and send emails.</p>
+        <PayrollProcessor />
       </div>
-      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-4 text-sm font-semibold text-black dark:text-white">Send an email</h2>
-        <SendEmailForm />
+
+      {/* Dev / test tools */}
+      <div className="mt-6 flex flex-col gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Dev tools</p>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-sm font-semibold text-black dark:text-white">File browser</h2>
+          <FileManager />
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-sm font-semibold text-black dark:text-white">Test email</h2>
+          <SendEmailForm />
+        </div>
       </div>
     </div>
   );
