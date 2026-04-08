@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { DEV_TENANT_ID } from "@/lib/constants";
 import { getBatchHistory } from "@/services/payroll/history";

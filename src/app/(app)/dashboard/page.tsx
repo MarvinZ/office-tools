@@ -18,8 +18,15 @@ export default async function DashboardPage() {
           href="/payroll"
           className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
         >
-          <p className="text-sm font-semibold text-black dark:text-white">Payroll</p>
+          <p className="font-semibold text-black dark:text-white">Payroll</p>
           <p className="mt-1 text-sm text-zinc-500">Upload and send payroll emails to employees.</p>
+        </Link>
+        <Link
+          href="/dev"
+          className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
+        >
+          <p className="font-semibold text-black dark:text-white">Dev Tools</p>
+          <p className="mt-1 text-sm text-zinc-500">File browser and test email utilities.</p>
         </Link>
       </div>
     </div>

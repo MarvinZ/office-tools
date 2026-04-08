@@ -21,12 +21,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Payroll
               </Link>
               <Link
-                href="/payroll/history"
-                className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
-              >
-                History
-              </Link>
-              <Link
                 href="/dev"
                 className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
               >
