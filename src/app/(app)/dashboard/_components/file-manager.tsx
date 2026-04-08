@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { uploadFile, listFiles } from "./actions";
 
 type BlobFile = {
   url: string;
@@ -16,13 +15,12 @@ export default function FileManager() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function loadFiles() {
-    const result = await listFiles();
-    setFiles(result);
+    const res = await fetch("/api/files");
+    const data = await res.json();
+    setFiles(data);
   }
 
-  useEffect(() => {
-    loadFiles();
-  }, []);
+  useEffect(() => { loadFiles(); }, []);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -31,15 +29,16 @@ export default function FileManager() {
     setUploading(true);
     setError("");
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const result = await uploadFile(formData);
-
-    if ("error" in result) {
-      setError(result.error ?? "Upload failed.");
-    } else {
+    try {
+      const res = await fetch("/api/files/upload", {
+        method: "POST",
+        headers: { "x-filename": file.name },
+        body: file,
+      });
+      if (!res.ok) throw new Error("Upload failed");
       await loadFiles();
+    } catch {
+      setError("Upload failed.");
     }
 
     setUploading(false);
@@ -59,18 +58,12 @@ export default function FileManager() {
         {uploading && <span className="text-sm text-zinc-500">Uploading...</span>}
       </div>
       {error && <p className="text-sm text-red-500">{error}</p>}
-
       {files.length > 0 ? (
         <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
           {files.map((f) => (
             <li key={f.url} className="flex items-center justify-between px-4 py-3">
               <span className="text-sm text-black dark:text-white">{f.name}</span>
-              <a
-                href={f.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-zinc-500 hover:text-black dark:hover:text-white"
-              >
+              <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm text-zinc-500 hover:text-black dark:hover:text-white">
                 View
               </a>
             </li>

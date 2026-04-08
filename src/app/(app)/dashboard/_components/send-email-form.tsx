@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { sendEmail } from "./actions";
 
 export default function SendEmailForm() {
   const [email, setEmail] = useState("");
@@ -13,11 +12,17 @@ export default function SendEmailForm() {
     setStatus("loading");
     setMessage("");
 
-    const result = await sendEmail(email);
+    const res = await fetch("/api/email/test", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
 
-    if (result.error) {
+    const data = await res.json();
+
+    if (data.error) {
       setStatus("error");
-      setMessage(result.error);
+      setMessage(data.error);
     } else {
       setStatus("success");
       setMessage("Email sent!");
