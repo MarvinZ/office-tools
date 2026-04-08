@@ -1,6 +1,7 @@
 "use server";
 
 import { resend } from "@/lib/resend";
+import { put, list } from "@vercel/blob";
 
 export async function sendEmail(email: string) {
   if (!email || !email.includes("@")) {
@@ -20,4 +21,28 @@ export async function sendEmail(email: string) {
   }
 
   return { success: true };
+}
+
+export async function uploadFile(formData: FormData) {
+  const file = formData.get("file") as File;
+
+  if (!file || file.size === 0) {
+    return { error: "No file provided." };
+  }
+
+  const blob = await put(`uploads/${file.name}`, file, {
+    access: "public",
+  });
+
+  return { url: blob.url, name: file.name };
+}
+
+export async function listFiles() {
+  const { blobs } = await list({ prefix: "uploads/" });
+
+  return blobs.map((b) => ({
+    url: b.url,
+    name: b.pathname.replace("uploads/", ""),
+    uploadedAt: b.uploadedAt,
+  }));
 }
