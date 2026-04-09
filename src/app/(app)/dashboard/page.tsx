@@ -20,6 +20,10 @@ export default async function DashboardPage() {
           <p className="font-semibold text-black dark:text-white">{t("payrollCard.title")}</p>
           <p className="mt-1 text-sm text-zinc-500">{t("payrollCard.description")}</p>
         </Link>
+        <Link href="/assets" className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600">
+          <p className="font-semibold text-black dark:text-white">Assets</p>
+          <p className="mt-1 text-sm text-zinc-500">Track and manage company equipment and resources.</p>
+        </Link>
         <Link href="/dev" className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600">
           <p className="font-semibold text-black dark:text-white">{t("devCard.title")}</p>
           <p className="mt-1 text-sm text-zinc-500">{t("devCard.description")}</p>
