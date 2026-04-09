@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,9 +28,11 @@ export default async function RootLayout({
     <ClerkProvider>
       <html lang={locale} className={`${inter.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col">
-          <NextIntlClientProvider messages={messages}>
-            {children}
-          </NextIntlClientProvider>
+          <ThemeProvider>
+            <NextIntlClientProvider messages={messages}>
+              {children}
+            </NextIntlClientProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

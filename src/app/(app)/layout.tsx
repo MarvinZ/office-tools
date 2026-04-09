@@ -3,6 +3,7 @@ import { UserButton } from "@clerk/nextjs";
 import { getTranslations, getLocale } from "next-intl/server";
 import { ensureTenant } from "@/services/tenants";
 import LocaleSwitcher from "@/components/locale-switcher";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await ensureTenant();
@@ -26,8 +27,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <LocaleSwitcher current={locale} />
+            <ThemeToggle />
             <UserButton />
           </div>
         </div>
