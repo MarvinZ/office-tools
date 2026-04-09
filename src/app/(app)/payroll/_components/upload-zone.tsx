@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { uploadPayrollFile } from "../actions";
 
 export default function UploadZone() {
   const router = useRouter();
+  const t = useTranslations("payroll.upload");
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "parsing">("idle");
   const [error, setError] = useState("");
@@ -57,7 +59,7 @@ export default function UploadZone() {
           <>
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-black dark:border-t-white" />
             <p className="text-sm text-zinc-500">
-              {status === "uploading" ? "Uploading file..." : "Processing..."}
+              {status === "uploading" ? t("uploading") : t("processing")}
             </p>
           </>
         ) : (
@@ -69,9 +71,9 @@ export default function UploadZone() {
             </div>
             <div>
               <p className="text-sm font-medium text-black dark:text-white">
-                Drop your payroll file here, or <span className="underline">browse</span>
+                {t("dropzone", { browse: t("browse") })}
               </p>
-              <p className="mt-1 text-xs text-zinc-400">.xlsx or .xls files only</p>
+              <p className="mt-1 text-xs text-zinc-400">{t("hint")}</p>
             </div>
           </>
         )}

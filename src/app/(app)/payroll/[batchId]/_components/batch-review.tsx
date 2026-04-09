@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { PayrollRow } from "@/lib/payroll/parser";
 import { sendPayrollBatch } from "../actions";
+import { DEV_EMAIL_OVERRIDE } from "@/lib/constants";
 
 const fmt = (n: number) => (n === 0 ? "—" : `₡${n.toLocaleString("es-CR")}`);
 
@@ -14,6 +16,8 @@ type Props = {
 };
 
 export default function BatchReview({ batchId, filename, rows, isDuplicate }: Props) {
+  const t = useTranslations("payroll.review");
+  const tq = useTranslations("payroll.queued");
   const [status, setStatus] = useState<"idle" | "queuing" | "queued">("idle");
   const [queued, setQueued] = useState(0);
   const [error, setError] = useState("");
@@ -39,53 +43,59 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
       <div className="flex flex-col gap-6">
         <div className="rounded-2xl border border-green-200 bg-green-50 p-6 dark:border-green-900 dark:bg-green-950">
           <p className="text-base font-semibold text-green-700 dark:text-green-400">
-            {queued} email{queued !== 1 ? "s" : ""} queued for delivery.
+            {tq("title", { count: queued })}
           </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Emails are being sent in the background. Check History for status updates.
-          </p>
+          <p className="mt-1 text-sm text-zinc-500">{tq("subtitle")}</p>
         </div>
         <div className="flex gap-4">
           <a href="/payroll/history" className="text-sm text-black underline dark:text-white">
-            View history →
+            {tq("viewHistory")}
           </a>
           <a href="/payroll" className="text-sm text-zinc-500 hover:text-black dark:hover:text-white">
-            Process another file
+            {tq("processAnother")}
           </a>
         </div>
       </div>
     );
   }
 
+  const cols = [
+    t("columns.empleado"),
+    t("columns.cedula"),
+    t("columns.puesto"),
+    t("columns.salario"),
+    t("columns.totalBruto"),
+    t("columns.ccss"),
+    t("columns.bcoPop"),
+    t("columns.embargos"),
+    t("columns.netoAPagar"),
+  ];
+
   return (
     <div className="flex flex-col gap-6">
-      {/* File info */}
       <div className="flex items-start justify-between">
         <div>
           <p className="font-medium text-black dark:text-white">{filename}</p>
           <p className="mt-0.5 text-sm text-zinc-400">
-            {rows.length} employee{rows.length !== 1 ? "s" : ""} · Sending to marvinzzz@gmail.com
+            {t("employees", { count: rows.length })} · {t("sendingTo", { email: DEV_EMAIL_OVERRIDE })}
           </p>
         </div>
         <a href="/payroll" className="text-sm text-zinc-400 hover:text-black dark:hover:text-white">
-          ← Change file
+          {t("changeFile")}
         </a>
       </div>
 
       {isDuplicate && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 dark:border-yellow-800 dark:bg-yellow-950">
-          <p className="text-sm text-yellow-700 dark:text-yellow-400">
-            This file was already uploaded before. You can still send it.
-          </p>
+          <p className="text-sm text-yellow-700 dark:text-yellow-400">{t("duplicateWarning")}</p>
         </div>
       )}
 
-      {/* Table */}
       <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-              {["Empleado", "Cédula", "Puesto", "Salario", "Total Bruto", "CCSS", "Bco Popular", "Embargos", "Neto a Pagar"].map((h) => (
+              {cols.map((h) => (
                 <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   {h}
                 </th>
@@ -110,7 +120,6 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
         </table>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-4">
         <button
           onClick={handleSend}
@@ -120,13 +129,13 @@ export default function BatchReview({ batchId, filename, rows, isDuplicate }: Pr
           {status === "queuing" ? (
             <span className="flex items-center gap-2">
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black" />
-              Queuing...
+              {t("queuing")}
             </span>
           ) : (
-            `Send ${rows.length} payroll email${rows.length !== 1 ? "s" : ""}`
+            t("sendButton", { count: rows.length })
           )}
         </button>
-        <p className="text-sm text-zinc-400">One email per employee, sent in the background.</p>
+        <p className="text-sm text-zinc-400">{t("onePerEmployee")}</p>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}

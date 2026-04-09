@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { getTranslations, getLocale } from "next-intl/server";
 import { ensureTenant } from "@/services/tenants";
+import LocaleSwitcher from "@/components/locale-switcher";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await ensureTenant();
+  const t = await getTranslations("nav");
+  const locale = await getLocale();
 
   return (
     <div className="flex min-h-full flex-col">
@@ -11,24 +15,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-sm font-semibold text-black dark:text-white">
-              OfficeTools
+              {t("appName")}
             </Link>
             <nav className="flex items-center gap-4">
-              <Link
-                href="/payroll"
-                className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
-              >
-                Payroll
+              <Link href="/payroll" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                {t("payroll")}
               </Link>
-              <Link
-                href="/dev"
-                className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
-              >
-                Dev
+              <Link href="/dev" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                {t("dev")}
               </Link>
             </nav>
           </div>
-          <UserButton />
+          <div className="flex items-center gap-4">
+            <LocaleSwitcher current={locale} />
+            <UserButton />
+          </div>
         </div>
       </header>
       <main className="flex flex-1 flex-col">{children}</main>

@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
-type BlobFile = {
-  url: string;
-  name: string;
-  uploadedAt: Date;
-};
+type BlobFile = { url: string; name: string; uploadedAt: Date };
 
 export default function FileManager() {
+  const t = useTranslations("fileManager");
   const [files, setFiles] = useState<BlobFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -25,22 +23,19 @@ export default function FileManager() {
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     setError("");
-
     try {
       const res = await fetch("/api/files/upload", {
         method: "POST",
         headers: { "x-filename": file.name },
         body: file,
       });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) throw new Error();
       await loadFiles();
     } catch {
-      setError("Upload failed.");
+      setError(t("uploadFailed"));
     }
-
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -55,7 +50,7 @@ export default function FileManager() {
           disabled={uploading}
           className="text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-800 disabled:opacity-50 dark:text-zinc-400 dark:file:bg-white dark:file:text-black"
         />
-        {uploading && <span className="text-sm text-zinc-500">Uploading...</span>}
+        {uploading && <span className="text-sm text-zinc-500">{t("uploading")}</span>}
       </div>
       {error && <p className="text-sm text-red-500">{error}</p>}
       {files.length > 0 ? (
@@ -64,13 +59,13 @@ export default function FileManager() {
             <li key={f.url} className="flex items-center justify-between px-4 py-3">
               <span className="text-sm text-black dark:text-white">{f.name}</span>
               <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm text-zinc-500 hover:text-black dark:hover:text-white">
-                View
+                {t("view")}
               </a>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-zinc-400">No files uploaded yet.</p>
+        <p className="text-sm text-zinc-400">{t("empty")}</p>
       )}
     </div>
   );

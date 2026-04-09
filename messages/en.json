@@ -1,0 +1,124 @@
+{
+  "nav": {
+    "appName": "OfficeTools",
+    "payroll": "Payroll",
+    "dev": "Dev"
+  },
+  "dashboard": {
+    "greeting": "Welcome back, {name}!",
+    "subtitle": "Here's your dashboard.",
+    "payrollCard": {
+      "title": "Payroll",
+      "description": "Upload and send payroll emails to employees."
+    },
+    "devCard": {
+      "title": "Dev Tools",
+      "description": "File browser and test email utilities."
+    }
+  },
+  "payroll": {
+    "title": "Payroll",
+    "description": "Upload a payroll file to preview and send emails to employees.",
+    "viewHistory": "View history →",
+    "upload": {
+      "dropzone": "Drop your payroll file here, or {browse}",
+      "browse": "browse",
+      "hint": ".xlsx or .xls files only",
+      "uploading": "Uploading file...",
+      "processing": "Processing...",
+      "errorInvalidType": "Only .xlsx or .xls files are accepted.",
+      "errorNoFile": "No file provided.",
+      "errorNotAuthenticated": "Not authenticated."
+    },
+    "review": {
+      "title": "Review & Send",
+      "description": "Verify the data below before sending emails.",
+      "employees": "{count, plural, one {# employee} other {# employees}}",
+      "sendingTo": "Sending to {email}",
+      "changeFile": "← Change file",
+      "duplicateWarning": "This file was already uploaded before. You can still send it.",
+      "sendButton": "{count, plural, one {Send # payroll email} other {Send # payroll emails}}",
+      "queuing": "Queuing...",
+      "onePerEmployee": "One email per employee, sent in the background.",
+      "columns": {
+        "empleado": "Employee",
+        "cedula": "ID",
+        "puesto": "Position",
+        "salario": "Salary",
+        "totalBruto": "Gross Total",
+        "ccss": "CCSS",
+        "bcoPop": "Bco Popular",
+        "embargos": "Deductions",
+        "netoAPagar": "Net Pay"
+      }
+    },
+    "queued": {
+      "title": "{count, plural, one {# email queued for delivery.} other {# emails queued for delivery.}}",
+      "subtitle": "Emails are being sent in the background. Check History for status updates.",
+      "viewHistory": "View history →",
+      "processAnother": "Process another file"
+    },
+    "errors": {
+      "batchNotFound": "Batch not found.",
+      "alreadyProcessed": "Batch has already been processed.",
+      "uploadNotFound": "Upload not found.",
+      "noRows": "No rows found in file.",
+      "queueFailed": "Failed to queue emails. Please try again."
+    }
+  },
+  "history": {
+    "title": "Payroll History",
+    "description": "All payroll batches and their send status.",
+    "newPayroll": "New payroll",
+    "empty": "No payroll batches yet.",
+    "uploadFirst": "Upload your first file",
+    "columns": {
+      "file": "File",
+      "date": "Date",
+      "status": "Status",
+      "actions": ""
+    },
+    "viewDetails": "View details →",
+    "backToHistory": "← Back to history",
+    "summary": {
+      "total": "Total",
+      "sent": "Sent",
+      "failed": "Failed"
+    },
+    "emailColumns": {
+      "employee": "Employee",
+      "recipient": "Recipient",
+      "status": "Status",
+      "sentAt": "Sent at",
+      "error": "Error"
+    },
+    "noEmails": "No emails in this batch.",
+    "status": {
+      "draft": "Draft",
+      "queued": "Queued",
+      "processing": "Processing",
+      "sent": "Sent",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "dev": {
+    "title": "Dev Tools",
+    "description": "Internal utilities for testing and debugging.",
+    "fileBrowser": "File browser",
+    "testEmail": "Test email"
+  },
+  "fileManager": {
+    "uploading": "Uploading...",
+    "uploadFailed": "Upload failed.",
+    "view": "View",
+    "empty": "No files uploaded yet."
+  },
+  "sendEmailForm": {
+    "label": "Email address",
+    "placeholder": "you@example.com",
+    "sending": "Sending...",
+    "send": "Send email",
+    "success": "Email sent!"
+  }
+}

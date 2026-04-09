@@ -1,0 +1,124 @@
+{
+  "nav": {
+    "appName": "OfficeTools",
+    "payroll": "Planilla",
+    "dev": "Dev"
+  },
+  "dashboard": {
+    "greeting": "¡Bienvenido, {name}!",
+    "subtitle": "Tu panel de control.",
+    "payrollCard": {
+      "title": "Planilla",
+      "description": "Cargá y enviá comprobantes de pago a los empleados."
+    },
+    "devCard": {
+      "title": "Herramientas Dev",
+      "description": "Explorador de archivos y utilidades de prueba."
+    }
+  },
+  "payroll": {
+    "title": "Planilla",
+    "description": "Cargá un archivo de planilla para revisar y enviar correos a los empleados.",
+    "viewHistory": "Ver historial →",
+    "upload": {
+      "dropzone": "Arrastrá tu archivo de planilla aquí, o {browse}",
+      "browse": "buscalo",
+      "hint": "Solo archivos .xlsx o .xls",
+      "uploading": "Subiendo archivo...",
+      "processing": "Procesando...",
+      "errorInvalidType": "Solo se aceptan archivos .xlsx o .xls.",
+      "errorNoFile": "No se proporcionó ningún archivo.",
+      "errorNotAuthenticated": "No autenticado."
+    },
+    "review": {
+      "title": "Revisar y Enviar",
+      "description": "Verificá los datos antes de enviar los correos.",
+      "employees": "{count, plural, one {# empleado} other {# empleados}}",
+      "sendingTo": "Enviando a {email}",
+      "changeFile": "← Cambiar archivo",
+      "duplicateWarning": "Este archivo ya fue cargado anteriormente. Podés enviarlo de todas formas.",
+      "sendButton": "{count, plural, one {Enviar # correo de planilla} other {Enviar # correos de planilla}}",
+      "queuing": "Encolando...",
+      "onePerEmployee": "Un correo por empleado, enviado en segundo plano.",
+      "columns": {
+        "empleado": "Empleado",
+        "cedula": "Cédula",
+        "puesto": "Puesto",
+        "salario": "Salario",
+        "totalBruto": "Total Bruto",
+        "ccss": "CCSS",
+        "bcoPop": "Bco Popular",
+        "embargos": "Embargos",
+        "netoAPagar": "Neto a Pagar"
+      }
+    },
+    "queued": {
+      "title": "{count, plural, one {# correo en cola para envío.} other {# correos en cola para envío.}}",
+      "subtitle": "Los correos se están enviando en segundo plano. Revisá el historial para ver el estado.",
+      "viewHistory": "Ver historial →",
+      "processAnother": "Procesar otro archivo"
+    },
+    "errors": {
+      "batchNotFound": "Lote no encontrado.",
+      "alreadyProcessed": "Este lote ya fue procesado.",
+      "uploadNotFound": "Archivo no encontrado.",
+      "noRows": "No se encontraron filas en el archivo.",
+      "queueFailed": "Error al encolar los correos. Intentá de nuevo."
+    }
+  },
+  "history": {
+    "title": "Historial de Planilla",
+    "description": "Todos los lotes de planilla y su estado de envío.",
+    "newPayroll": "Nueva planilla",
+    "empty": "Aún no hay lotes de planilla.",
+    "uploadFirst": "Cargá tu primer archivo",
+    "columns": {
+      "file": "Archivo",
+      "date": "Fecha",
+      "status": "Estado",
+      "actions": ""
+    },
+    "viewDetails": "Ver detalle →",
+    "backToHistory": "← Volver al historial",
+    "summary": {
+      "total": "Total",
+      "sent": "Enviados",
+      "failed": "Fallidos"
+    },
+    "emailColumns": {
+      "employee": "Empleado",
+      "recipient": "Destinatario",
+      "status": "Estado",
+      "sentAt": "Enviado a las",
+      "error": "Error"
+    },
+    "noEmails": "No hay correos en este lote.",
+    "status": {
+      "draft": "Borrador",
+      "queued": "En cola",
+      "processing": "Procesando",
+      "sent": "Enviado",
+      "failed": "Fallido",
+      "cancelled": "Cancelado"
+    }
+  },
+  "dev": {
+    "title": "Herramientas Dev",
+    "description": "Utilidades internas para pruebas y depuración.",
+    "fileBrowser": "Explorador de archivos",
+    "testEmail": "Correo de prueba"
+  },
+  "fileManager": {
+    "uploading": "Subiendo...",
+    "uploadFailed": "Error al subir.",
+    "view": "Ver",
+    "empty": "Aún no hay archivos."
+  },
+  "sendEmailForm": {
+    "label": "Correo electrónico",
+    "placeholder": "vos@ejemplo.com",
+    "sending": "Enviando...",
+    "send": "Enviar correo",
+    "success": "¡Correo enviado!"
+  }
+}
