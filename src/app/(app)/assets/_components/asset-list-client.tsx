@@ -3,12 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, LayoutGrid, List } from "lucide-react";
-import type { Asset, AssetStatus, AssetCategory } from "../_mock/data";
+import type { AssetRow } from "@/services/assets/assets";
 import { STATUS_CONFIG, ASSET_CATEGORIES } from "../_mock/data";
+
+type AssetStatus = AssetRow["status"];
+type AssetCategory = AssetRow["category"];
 
 const ALL = "All";
 
-export default function AssetListClient({ assets }: { assets: Asset[] }) {
+export default function AssetListClient({ assets }: { assets: AssetRow[] }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<AssetStatus | typeof ALL>(ALL);
   const [category, setCategory] = useState<AssetCategory | typeof ALL>(ALL);
@@ -109,11 +112,7 @@ export default function AssetListClient({ assets }: { assets: Asset[] }) {
                 <tr key={a.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {a.photos[0] ? (
-                        <img src={a.photos[0]} alt={a.name} className="h-9 w-9 rounded-lg object-cover" />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-xs text-zinc-400 dark:bg-zinc-800">?</div>
-                      )}
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-xs text-zinc-400 dark:bg-zinc-800">📦</div>
                       <div>
                         <p className="font-medium text-black dark:text-white">{a.name}</p>
                         <p className="text-xs text-zinc-400">{a.brand} {a.model}</p>
@@ -153,12 +152,8 @@ export default function AssetListClient({ assets }: { assets: Asset[] }) {
             <p className="col-span-full text-center text-sm text-zinc-400 py-12">No assets found.</p>
           ) : filtered.map((a) => (
             <Link key={a.id} href={`/assets/${a.id}`} className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600">
-              <div className="h-40 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                {a.photos[0] ? (
-                  <img src={a.photos[0]} alt={a.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-zinc-300 dark:text-zinc-600 text-4xl">📦</div>
-                )}
+              <div className="flex h-40 items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-4xl">
+                📦
               </div>
               <div className="flex flex-col gap-2 p-4">
                 <div className="flex items-start justify-between gap-2">

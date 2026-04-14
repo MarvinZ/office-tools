@@ -1,13 +1,17 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MOCK_ASSETS, STATUS_CONFIG } from "../_mock/data";
+import { getAsset } from "@/services/assets/assets";
+import { DEV_TENANT_ID } from "@/lib/constants";
+import { STATUS_CONFIG } from "../_mock/data";
 import AssetTabs from "./_components/asset-tabs";
 
 type Props = { params: Promise<{ id: string }> };
 
+export const dynamic = "force-dynamic";
+
 export default async function AssetDetailPage({ params }: Props) {
   const { id } = await params;
-  const asset = MOCK_ASSETS.find((a) => a.id === id);
+  const asset = await getAsset(DEV_TENANT_ID, id);
   if (!asset) notFound();
 
   const cfg = STATUS_CONFIG[asset.status];
@@ -25,7 +29,7 @@ export default async function AssetDetailPage({ params }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           {asset.photos[0] ? (
-            <img src={asset.photos[0]} alt={asset.name} className="h-16 w-16 rounded-2xl object-cover" />
+            <img src={asset.photos[0].blobUrl} alt={asset.name} className="h-16 w-16 rounded-2xl object-cover" />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100 text-2xl dark:bg-zinc-800">📦</div>
           )}
@@ -47,7 +51,7 @@ export default async function AssetDetailPage({ params }: Props) {
       {/* Quick stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Purchase Price", value: `$${asset.purchasePrice.toLocaleString()}` },
+          { label: "Purchase Price", value: `$${Number(asset.purchasePrice).toLocaleString()}` },
           { label: "Location", value: asset.location },
           { label: "Assigned To", value: asset.assignedTo ?? "—" },
           { label: "Warranty Until", value: new Date(asset.warrantyExpiry).toLocaleDateString("en-US", { year: "numeric", month: "short" }) },

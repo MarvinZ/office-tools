@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { ExternalLink, FileText, Image, Clock, Info } from "lucide-react";
-import type { Asset } from "../../_mock/data";
+import type { AssetWithRelations } from "@/services/assets/assets";
 
 const TABS = [
-  { id: "overview", label: "Overview", icon: Info },
-  { id: "photos",   label: "Photos",   icon: Image },
-  { id: "documents",label: "Documents",icon: FileText },
-  { id: "history",  label: "History",  icon: Clock },
+  { id: "overview",   label: "Overview",   icon: Info },
+  { id: "photos",     label: "Photos",     icon: Image },
+  { id: "documents",  label: "Documents",  icon: FileText },
+  { id: "history",    label: "History",    icon: Clock },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -28,6 +28,7 @@ const historyLabel: Record<string, string> = {
   maintenance_end: "Maintenance ended",
   updated: "Updated",
   document_added: "Document added",
+  photo_added: "Photo added",
 };
 
 const historyColor: Record<string, string> = {
@@ -38,9 +39,10 @@ const historyColor: Record<string, string> = {
   maintenance_end: "bg-green-400",
   updated: "bg-zinc-300 dark:bg-zinc-600",
   document_added: "bg-purple-400",
+  photo_added: "bg-purple-400",
 };
 
-export default function AssetTabs({ asset }: { asset: Asset }) {
+export default function AssetTabs({ asset }: { asset: AssetWithRelations }) {
   const [tab, setTab] = useState<TabId>("overview");
 
   return (
@@ -95,7 +97,7 @@ export default function AssetTabs({ asset }: { asset: Asset }) {
             <dl className="flex flex-col gap-3">
               {[
                 { label: "Purchase Date", value: new Date(asset.purchaseDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) },
-                { label: "Purchase Price", value: `$${asset.purchasePrice.toLocaleString()}` },
+                { label: "Purchase Price", value: `$${Number(asset.purchasePrice).toLocaleString()}` },
                 { label: "Supplier", value: asset.supplier },
                 { label: "Warranty Until", value: new Date(asset.warrantyExpiry).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) },
               ].map(({ label, value }) => (
@@ -118,7 +120,7 @@ export default function AssetTabs({ asset }: { asset: Asset }) {
             )}
           </div>
 
-          {(asset.notes || asset.tags.length > 0) && (
+          {(asset.notes || (asset.tags && asset.tags.length > 0)) && (
             <div className="col-span-full flex flex-col gap-4">
               {asset.notes && (
                 <div className="flex flex-col gap-1">
@@ -126,7 +128,7 @@ export default function AssetTabs({ asset }: { asset: Asset }) {
                   <p className="text-sm text-zinc-600 dark:text-zinc-400">{asset.notes}</p>
                 </div>
               )}
-              {asset.tags.length > 0 && (
+              {asset.tags && asset.tags.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Tags</h3>
                   <div className="flex flex-wrap gap-2">
@@ -153,9 +155,9 @@ export default function AssetTabs({ asset }: { asset: Asset }) {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {asset.photos.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                  <img src={url} alt={`${asset.name} photo ${i + 1}`} className="h-48 w-full object-cover transition-transform group-hover:scale-105" />
+              {asset.photos.map((photo, i) => (
+                <a key={photo.id} href={photo.blobUrl} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                  <img src={photo.blobUrl} alt={`${asset.name} photo ${i + 1}`} className="h-48 w-full object-cover transition-transform group-hover:scale-105" />
                 </a>
               ))}
               <button className="flex h-48 items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 text-sm text-zinc-400 hover:border-zinc-400 dark:border-zinc-800">
@@ -187,7 +189,7 @@ export default function AssetTabs({ asset }: { asset: Asset }) {
                       <p className="text-xs text-zinc-400">{docTypeLabel[doc.type]} · Added {new Date(doc.uploadedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <a href={doc.url} className="text-xs text-zinc-400 hover:text-black dark:hover:text-white">Download</a>
+                  <a href={doc.blobUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-black dark:hover:text-white">Download</a>
                 </div>
               ))}
               <button className="self-start text-sm text-zinc-400 hover:text-black dark:hover:text-white">+ Upload document</button>
@@ -199,21 +201,25 @@ export default function AssetTabs({ asset }: { asset: Asset }) {
       {/* History */}
       {tab === "history" && (
         <div className="flex flex-col">
-          {[...asset.history].reverse().map((entry, i) => (
-            <div key={entry.id} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div className={`mt-1 h-2.5 w-2.5 rounded-full ${historyColor[entry.action] ?? "bg-zinc-300"}`} />
-                {i < asset.history.length - 1 && <div className="w-px flex-1 bg-zinc-100 dark:bg-zinc-800 mt-1" />}
+          {asset.history.length === 0 ? (
+            <p className="text-sm text-zinc-400">No history yet.</p>
+          ) : (
+            [...asset.history].reverse().map((entry, i) => (
+              <div key={entry.id} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className={`mt-1 h-2.5 w-2.5 rounded-full ${historyColor[entry.action] ?? "bg-zinc-300"}`} />
+                  {i < asset.history.length - 1 && <div className="w-px flex-1 bg-zinc-100 dark:bg-zinc-800 mt-1" />}
+                </div>
+                <div className="flex flex-col gap-0.5 pb-6">
+                  <p className="text-sm font-medium text-black dark:text-white">{historyLabel[entry.action]}</p>
+                  {entry.notes && <p className="text-sm text-zinc-500">{entry.notes}</p>}
+                  <p className="text-xs text-zinc-400">
+                    {entry.user} · {new Date(entry.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col gap-0.5 pb-6">
-                <p className="text-sm font-medium text-black dark:text-white">{historyLabel[entry.action]}</p>
-                {entry.notes && <p className="text-sm text-zinc-500">{entry.notes}</p>}
-                <p className="text-xs text-zinc-400">
-                  {entry.user} · {new Date(entry.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>

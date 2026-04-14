@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum } from "drizzle-orm/pg-core";
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
@@ -78,6 +78,96 @@ export const payrollEmails = pgTable("payroll_emails", {
   status: emailStatusEnum("status").notNull().default("queued"),
   sentAt: timestamp("sent_at"),
   error: text("error"),
+});
+
+// ── Assets ────────────────────────────────────────────────────────────────────
+
+export const assetStatusEnum = pgEnum("asset_status", [
+  "available",
+  "checked_out",
+  "maintenance",
+  "retired",
+]);
+
+export const assetCategoryEnum = pgEnum("asset_category", [
+  "Electronics",
+  "Furniture",
+  "Vehicles",
+  "Equipment",
+  "Tools",
+  "Other",
+]);
+
+export const assetDocumentTypeEnum = pgEnum("asset_document_type", [
+  "invoice",
+  "manual",
+  "warranty",
+  "other",
+]);
+
+export const assetHistoryActionEnum = pgEnum("asset_history_action", [
+  "created",
+  "checked_out",
+  "checked_in",
+  "maintenance_start",
+  "maintenance_end",
+  "updated",
+  "document_added",
+  "photo_added",
+]);
+
+export const assets = pgTable("assets", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  category: assetCategoryEnum("category").notNull(),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  serialNumber: text("serial_number").notNull(),
+  barcode: text("barcode").notNull(),
+  status: assetStatusEnum("status").notNull().default("available"),
+  location: text("location").notNull(),
+  assignedTo: text("assigned_to"),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  purchasePrice: numeric("purchase_price", { precision: 12, scale: 2 }).notNull(),
+  warrantyExpiry: timestamp("warranty_expiry").notNull(),
+  supplier: text("supplier").notNull(),
+  buyUrl: text("buy_url"),
+  notes: text("notes"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(), // clerk user id
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const assetPhotos = pgTable("asset_photos", {
+  id: text("id").primaryKey(),
+  assetId: text("asset_id").notNull().references(() => assets.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  blobUrl: text("blob_url").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+export const assetDocuments = pgTable("asset_documents", {
+  id: text("id").primaryKey(),
+  assetId: text("asset_id").notNull().references(() => assets.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  type: assetDocumentTypeEnum("type").notNull().default("other"),
+  blobUrl: text("blob_url").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+export const assetHistory = pgTable("asset_history", {
+  id: text("id").primaryKey(),
+  assetId: text("asset_id").notNull().references(() => assets.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  action: assetHistoryActionEnum("action").notNull(),
+  notes: text("notes"),
+  user: text("user").notNull(), // clerk user id or display name
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ── Audit Logs ────────────────────────────────────────────────────────────────
