@@ -26,7 +26,7 @@ export default async function RootLayout({
 
   return (
     <ClerkProvider>
-      <html lang={locale} className={`${inter.variable} h-full antialiased`}>
+      <html lang={locale} className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
         <body className="min-h-full flex flex-col">
           <ThemeProvider>
             <NextIntlClientProvider messages={messages}>

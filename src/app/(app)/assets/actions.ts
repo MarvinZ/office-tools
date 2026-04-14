@@ -11,10 +11,7 @@ export async function createAssetAction(formData: FormData) {
   const userName = user?.firstName ?? user?.emailAddresses[0]?.emailAddress ?? "Unknown";
 
   const tagsRaw = (formData.get("tags") as string | null) ?? "";
-  const tags = tagsRaw
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const tags = tagsRaw.split(",").map((t) => t.trim()).filter(Boolean);
 
   const asset = await createAsset(DEV_TENANT_ID, user?.id ?? "unknown", {
     name: formData.get("name") as string,
@@ -25,7 +22,7 @@ export async function createAssetAction(formData: FormData) {
     barcode: formData.get("barcode") as string,
     status: "available",
     location: formData.get("location") as string,
-    assignedTo: (formData.get("assignedTo") as string | null) || null,
+    assignedToId: (formData.get("assignedToId") as string | null) || null,
     purchaseDate: new Date(formData.get("purchaseDate") as string),
     purchasePrice: formData.get("purchasePrice") as string,
     warrantyExpiry: new Date(formData.get("warrantyExpiry") as string),
@@ -36,6 +33,5 @@ export async function createAssetAction(formData: FormData) {
   });
 
   await logHistory(DEV_TENANT_ID, asset.id, userName, "created");
-
   redirect(`/assets/${asset.id}`);
 }

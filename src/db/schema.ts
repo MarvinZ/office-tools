@@ -43,6 +43,93 @@ export const tenantTools = pgTable("tenant_tools", {
   enabledAt: timestamp("enabled_at").defaultNow().notNull(),
 });
 
+// ── Employees ─────────────────────────────────────────────────────────────────
+
+export const employeeStatusEnum = pgEnum("employee_status", [
+  "active",
+  "on_leave",
+  "terminated",
+]);
+
+export const compensationTypeEnum = pgEnum("compensation_type", [
+  "hourly",
+  "monthly",
+  "annual",
+]);
+
+export const employeeDocTypeEnum = pgEnum("employee_doc_type", [
+  "contract",
+  "id_document",
+  "other",
+]);
+
+export const departments = pgTable("departments", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const employees = pgTable("employees", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+
+  // Identity
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  avatarUrl: text("avatar_url"),
+
+  // Contact
+  companyEmail: text("company_email").notNull(),
+  personalEmail: text("personal_email"),
+  phone: text("phone"),
+
+  // Role
+  position: text("position").notNull(),
+  departmentId: text("department_id").references(() => departments.id),
+
+  // Status
+  status: employeeStatusEnum("status").notNull().default("active"),
+  hireDate: timestamp("hire_date").notNull(),
+  terminationDate: timestamp("termination_date"),
+
+  // Address
+  addressStreet: text("address_street"),
+  addressCity: text("address_city"),
+  addressState: text("address_state"),
+  addressZip: text("address_zip"),
+  addressCountry: text("address_country"),
+
+  // Compensation
+  compensationAmount: numeric("compensation_amount", { precision: 12, scale: 2 }),
+  compensationType: compensationTypeEnum("compensation_type"),
+
+  // Emergency contact
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  emergencyContactRelation: text("emergency_contact_relation"),
+
+  // App access (future)
+  clerkUserId: text("clerk_user_id"),
+
+  // Meta
+  notes: text("notes"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const employeeDocuments = pgTable("employee_documents", {
+  id: text("id").primaryKey(),
+  employeeId: text("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  type: employeeDocTypeEnum("type").notNull().default("other"),
+  blobUrl: text("blob_url").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
 // ── Payroll Uploads ───────────────────────────────────────────────────────────
 
 export const payrollUploads = pgTable("payroll_uploads", {
@@ -127,7 +214,7 @@ export const assets = pgTable("assets", {
   barcode: text("barcode").notNull(),
   status: assetStatusEnum("status").notNull().default("available"),
   location: text("location").notNull(),
-  assignedTo: text("assigned_to"),
+  assignedToId: text("assigned_to_id").references(() => employees.id),
   purchaseDate: timestamp("purchase_date").notNull(),
   purchasePrice: numeric("purchase_price", { precision: 12, scale: 2 }).notNull(),
   warrantyExpiry: timestamp("warranty_expiry").notNull(),
@@ -166,7 +253,7 @@ export const assetHistory = pgTable("asset_history", {
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   action: assetHistoryActionEnum("action").notNull(),
   notes: text("notes"),
-  user: text("user").notNull(), // clerk user id or display name
+  user: text("user").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

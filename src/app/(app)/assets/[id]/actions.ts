@@ -102,7 +102,7 @@ export async function editAssetAction(assetId: string, formData: FormData) {
     serialNumber: formData.get("serialNumber") as string,
     barcode: formData.get("barcode") as string,
     location: formData.get("location") as string,
-    assignedTo: (formData.get("assignedTo") as string | null) || null,
+    assignedToId: (formData.get("assignedToId") as string | null) || null,
     purchaseDate: new Date(formData.get("purchaseDate") as string),
     purchasePrice: formData.get("purchasePrice") as string,
     warrantyExpiry: new Date(formData.get("warrantyExpiry") as string),

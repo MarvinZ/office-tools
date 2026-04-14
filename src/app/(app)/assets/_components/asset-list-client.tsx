@@ -3,15 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, LayoutGrid, List } from "lucide-react";
-import type { AssetRow } from "@/services/assets/assets";
+import type { AssetWithEmployee } from "@/services/assets/assets";
+import { fullName } from "@/lib/employee-utils";
 import { STATUS_CONFIG, ASSET_CATEGORIES } from "../_mock/data";
 
+type AssetRow = AssetWithEmployee;
 type AssetStatus = AssetRow["status"];
 type AssetCategory = AssetRow["category"];
 
 const ALL = "All";
 
-export default function AssetListClient({ assets }: { assets: AssetRow[] }) {
+export default function AssetListClient({ assets }: { assets: AssetWithEmployee[] }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<AssetStatus | typeof ALL>(ALL);
   const [category, setCategory] = useState<AssetCategory | typeof ALL>(ALL);
@@ -126,7 +128,7 @@ export default function AssetListClient({ assets }: { assets: AssetRow[] }) {
                   </td>
                   <td className="px-4 py-3 text-zinc-500">
                     <p>{a.location}</p>
-                    {a.assignedTo && <p className="text-xs text-zinc-400">{a.assignedTo}</p>}
+                    {a.assignedEmployee && <p className="text-xs text-zinc-400">{fullName(a.assignedEmployee)}</p>}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CONFIG[a.status].color}`}>
@@ -164,8 +166,8 @@ export default function AssetListClient({ assets }: { assets: AssetRow[] }) {
                 </div>
                 <p className="text-sm text-zinc-500">{a.brand} · {a.category}</p>
                 <p className="font-mono text-xs text-zinc-400">{a.serialNumber}</p>
-                {a.assignedTo && (
-                  <p className="text-xs text-zinc-400">→ {a.assignedTo}</p>
+                {a.assignedEmployee && (
+                  <p className="text-xs text-zinc-400">→ {fullName(a.assignedEmployee)}</p>
                 )}
               </div>
             </Link>

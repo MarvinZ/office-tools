@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAsset } from "@/services/assets/assets";
+import { listEmployees, fullName } from "@/services/employees/employees";
 import { DEV_TENANT_ID } from "@/lib/constants";
 import { STATUS_CONFIG } from "../_mock/data";
 import AssetTabs from "./_components/asset-tabs";
@@ -12,10 +13,16 @@ export const dynamic = "force-dynamic";
 
 export default async function AssetDetailPage({ params }: Props) {
   const { id } = await params;
-  const asset = await getAsset(DEV_TENANT_ID, id);
+  const [asset, employees] = await Promise.all([
+    getAsset(DEV_TENANT_ID, id),
+    listEmployees(DEV_TENANT_ID),
+  ]);
   if (!asset) notFound();
 
   const cfg = STATUS_CONFIG[asset.status];
+  const assignedName = asset.assignedEmployee
+    ? fullName(asset.assignedEmployee)
+    : "—";
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
@@ -43,7 +50,7 @@ export default async function AssetDetailPage({ params }: Props) {
           <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${cfg.color}`}>
             {cfg.label}
           </span>
-          <EditAssetModal asset={asset} />
+          <EditAssetModal asset={asset} employees={employees} />
         </div>
       </div>
 
@@ -52,7 +59,7 @@ export default async function AssetDetailPage({ params }: Props) {
         {[
           { label: "Purchase Price", value: `$${Number(asset.purchasePrice).toLocaleString()}` },
           { label: "Location", value: asset.location },
-          { label: "Assigned To", value: asset.assignedTo ?? "—" },
+          { label: "Assigned To", value: assignedName },
           { label: "Warranty Until", value: new Date(asset.warrantyExpiry).toLocaleDateString("en-US", { year: "numeric", month: "short" }) },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
