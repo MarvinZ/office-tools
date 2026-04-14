@@ -4,6 +4,7 @@ import { getAsset } from "@/services/assets/assets";
 import { DEV_TENANT_ID } from "@/lib/constants";
 import { STATUS_CONFIG } from "../_mock/data";
 import AssetTabs from "./_components/asset-tabs";
+import EditAssetModal from "./_components/edit-asset-modal";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -42,9 +43,7 @@ export default async function AssetDetailPage({ params }: Props) {
           <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${cfg.color}`}>
             {cfg.label}
           </span>
-          <button className="rounded-full border border-zinc-200 px-4 py-1.5 text-sm text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400">
-            Edit
-          </button>
+          <EditAssetModal asset={asset} />
         </div>
       </div>
 

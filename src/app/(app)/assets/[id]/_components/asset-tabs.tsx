@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ExternalLink, FileText, Image, Clock, Info } from "lucide-react";
 import type { AssetWithRelations } from "@/services/assets/assets";
+import PhotoUpload from "./photo-upload";
+import DocumentUpload from "./document-upload";
 
 const TABS = [
   { id: "overview",   label: "Overview",   icon: Info },
@@ -12,13 +14,6 @@ const TABS = [
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
-
-const docTypeLabel: Record<string, string> = {
-  invoice: "Invoice",
-  manual: "Manual",
-  warranty: "Warranty",
-  other: "Document",
-};
 
 const historyLabel: Record<string, string> = {
   created: "Asset created",
@@ -147,55 +142,12 @@ export default function AssetTabs({ asset }: { asset: AssetWithRelations }) {
 
       {/* Photos */}
       {tab === "photos" && (
-        <div>
-          {asset.photos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-16 dark:border-zinc-800">
-              <p className="text-sm text-zinc-400">No photos yet.</p>
-              <button className="text-sm text-black underline dark:text-white">Upload photo</button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {asset.photos.map((photo, i) => (
-                <a key={photo.id} href={photo.blobUrl} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                  <img src={photo.blobUrl} alt={`${asset.name} photo ${i + 1}`} className="h-48 w-full object-cover transition-transform group-hover:scale-105" />
-                </a>
-              ))}
-              <button className="flex h-48 items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 text-sm text-zinc-400 hover:border-zinc-400 dark:border-zinc-800">
-                + Add photo
-              </button>
-            </div>
-          )}
-        </div>
+        <PhotoUpload assetId={asset.id} photos={asset.photos} />
       )}
 
       {/* Documents */}
       {tab === "documents" && (
-        <div className="flex flex-col gap-3">
-          {asset.documents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-16 dark:border-zinc-800">
-              <p className="text-sm text-zinc-400">No documents yet.</p>
-              <button className="text-sm text-black underline dark:text-white">Upload document</button>
-            </div>
-          ) : (
-            <>
-              {asset.documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between rounded-xl border border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                      <FileText size={15} className="text-zinc-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-black dark:text-white">{doc.name}</p>
-                      <p className="text-xs text-zinc-400">{docTypeLabel[doc.type]} · Added {new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <a href={doc.blobUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-black dark:hover:text-white">Download</a>
-                </div>
-              ))}
-              <button className="self-start text-sm text-zinc-400 hover:text-black dark:hover:text-white">+ Upload document</button>
-            </>
-          )}
-        </div>
+        <DocumentUpload assetId={asset.id} documents={asset.documents} />
       )}
 
       {/* History */}
