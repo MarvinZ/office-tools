@@ -2,20 +2,12 @@
 
 import { useRef, useState } from "react";
 import { FileText, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { uploadEmployeeDocumentAction, deleteEmployeeDocumentAction } from "../actions";
 import type { EmployeeDocumentRow } from "@/services/employees/employee-documents";
 
-const DOC_TYPES = [
-  { value: "contract",    label: "Contract" },
-  { value: "id_document", label: "ID Document" },
-  { value: "other",       label: "Other" },
-] as const;
-
-const docTypeLabel: Record<string, string> = {
-  contract:    "Contract",
-  id_document: "ID Document",
-  other:       "Document",
-};
+const DOC_TYPE_KEYS = ["contract", "id_document", "other"] as const;
+type DocType = typeof DOC_TYPE_KEYS[number];
 
 export default function EmployeeDocumentUpload({
   employeeId,
@@ -24,13 +16,21 @@ export default function EmployeeDocumentUpload({
   employeeId: string;
   documents: EmployeeDocumentRow[];
 }) {
+  const t = useTranslations("employees.documents");
+  const tc = useTranslations("common");
   const inputRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docName, setDocName] = useState("");
-  const [docType, setDocType] = useState<"contract" | "id_document" | "other">("other");
+  const [docType, setDocType] = useState<DocType>("other");
+
+  const docTypeLabels: Record<DocType, string> = {
+    contract:    t("typeContract"),
+    id_document: t("typeIdDocument"),
+    other:       t("typeOther"),
+  };
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -72,8 +72,8 @@ export default function EmployeeDocumentUpload({
           onClick={() => inputRef.current?.click()}
           className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-16 transition-colors hover:border-zinc-400 dark:border-zinc-800"
         >
-          <p className="text-sm text-zinc-400">No documents yet.</p>
-          <span className="text-sm text-black underline dark:text-white">Upload document</span>
+          <p className="text-sm text-zinc-400">{t("empty")}</p>
+          <span className="text-sm text-black underline dark:text-white">{t("uploadLink")}</span>
         </div>
       ) : (
         <>
@@ -85,12 +85,12 @@ export default function EmployeeDocumentUpload({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-black dark:text-white">{doc.name}</p>
-                  <p className="text-xs text-zinc-400">{docTypeLabel[doc.type]} · Added {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-zinc-400">{docTypeLabels[doc.type as DocType] ?? doc.type} · {t("added")} {new Date(doc.uploadedAt).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <a href={doc.blobUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-black dark:hover:text-white">
-                  Download
+                  {tc("download")}
                 </a>
                 <button onClick={() => handleDelete(doc.id)} className="text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500 dark:text-zinc-600">
                   <Trash2 size={14} />
@@ -100,7 +100,7 @@ export default function EmployeeDocumentUpload({
           ))}
           {!showForm && (
             <button onClick={() => inputRef.current?.click()} className="self-start text-sm text-zinc-400 hover:text-black dark:hover:text-white">
-              + Upload document
+              {t("uploadMore")}
             </button>
           )}
         </>
@@ -108,21 +108,27 @@ export default function EmployeeDocumentUpload({
 
       {showForm && selectedFile && (
         <form onSubmit={handleUpload} className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-sm font-medium text-black dark:text-white">New document</p>
+          <p className="text-sm font-medium text-black dark:text-white">{t("formTitle")}</p>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Name</label>
+            <label className="text-xs text-zinc-500">{t("formName")}</label>
             <input value={docName} onChange={(e) => setDocName(e.target.value)} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white" />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Type</label>
-            <select value={docType} onChange={(e) => setDocType(e.target.value as typeof docType)} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
-              {DOC_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            <label className="text-xs text-zinc-500">{t("formType")}</label>
+            <select value={docType} onChange={(e) => setDocType(e.target.value as DocType)} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+              {DOC_TYPE_KEYS.map((key) => (
+                <option key={key} value={key}>{docTypeLabels[key]}</option>
+              ))}
             </select>
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
-            <button type="button" onClick={() => { setShowForm(false); setSelectedFile(null); }} className="rounded-full border border-zinc-200 px-4 py-1.5 text-sm text-zinc-600 dark:border-zinc-700">Cancel</button>
-            <button type="submit" disabled={pending} className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black">{pending ? "Uploading..." : "Upload"}</button>
+            <button type="button" onClick={() => { setShowForm(false); setSelectedFile(null); }} className="rounded-full border border-zinc-200 px-4 py-1.5 text-sm text-zinc-600 dark:border-zinc-700">
+              {tc("cancel")}
+            </button>
+            <button type="submit" disabled={pending} className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black">
+              {pending ? tc("uploading") : t("formUpload")}
+            </button>
           </div>
         </form>
       )}

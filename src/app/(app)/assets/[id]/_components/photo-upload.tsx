@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { uploadPhotoAction, deletePhotoAction } from "../actions";
 import type { AssetPhotoRow } from "@/services/assets/photos";
 
 export default function PhotoUpload({ assetId, photos }: { assetId: string; photos: AssetPhotoRow[] }) {
+  const t = useTranslations("assets.photos");
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +36,8 @@ export default function PhotoUpload({ assetId, photos }: { assetId: string; phot
           onClick={() => inputRef.current?.click()}
           className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-16 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
         >
-          <p className="text-sm text-zinc-400">No photos yet.</p>
-          <span className="text-sm text-black underline dark:text-white">Upload photo</span>
+          <p className="text-sm text-zinc-400">{t("empty")}</p>
+          <span className="text-sm text-black underline dark:text-white">{t("uploadLink")}</span>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -57,7 +59,7 @@ export default function PhotoUpload({ assetId, photos }: { assetId: string; phot
             disabled={uploading}
             className="flex h-48 items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 text-sm text-zinc-400 transition-colors hover:border-zinc-400 disabled:opacity-50 dark:border-zinc-800"
           >
-            {uploading ? "Uploading..." : "+ Add photo"}
+            {uploading ? t("uploading") : t("addButton")}
           </button>
         </div>
       )}

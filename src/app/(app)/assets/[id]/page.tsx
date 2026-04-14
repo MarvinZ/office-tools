@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getAsset } from "@/services/assets/assets";
 import { listEmployees, fullName } from "@/services/employees/employees";
 import { DEV_TENANT_ID } from "@/lib/constants";
@@ -13,27 +14,25 @@ export const dynamic = "force-dynamic";
 
 export default async function AssetDetailPage({ params }: Props) {
   const { id } = await params;
-  const [asset, employees] = await Promise.all([
+  const [asset, employees, t, tc] = await Promise.all([
     getAsset(DEV_TENANT_ID, id),
     listEmployees(DEV_TENANT_ID),
+    getTranslations("assets"),
+    getTranslations("common"),
   ]);
   if (!asset) notFound();
 
   const cfg = STATUS_CONFIG[asset.status];
-  const assignedName = asset.assignedEmployee
-    ? fullName(asset.assignedEmployee)
-    : "—";
+  const assignedName = asset.assignedEmployee ? fullName(asset.assignedEmployee) : tc("notApplicable");
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-zinc-400">
-        <Link href="/assets" className="hover:text-black dark:hover:text-white">Assets</Link>
+        <Link href="/assets" className="hover:text-black dark:hover:text-white">{t("detail.breadcrumb")}</Link>
         <span>›</span>
         <span className="text-black dark:text-white">{asset.name}</span>
       </div>
 
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           {asset.photos[0] ? (
@@ -54,13 +53,12 @@ export default async function AssetDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Quick stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Purchase Price", value: `$${Number(asset.purchasePrice).toLocaleString()}` },
-          { label: "Location", value: asset.location },
-          { label: "Assigned To", value: assignedName },
-          { label: "Warranty Until", value: new Date(asset.warrantyExpiry).toLocaleDateString("en-US", { year: "numeric", month: "short" }) },
+          { label: t("detail.statPrice"),      value: `$${Number(asset.purchasePrice).toLocaleString()}` },
+          { label: t("detail.statLocation"),   value: asset.location },
+          { label: t("detail.statAssignedTo"), value: assignedName },
+          { label: t("detail.statWarranty"),   value: new Date(asset.warrantyExpiry).toLocaleDateString("en-US", { year: "numeric", month: "short" }) },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">{s.label}</p>
@@ -69,7 +67,6 @@ export default async function AssetDetailPage({ params }: Props) {
         ))}
       </div>
 
-      {/* Tabs */}
       <AssetTabs asset={asset} />
     </div>
   );
