@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/admin");
   }
 
-  await requireTenant();
+  const tenant = await requireTenant();
   const t = await getTranslations("nav");
   const locale = await getLocale();
 
@@ -27,6 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/dashboard" className="text-sm font-semibold text-black dark:text-white">
               {t("appName")}
             </Link>
+            <div className="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-700 sm:block" />
+            <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">{tenant.name}</span>
             <nav className="flex items-center gap-4">
               <Link href="/payroll" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
                 {t("payroll")}
