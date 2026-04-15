@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { listAssets } from "@/services/assets/assets";
 import { listEmployees } from "@/services/employees/employees";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import { ASSET_CATEGORIES } from "./_mock/data";
 import AssetListClient from "./_components/asset-list-client";
 import AddAssetModal from "./_components/add-asset-modal";
@@ -9,9 +9,10 @@ import AddAssetModal from "./_components/add-asset-modal";
 export const dynamic = "force-dynamic";
 
 export default async function AssetsPage() {
+  const tenant = await requireTenant();
   const [assets, employees, t] = await Promise.all([
-    listAssets(DEV_TENANT_ID),
-    listEmployees(DEV_TENANT_ID),
+    listAssets(tenant.id),
+    listEmployees(tenant.id),
     getTranslations("assets"),
   ]);
 

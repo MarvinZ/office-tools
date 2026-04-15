@@ -4,16 +4,16 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import { createAsset } from "@/services/assets/assets";
 import { logHistory } from "@/services/assets/history";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 
 export async function createAssetAction(formData: FormData) {
-  const user = await currentUser();
+  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   const userName = user?.firstName ?? user?.emailAddresses[0]?.emailAddress ?? "Unknown";
 
   const tagsRaw = (formData.get("tags") as string | null) ?? "";
   const tags = tagsRaw.split(",").map((t) => t.trim()).filter(Boolean);
 
-  const asset = await createAsset(DEV_TENANT_ID, user?.id ?? "unknown", {
+  const asset = await createAsset(tenant.id, user?.id ?? "unknown", {
     name: formData.get("name") as string,
     category: formData.get("category") as "Electronics" | "Furniture" | "Vehicles" | "Equipment" | "Tools" | "Other",
     brand: formData.get("brand") as string,
@@ -32,6 +32,6 @@ export async function createAssetAction(formData: FormData) {
     tags,
   });
 
-  await logHistory(DEV_TENANT_ID, asset.id, userName, "created");
+  await logHistory(tenant.id, asset.id, userName, "created");
   redirect(`/assets/${asset.id}`);
 }

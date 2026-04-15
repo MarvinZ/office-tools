@@ -7,7 +7,7 @@ import { addPhoto, deletePhoto } from "@/services/assets/photos";
 import { addDocument, deleteDocument } from "@/services/assets/documents";
 import { updateAsset } from "@/services/assets/assets";
 import { logHistory } from "@/services/assets/history";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 
 // ── Photos ────────────────────────────────────────────────────────────────────
 
@@ -23,15 +23,16 @@ export async function uploadPhotoAction(assetId: string, formData: FormData) {
     return { error: "Only image files are accepted." };
   }
 
-  const blob = await put(`assets/${DEV_TENANT_ID}/${assetId}/photos/${Date.now()}-${file.name}`, file, {
+  const tenant = await requireTenant();
+  const blob = await put(`assets/${tenant.id}/${assetId}/photos/${Date.now()}-${file.name}`, file, {
     access: "public",
   });
 
-  await addPhoto(DEV_TENANT_ID, assetId, userId, blob.url);
+  await addPhoto(tenant.id, assetId, userId, blob.url);
 
   const user = await currentUser();
   const userName = user?.firstName ?? user?.emailAddresses[0]?.emailAddress ?? "Unknown";
-  await logHistory(DEV_TENANT_ID, assetId, userName, "photo_added");
+  await logHistory(tenant.id, assetId, userName, "photo_added");
 
   revalidatePath(`/assets/${assetId}`);
   return { url: blob.url };
@@ -41,8 +42,9 @@ export async function deletePhotoAction(assetId: string, photoId: string, blobUr
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated." };
 
+  const tenant = await requireTenant();
   await del(blobUrl);
-  await deletePhoto(DEV_TENANT_ID, photoId);
+  await deletePhoto(tenant.id, photoId);
 
   revalidatePath(`/assets/${assetId}`);
   return { ok: true };
@@ -60,15 +62,16 @@ export async function uploadDocumentAction(assetId: string, formData: FormData) 
 
   if (!file || file.size === 0) return { error: "No file provided." };
 
-  const blob = await put(`assets/${DEV_TENANT_ID}/${assetId}/documents/${Date.now()}-${file.name}`, file, {
+  const tenant = await requireTenant();
+  const blob = await put(`assets/${tenant.id}/${assetId}/documents/${Date.now()}-${file.name}`, file, {
     access: "public",
   });
 
-  await addDocument(DEV_TENANT_ID, assetId, userId, { name, type, blobUrl: blob.url });
+  await addDocument(tenant.id, assetId, userId, { name, type, blobUrl: blob.url });
 
   const user = await currentUser();
   const userName = user?.firstName ?? user?.emailAddresses[0]?.emailAddress ?? "Unknown";
-  await logHistory(DEV_TENANT_ID, assetId, userName, "document_added", `${name} (${type})`);
+  await logHistory(tenant.id, assetId, userName, "document_added", `${name} (${type})`);
 
   revalidatePath(`/assets/${assetId}`);
   return { url: blob.url };
@@ -78,8 +81,9 @@ export async function deleteDocumentAction(assetId: string, documentId: string, 
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated." };
 
+  const tenant = await requireTenant();
   await del(blobUrl);
-  await deleteDocument(DEV_TENANT_ID, documentId);
+  await deleteDocument(tenant.id, documentId);
 
   revalidatePath(`/assets/${assetId}`);
   return { ok: true };
@@ -88,13 +92,13 @@ export async function deleteDocumentAction(assetId: string, documentId: string, 
 // ── Edit asset ────────────────────────────────────────────────────────────────
 
 export async function editAssetAction(assetId: string, formData: FormData) {
-  const user = await currentUser();
+  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) return { error: "Not authenticated." };
 
   const tagsRaw = (formData.get("tags") as string | null) ?? "";
   const tags = tagsRaw.split(",").map((t) => t.trim()).filter(Boolean);
 
-  await updateAsset(DEV_TENANT_ID, assetId, {
+  await updateAsset(tenant.id, assetId, {
     name: formData.get("name") as string,
     category: formData.get("category") as "Electronics" | "Furniture" | "Vehicles" | "Equipment" | "Tools" | "Other",
     brand: formData.get("brand") as string,
@@ -113,7 +117,7 @@ export async function editAssetAction(assetId: string, formData: FormData) {
   });
 
   const userName = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? "Unknown";
-  await logHistory(DEV_TENANT_ID, assetId, userName, "updated");
+  await logHistory(tenant.id, assetId, userName, "updated");
 
   revalidatePath(`/assets/${assetId}`);
   return { ok: true };

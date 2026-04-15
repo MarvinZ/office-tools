@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import { getBatchHistory } from "@/services/payroll/history";
 
 const statusStyles: Record<string, string> = {
@@ -15,8 +15,11 @@ const statusStyles: Record<string, string> = {
 };
 
 export default async function PayrollHistoryPage() {
-  const batches = await getBatchHistory(DEV_TENANT_ID);
-  const t = await getTranslations("history");
+  const tenant = await requireTenant();
+  const [batches, t] = await Promise.all([
+    getBatchHistory(tenant.id),
+    getTranslations("history"),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">

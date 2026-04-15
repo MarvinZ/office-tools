@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { getEmployee, fullName } from "@/services/employees/employees";
 import { listDepartments } from "@/services/employees/departments";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import EmployeeTabs from "./_components/employee-tabs";
 import EditEmployeeModal from "./_components/edit-employee-modal";
 
@@ -19,9 +19,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default async function EmployeeDetailPage({ params }: Props) {
   const { id } = await params;
+  const tenant = await requireTenant();
   const [employee, departments, t] = await Promise.all([
-    getEmployee(DEV_TENANT_ID, id),
-    listDepartments(DEV_TENANT_ID),
+    getEmployee(tenant.id, id),
+    listDepartments(tenant.id),
     getTranslations("employees"),
   ]);
   if (!employee) notFound();

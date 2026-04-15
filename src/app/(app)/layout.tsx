@@ -1,12 +1,21 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { getTranslations, getLocale } from "next-intl/server";
-import { ensureTenant } from "@/services/tenants";
+import { requireTenant } from "@/services/tenants";
 import LocaleSwitcher from "@/components/locale-switcher";
 import ThemeToggle from "@/components/theme-toggle";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  await ensureTenant();
+  const { orgId } = await auth();
+
+  // If the user is in the internal admin org, send them to /admin
+  if (orgId && orgId === process.env.INTERNAL_ORG_ID) {
+    redirect("/admin");
+  }
+
+  await requireTenant();
   const t = await getTranslations("nav");
   const locale = await getLocale();
 

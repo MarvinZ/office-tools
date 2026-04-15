@@ -9,6 +9,7 @@
   "dashboard": {
     "greeting": "Welcome back, {name}!",
     "subtitle": "Here's your dashboard.",
+    "noTools": "No tools are enabled for your account yet. Contact your administrator.",
     "payrollCard": {
       "title": "Payroll",
       "description": "Upload and send payroll emails to employees."

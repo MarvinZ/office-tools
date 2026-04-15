@@ -1,16 +1,17 @@
 import { getTranslations } from "next-intl/server";
 import { listEmployees } from "@/services/employees/employees";
 import { listDepartments } from "@/services/employees/departments";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import EmployeeListClient from "./_components/employee-list-client";
 import AddEmployeeModal from "./_components/add-employee-modal";
 
 export const dynamic = "force-dynamic";
 
 export default async function EmployeesPage() {
+  const tenant = await requireTenant();
   const [employees, departments, t] = await Promise.all([
-    listEmployees(DEV_TENANT_ID),
-    listDepartments(DEV_TENANT_ID),
+    listEmployees(tenant.id),
+    listDepartments(tenant.id),
     getTranslations("employees"),
   ]);
 

@@ -9,6 +9,7 @@
   "dashboard": {
     "greeting": "¡Bienvenido, {name}!",
     "subtitle": "Tu panel de control.",
+    "noTools": "No hay herramientas habilitadas para tu cuenta. Contactá a tu administrador.",
     "payrollCard": {
       "title": "Planilla",
       "description": "Cargá y enviá comprobantes de pago a los empleados."

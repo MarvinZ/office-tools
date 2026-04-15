@@ -4,18 +4,17 @@ import { put } from "@vercel/blob";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { createEmployee } from "@/services/employees/employees";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 
 export async function createEmployeeAction(formData: FormData) {
-  const user = await currentUser();
+  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) redirect("/sign-in");
 
-  // Avatar upload (optional)
   let avatarUrl: string | null = null;
   const avatarFile = formData.get("avatar") as File | null;
   if (avatarFile && avatarFile.size > 0) {
     const blob = await put(
-      `employees/${DEV_TENANT_ID}/avatars/${crypto.randomUUID()}-${avatarFile.name}`,
+      `employees/${tenant.id}/avatars/${crypto.randomUUID()}-${avatarFile.name}`,
       avatarFile,
       { access: "public" }
     );
@@ -24,7 +23,7 @@ export async function createEmployeeAction(formData: FormData) {
 
   const compensationRaw = formData.get("compensationAmount") as string | null;
 
-  await createEmployee(DEV_TENANT_ID, user.id, {
+  await createEmployee(tenant.id, user.id, {
     firstName: formData.get("firstName") as string,
     lastName: formData.get("lastName") as string,
     companyEmail: formData.get("companyEmail") as string,

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import { getBatchWithEmails } from "@/services/payroll/history";
 
 const emailStatusStyles: Record<string, string> = {
@@ -14,8 +14,11 @@ type Props = { params: Promise<{ batchId: string }> };
 
 export default async function BatchDetailPage({ params }: Props) {
   const { batchId } = await params;
-  const t = await getTranslations("history");
-  const data = await getBatchWithEmails(batchId, DEV_TENANT_ID);
+  const tenant = await requireTenant();
+  const [data, t] = await Promise.all([
+    getBatchWithEmails(batchId, tenant.id),
+    getTranslations("history"),
+  ]);
 
   if (!data) notFound();
 

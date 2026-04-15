@@ -1,37 +1,36 @@
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { tenants } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  DEV_TENANT_ID,
-  DEV_TENANT_NAME,
-  DEV_TENANT_SLUG,
-  DEV_TENANT_CLERK_ORG_ID,
-} from "@/lib/constants";
 
-export async function ensureTenant() {
-  const existing = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.id, DEV_TENANT_ID))
-    .limit(1);
+export type TenantRow = typeof tenants.$inferSelect;
 
-  if (existing.length > 0) return existing[0];
+// ── Real tenant resolution from Clerk org ────────────────────────────────────
+
+export async function getCurrentTenant(): Promise<TenantRow | null> {
+  const { orgId } = await auth();
+  if (!orgId) return null;
 
   const [tenant] = await db
-    .insert(tenants)
-    .values({
-      id: DEV_TENANT_ID,
-      name: DEV_TENANT_NAME,
-      slug: DEV_TENANT_SLUG,
-      clerkOrgId: DEV_TENANT_CLERK_ORG_ID,
-      isActive: true,
-    })
-    .returning();
+    .select()
+    .from(tenants)
+    .where(eq(tenants.clerkOrgId, orgId))
+    .limit(1);
 
+  return tenant ?? null;
+}
+
+/** Use in (app) pages — redirects to /select-org if no matching tenant. */
+export async function requireTenant(): Promise<TenantRow> {
+  const tenant = await getCurrentTenant();
+  if (!tenant) redirect("/select-org");
   return tenant;
 }
 
-export async function getTenant(id: string) {
+// ── Generic DB helpers ───────────────────────────────────────────────────────
+
+export async function getTenant(id: string): Promise<TenantRow | null> {
   const [tenant] = await db
     .select()
     .from(tenants)
@@ -39,4 +38,15 @@ export async function getTenant(id: string) {
     .limit(1);
 
   return tenant ?? null;
+}
+
+export async function listTenants(): Promise<TenantRow[]> {
+  return db.select().from(tenants).orderBy(tenants.createdAt);
+}
+
+// ── Legacy shim (ensureTenant used by old layout — now a no-op wrapper) ─────
+
+/** @deprecated Use requireTenant() instead. */
+export async function ensureTenant() {
+  return requireTenant();
 }

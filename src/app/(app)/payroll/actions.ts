@@ -2,7 +2,7 @@
 
 import { put } from "@vercel/blob";
 import { auth } from "@clerk/nextjs/server";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import { checkDuplicateUpload, createUpload } from "@/services/payroll/uploads";
 import { createBatch } from "@/services/payroll/batches";
 
@@ -28,7 +28,8 @@ export async function uploadPayrollFile(formData: FormData): Promise<
 
   const buffer = await file.arrayBuffer();
   const fileHash = await hashBuffer(buffer);
-  const tenantId = DEV_TENANT_ID; // TODO: resolve from Clerk org
+  const tenant = await requireTenant();
+  const tenantId = tenant.id;
 
   // Duplicate detection
   const duplicate = await checkDuplicateUpload(tenantId, fileHash);

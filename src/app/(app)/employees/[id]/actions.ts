@@ -5,18 +5,17 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { updateEmployee } from "@/services/employees/employees";
 import { addEmployeeDocument, deleteEmployeeDocument } from "@/services/employees/employee-documents";
-import { DEV_TENANT_ID } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 
 export async function updateEmployeeAction(employeeId: string, formData: FormData) {
-  const user = await currentUser();
+  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) return { error: "Not authenticated." };
 
-  // Avatar upload (optional — only if a new file was picked)
   let avatarUrl: string | undefined;
   const avatarFile = formData.get("avatar") as File | null;
   if (avatarFile && avatarFile.size > 0) {
     const blob = await put(
-      `employees/${DEV_TENANT_ID}/avatars/${crypto.randomUUID()}-${avatarFile.name}`,
+      `employees/${tenant.id}/avatars/${crypto.randomUUID()}-${avatarFile.name}`,
       avatarFile,
       { access: "public" }
     );
@@ -52,7 +51,7 @@ export async function updateEmployeeAction(employeeId: string, formData: FormDat
     ...(avatarUrl ? { avatarUrl } : {}),
   };
 
-  await updateEmployee(DEV_TENANT_ID, employeeId, update);
+  await updateEmployee(tenant.id, employeeId, update);
 
   revalidatePath(`/employees/${employeeId}`);
   revalidatePath("/employees");
@@ -69,13 +68,14 @@ export async function uploadEmployeeDocumentAction(employeeId: string, formData:
 
   if (!file || file.size === 0) return { error: "No file provided." };
 
+  const tenant = await requireTenant();
   const blob = await put(
-    `employees/${DEV_TENANT_ID}/${employeeId}/documents/${Date.now()}-${file.name}`,
+    `employees/${tenant.id}/${employeeId}/documents/${Date.now()}-${file.name}`,
     file,
     { access: "public" }
   );
 
-  await addEmployeeDocument(DEV_TENANT_ID, employeeId, userId, { name, type, blobUrl: blob.url });
+  await addEmployeeDocument(tenant.id, employeeId, userId, { name, type, blobUrl: blob.url });
 
   revalidatePath(`/employees/${employeeId}`);
   return { url: blob.url };
@@ -85,7 +85,8 @@ export async function deleteEmployeeDocumentAction(employeeId: string, documentI
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated." };
 
-  await deleteEmployeeDocument(DEV_TENANT_ID, documentId);
+  const tenant = await requireTenant();
+  await deleteEmployeeDocument(tenant.id, documentId);
 
   revalidatePath(`/employees/${employeeId}`);
   return { ok: true };

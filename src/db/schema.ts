@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey } from "drizzle-orm/pg-core";
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ export const tenantTools = pgTable("tenant_tools", {
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   toolId: text("tool_id").notNull().references(() => tools.id),
   enabledAt: timestamp("enabled_at").defaultNow().notNull(),
-});
+}, (t) => [primaryKey({ columns: [t.tenantId, t.toolId] })]);
 
 // ── Employees ─────────────────────────────────────────────────────────────────
 

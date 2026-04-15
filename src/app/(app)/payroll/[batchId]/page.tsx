@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { DEV_TENANT_ID, DEV_ROW_LIMIT } from "@/lib/constants";
+import { DEV_ROW_LIMIT } from "@/lib/constants";
 import { getBatch } from "@/services/payroll/batches";
 import { getUpload } from "@/services/payroll/uploads";
 import { parsePayrollFromUrl } from "@/lib/payroll/parser";
+import { requireTenant } from "@/services/tenants";
 import BatchReview from "./_components/batch-review";
 
 type Props = {
@@ -14,13 +15,12 @@ type Props = {
 export default async function BatchPage({ params, searchParams }: Props) {
   const { batchId } = await params;
   const { duplicate } = await searchParams;
-  const t = await getTranslations("payroll.review");
-  const tenantId = DEV_TENANT_ID;
+  const [tenant, t] = await Promise.all([requireTenant(), getTranslations("payroll.review")]);
 
-  const batch = await getBatch(batchId, tenantId);
+  const batch = await getBatch(batchId, tenant.id);
   if (!batch) notFound();
 
-  const upload = await getUpload(batch.uploadId, tenantId);
+  const upload = await getUpload(batch.uploadId, tenant.id);
   if (!upload) notFound();
 
   const allRows = await parsePayrollFromUrl(upload.blobUrl);

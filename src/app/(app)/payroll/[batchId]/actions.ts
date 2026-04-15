@@ -1,7 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { DEV_TENANT_ID, DEV_EMAIL_OVERRIDE, DEV_ROW_LIMIT } from "@/lib/constants";
+import { DEV_EMAIL_OVERRIDE, DEV_ROW_LIMIT } from "@/lib/constants";
+import { requireTenant } from "@/services/tenants";
 import { parsePayrollFromUrl } from "@/lib/payroll/parser";
 import { getBatch, updateBatchStatus } from "@/services/payroll/batches";
 import { getUpload } from "@/services/payroll/uploads";
@@ -13,7 +14,8 @@ export type QueueResult = { queued: number };
 export async function sendPayrollBatch(
   batchId: string
 ): Promise<QueueResult | { error: string }> {
-  const tenantId = DEV_TENANT_ID; // TODO: resolve from Clerk org
+  const tenant = await requireTenant();
+  const tenantId = tenant.id;
 
   const batch = await getBatch(batchId, tenantId);
   if (!batch) return { error: "Batch not found." };
