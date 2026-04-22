@@ -4,8 +4,16 @@ import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { getTranslations, getLocale } from "next-intl/server";
 import { requireTenant } from "@/services/tenants";
+import { adminGetEnabledTools } from "@/services/admin/tenants";
 import LocaleSwitcher from "@/components/locale-switcher";
 import ThemeToggle from "@/components/theme-toggle";
+
+const NAV_LINKS = [
+  { slug: "payroll",   href: "/payroll",   labelKey: "payroll" },
+  { slug: "assets",    href: "/assets",    labelKey: "assets" },
+  { slug: "employees", href: "/employees", labelKey: "employees" },
+  { slug: "quotes",    href: "/quotes",    labelKey: "quotes" },
+] as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { orgId } = await auth();
@@ -16,8 +24,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const tenant = await requireTenant();
-  const t = await getTranslations("nav");
-  const locale = await getLocale();
+  const [t, locale, enabledSlugs] = await Promise.all([
+    getTranslations("nav"),
+    getLocale(),
+    adminGetEnabledTools(tenant.id),
+  ]);
+
+  const visibleLinks = NAV_LINKS.filter((l) => enabledSlugs.includes(l.slug));
 
   return (
     <div className="flex min-h-full flex-col">
@@ -30,21 +43,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-700 sm:block" />
             <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">{tenant.name}</span>
             <nav className="flex items-center gap-4">
-              <Link href="/payroll" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
-                {t("payroll")}
-              </Link>
-              <Link href="/assets" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
-                {t("assets")}
-              </Link>
-              <Link href="/employees" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
-                {t("employees")}
-              </Link>
-              <Link href="/quotes" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
-                {t("quotes")}
-              </Link>
-              <Link href="/dev" className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
-                {t("dev")}
-              </Link>
+              {visibleLinks.map((link) => (
+                <Link key={link.slug} href={link.href} className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                  {t(link.labelKey)}
+                </Link>
+              ))}
             </nav>
           </div>
           <div className="flex items-center gap-3">
