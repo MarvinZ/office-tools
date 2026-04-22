@@ -1,6 +1,6 @@
 import { eq, and, sql, count } from "drizzle-orm";
 import { db } from "@/db";
-import { clients, providers, employees, quotes } from "@/db/schema";
+import { clients, providers, employees, quotes, assets } from "@/db/schema";
 import {
   createClient,
   addClientContact,
@@ -10,13 +10,17 @@ import {
   addProviderContact,
 } from "@/services/providers/providers";
 import { createEmployee } from "@/services/employees/employees";
+import { createAsset } from "@/services/assets/assets";
 import { createQuote } from "@/services/quotes/quotes";
 import type { ClientInput, ContactInput as ClientContact } from "@/services/clients/clients";
 import type { ProviderInput, ContactInput as ProviderContact } from "@/services/providers/providers";
 import type { EmployeeRow } from "@/services/employees/employees";
+import type { AssetRow } from "@/services/assets/assets";
 import type { QuoteInput } from "@/services/quotes/quotes";
 
 type DemoEmployeeInput = Omit<EmployeeRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt">;
+type DemoAssetData = Omit<AssetRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt" | "assignedToId">;
+type DemoAsset = { employeeIndex: number | null; data: DemoAssetData };
 
 // ── Demo data ─────────────────────────────────────────────────────────────────
 
@@ -482,6 +486,109 @@ const DEMO_QUOTE_TEMPLATES: DemoQuoteTemplate[] = [
   },
 ];
 
+const DEMO_ASSETS: DemoAsset[] = [
+  {
+    employeeIndex: 0, // Carlos Vargas
+    data: {
+      name: "MacBook Pro 14\" M3 Pro",
+      category: "Electronics",
+      brand: "Apple",
+      model: "MacBook Pro 14\" M3 Pro",
+      serialNumber: "C02XG0EKJGH8",
+      barcode: "ASSET-DEMO-001",
+      status: "checked_out",
+      location: "Main Office",
+      purchaseDate: new Date("2024-01-15"),
+      purchasePrice: "2499.00",
+      warrantyExpiry: new Date("2026-01-15"),
+      supplier: "Apple Store",
+      buyUrl: null,
+      notes: "Primary workstation for design team.",
+      tags: ["demo"],
+    },
+  },
+  {
+    employeeIndex: 1, // Mariana Jiménez
+    data: {
+      name: "iPhone 15 Pro 256GB",
+      category: "Electronics",
+      brand: "Apple",
+      model: "iPhone 15 Pro 256GB",
+      serialNumber: "DNPX8F2D3K7A",
+      barcode: "ASSET-DEMO-002",
+      status: "checked_out",
+      location: "Main Office",
+      purchaseDate: new Date("2024-02-01"),
+      purchasePrice: "999.00",
+      warrantyExpiry: new Date("2026-02-01"),
+      supplier: "Apple Store",
+      buyUrl: null,
+      notes: null,
+      tags: ["demo"],
+    },
+  },
+  {
+    employeeIndex: 2, // Sofía Mata
+    data: {
+      name: "Herman Miller Aeron Chair",
+      category: "Furniture",
+      brand: "Herman Miller",
+      model: "Aeron Chair Size C",
+      serialNumber: "HM-AC-2024-0042",
+      barcode: "ASSET-DEMO-003",
+      status: "checked_out",
+      location: "Main Office",
+      purchaseDate: new Date("2024-03-10"),
+      purchasePrice: "1495.00",
+      warrantyExpiry: new Date("2036-03-10"),
+      supplier: "OfficeMax CR",
+      buyUrl: null,
+      notes: "12-year manufacturer warranty.",
+      tags: ["demo"],
+    },
+  },
+  {
+    employeeIndex: null,
+    data: {
+      name: "Sony Alpha A7 IV Camera",
+      category: "Electronics",
+      brand: "Sony",
+      model: "Alpha A7 IV Mirrorless",
+      serialNumber: "4034921850",
+      barcode: "ASSET-DEMO-004",
+      status: "available",
+      location: "Studio / Storage",
+      purchaseDate: new Date("2023-11-20"),
+      purchasePrice: "2498.00",
+      warrantyExpiry: new Date("2025-11-20"),
+      supplier: "B&H Photo",
+      buyUrl: null,
+      notes: "Shared resource — book via calendar.",
+      tags: ["demo"],
+    },
+  },
+  {
+    employeeIndex: null,
+    data: {
+      name: "Epson EB-X51 Projector",
+      category: "Electronics",
+      brand: "Epson",
+      model: "EB-X51",
+      serialNumber: "X51CR-20240055",
+      barcode: "ASSET-DEMO-005",
+      status: "available",
+      location: "Conference Room",
+      purchaseDate: new Date("2024-05-01"),
+      purchasePrice: "599.00",
+      warrantyExpiry: new Date("2026-05-01"),
+      supplier: "Importaciones Tecnológicas CR",
+      buyUrl: null,
+      notes: null,
+      tags: ["demo"],
+    },
+  },
+];
+
 // ── Status ────────────────────────────────────────────────────────────────────
 
 export async function getDemoStatus(tenantId: string): Promise<{
@@ -489,8 +596,9 @@ export async function getDemoStatus(tenantId: string): Promise<{
   providers: number;
   employees: number;
   quotes: number;
+  assets: number;
 }> {
-  const [clientRows, providerRows, employeeRows, quoteRows] = await Promise.all([
+  const [clientRows, providerRows, employeeRows, quoteRows, assetRows] = await Promise.all([
     db
       .select({ n: count() })
       .from(clients)
@@ -507,12 +615,17 @@ export async function getDemoStatus(tenantId: string): Promise<{
       .select({ n: count() })
       .from(quotes)
       .where(and(eq(quotes.tenantId, tenantId), sql`${quotes.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .select({ n: count() })
+      .from(assets)
+      .where(and(eq(assets.tenantId, tenantId), sql`${assets.tags} @> ARRAY['demo']::text[]`)),
   ]);
   return {
     clients: Number(clientRows[0]?.n ?? 0),
     providers: Number(providerRows[0]?.n ?? 0),
     employees: Number(employeeRows[0]?.n ?? 0),
     quotes: Number(quoteRows[0]?.n ?? 0),
+    assets: Number(assetRows[0]?.n ?? 0),
   };
 }
 
@@ -537,9 +650,19 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
     }
   }
 
-  // Employees
+  // Employees (track IDs for asset assignment)
+  const createdEmployeeIds: string[] = [];
   for (const emp of DEMO_EMPLOYEES) {
-    await createEmployee(tenantId, seededBy, emp);
+    const employee = await createEmployee(tenantId, seededBy, emp);
+    createdEmployeeIds.push(employee.id);
+  }
+
+  // Assets (some assigned to demo employees)
+  for (const asset of DEMO_ASSETS) {
+    await createAsset(tenantId, seededBy, {
+      ...asset.data,
+      assignedToId: asset.employeeIndex !== null ? (createdEmployeeIds[asset.employeeIndex] ?? null) : null,
+    });
   }
 
   // Quotes (linked to demo clients by name)
@@ -563,12 +686,17 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
 // ── Reset ─────────────────────────────────────────────────────────────────────
 
 export async function resetDemoData(tenantId: string): Promise<void> {
-  // Delete quotes first (they reference clients via clientId FK)
-  await db
-    .delete(quotes)
-    .where(and(eq(quotes.tenantId, tenantId), sql`${quotes.tags} @> ARRAY['demo']::text[]`));
+  // Delete quotes first (FK → clients) and assets first (FK → employees)
+  await Promise.all([
+    db
+      .delete(quotes)
+      .where(and(eq(quotes.tenantId, tenantId), sql`${quotes.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .delete(assets)
+      .where(and(eq(assets.tenantId, tenantId), sql`${assets.tags} @> ARRAY['demo']::text[]`)),
+  ]);
 
-  // Then delete the rest in parallel
+  // Then delete clients, providers, employees
   await Promise.all([
     db
       .delete(clients)

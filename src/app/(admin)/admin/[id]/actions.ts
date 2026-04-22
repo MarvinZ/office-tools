@@ -31,6 +31,5 @@ export async function resetDemoAction(tenantId: string) {
   const user = await currentUser();
   if (!user) throw new Error("Not authenticated.");
   await resetDemoData(tenantId);
-  await seedDemoData(tenantId, user.id);
   revalidatePath(`/admin/${tenantId}`);
 }
