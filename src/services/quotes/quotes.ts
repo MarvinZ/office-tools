@@ -33,6 +33,7 @@ export type QuoteActivityUI = {
 export type QuoteUI = {
   id: string;
   tenantId: string;
+  clientId: string | null;
   number: string;
   title: string;
   clientName: string;
@@ -70,6 +71,7 @@ function rowToUI(
   return {
     id: row.id,
     tenantId: row.tenantId,
+    clientId: row.clientId ?? null,
     number: row.number,
     title: row.title,
     clientName: row.clientName,
@@ -140,6 +142,7 @@ export async function listQuotes(tenantId: string): Promise<QuoteListItem[]> {
   return rows.map(({ quote: q, lineItemCount }) => ({
     id: q.id,
     tenantId: q.tenantId,
+    clientId: q.clientId ?? null,
     number: q.number,
     title: q.title,
     clientName: q.clientName,
@@ -179,6 +182,7 @@ export async function getQuote(tenantId: string, id: string): Promise<QuoteUI | 
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 export type QuoteInput = {
+  clientId?: string | null;
   title: string;
   clientName: string;
   clientEmail: string;
@@ -190,6 +194,7 @@ export type QuoteInput = {
   taxAmount: number;
   total: number;
   notes: string;
+  tags?: string[];
   lineItems: { description: string; quantity: number; unitPrice: number; subtotal: number }[];
 };
 
@@ -206,6 +211,7 @@ export async function createQuote(
     .values({
       id,
       tenantId,
+      clientId: data.clientId ?? null,
       number,
       title: data.title,
       clientName: data.clientName,
@@ -219,6 +225,7 @@ export async function createQuote(
       taxAmount: String(data.taxAmount),
       total: String(data.total),
       notes: data.notes || null,
+      tags: data.tags ?? [],
       createdBy,
     })
     .returning();
@@ -256,6 +263,7 @@ export async function updateQuote(
   const [quoteRow] = await db
     .update(quotes)
     .set({
+      clientId: data.clientId ?? null,
       title: data.title,
       clientName: data.clientName,
       clientEmail: data.clientEmail,

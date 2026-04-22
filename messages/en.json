@@ -628,6 +628,8 @@
     "form": {
       "addTitle": "New quote",
       "editTitle": "Edit quote",
+      "fieldClient": "Client",
+      "fieldClientPlaceholder": "Select a client (optional)",
       "fieldTitle": "Title",
       "fieldTitlePlaceholder": "Website redesign proposal",
       "fieldClientName": "Client name",

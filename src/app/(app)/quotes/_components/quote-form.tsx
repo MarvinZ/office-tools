@@ -23,17 +23,22 @@ function fmt(n: number) {
   return n.toFixed(2);
 }
 
+type ClientOption = { id: string; name: string; billingEmail: string };
+
 export default function QuoteForm({
   initial,
+  clients = [],
   onCancel,
   onSubmit,
 }: {
   initial?: Partial<QuoteUI>;
+  clients?: ClientOption[];
   onCancel: () => void;
   onSubmit: (data: QuoteInput) => void;
 }) {
   const t = useTranslations("quotes");
 
+  const [clientId, setClientId] = useState<string>(initial?.clientId ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? "");
@@ -45,6 +50,17 @@ export default function QuoteForm({
   const [items, setItems] = useState<LineItemDraft[]>(
     initial?.lineItems?.map(({ id, description, quantity, unitPrice }) => ({ id, description, quantity, unitPrice })) ?? [newItem()]
   );
+
+  function handleClientSelect(id: string) {
+    setClientId(id);
+    if (id) {
+      const c = clients.find((c) => c.id === id);
+      if (c) {
+        setClientName(c.name);
+        setClientEmail(c.billingEmail);
+      }
+    }
+  }
 
   const subtotal = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
   const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
@@ -61,6 +77,7 @@ export default function QuoteForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
+      clientId: clientId || null,
       title,
       clientName,
       clientEmail,
@@ -87,6 +104,17 @@ export default function QuoteForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 px-6 py-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {clients.length > 0 && (
+          <div className="sm:col-span-2">
+            <label className={labelCls}>{t("form.fieldClient")}</label>
+            <select value={clientId} onChange={(e) => handleClientSelect(e.target.value)} className={inputCls}>
+              <option value="">{t("form.fieldClientPlaceholder")}</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label className={labelCls}>{t("form.fieldTitle")} *</label>
           <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("form.fieldTitlePlaceholder")} className={inputCls} />

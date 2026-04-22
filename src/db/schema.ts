@@ -114,6 +114,7 @@ export const employees = pgTable("employees", {
 
   // Meta
   notes: text("notes"),
+  tags: text("tags").array().notNull().default([]),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -281,6 +282,7 @@ export const quoteActivityActionEnum = pgEnum("quote_activity_action", [
 export const quotes = pgTable("quotes", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  clientId: text("client_id").references(() => clients.id),
   number: text("number").notNull(),
   title: text("title").notNull(),
   clientName: text("client_name").notNull(),
@@ -294,6 +296,7 @@ export const quotes = pgTable("quotes", {
   taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }).notNull(),
   total: numeric("total", { precision: 12, scale: 2 }).notNull(),
   notes: text("notes"),
+  tags: text("tags").array().notNull().default([]),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

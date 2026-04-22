@@ -46,6 +46,7 @@ export async function createEmployeeAction(formData: FormData) {
     emergencyContactRelation: (formData.get("emergencyContactRelation") as string | null) || null,
     clerkUserId: null,
     notes: (formData.get("notes") as string | null) || null,
+    tags: [],
     avatarUrl,
   });
 

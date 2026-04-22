@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireTenant } from "@/services/tenants";
 import { listQuotes } from "@/services/quotes/quotes";
+import { listClients } from "@/services/clients/clients";
 import QuoteListClient from "./_components/quote-list-client";
 import CreateQuoteModal from "./_components/create-quote-modal";
 
@@ -8,10 +9,13 @@ export const dynamic = "force-dynamic";
 
 export default async function QuotesPage() {
   const tenant = await requireTenant();
-  const [quotes, t] = await Promise.all([
+  const [quotes, clientRows, t] = await Promise.all([
     listQuotes(tenant.id),
+    listClients(tenant.id),
     getTranslations("quotes"),
   ]);
+
+  const clients = clientRows.map((c) => ({ id: c.id, name: c.name, billingEmail: c.billingEmail }));
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
@@ -22,7 +26,7 @@ export default async function QuotesPage() {
             {t("page.subtitle", { count: quotes.length })}
           </p>
         </div>
-        <CreateQuoteModal />
+        <CreateQuoteModal clients={clients} />
       </div>
 
       <QuoteListClient quotes={quotes} />

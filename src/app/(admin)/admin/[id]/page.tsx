@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { adminGetTenant, adminListTools, adminGetEnabledTools } from "@/services/admin/tenants";
+import { getDemoStatus } from "@/services/admin/demo";
 import { getOrgMembers, getOrgInvitations } from "@/lib/clerk-admin";
 import ToolToggles from "./_components/tool-toggles";
 import StatusToggle from "./_components/status-toggle";
+import DemoSeedPanel from "./_components/demo-seed-panel";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -12,10 +14,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminClientPage({ params }: Props) {
   const { id } = await params;
 
-  const [tenant, allTools, enabledSlugs] = await Promise.all([
+  const [tenant, allTools, enabledSlugs, demoStatus] = await Promise.all([
     adminGetTenant(id),
     adminListTools(),
     adminGetEnabledTools(id),
+    getDemoStatus(id),
   ]);
 
   if (!tenant) notFound();
@@ -90,6 +93,15 @@ export default async function AdminClientPage({ params }: Props) {
           )}
         </section>
       </div>
+
+      {/* Demo data */}
+      <DemoSeedPanel
+        tenantId={tenant.id}
+        demoClients={demoStatus.clients}
+        demoProviders={demoStatus.providers}
+        demoEmployees={demoStatus.employees}
+        demoQuotes={demoStatus.quotes}
+      />
 
       {/* Clerk Org ID (for reference) */}
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900">

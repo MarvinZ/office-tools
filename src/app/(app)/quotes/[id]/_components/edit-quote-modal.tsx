@@ -4,13 +4,17 @@ import { useTranslations } from "next-intl";
 import type { QuoteUI, QuoteInput } from "@/services/quotes/quotes";
 import QuoteForm from "../../_components/quote-form";
 
+type ClientOption = { id: string; name: string; billingEmail: string };
+
 export default function EditQuoteModal({
   quote,
+  clients = [],
   isPending,
   onClose,
   onSave,
 }: {
   quote: QuoteUI;
+  clients?: ClientOption[];
   isPending: boolean;
   onClose: () => void;
   onSave: (data: QuoteInput) => void;
@@ -26,6 +30,7 @@ export default function EditQuoteModal({
         </div>
         <QuoteForm
           initial={quote}
+          clients={clients}
           onCancel={onClose}
           onSubmit={onSave}
         />

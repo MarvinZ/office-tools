@@ -628,6 +628,8 @@
     "form": {
       "addTitle": "Nueva cotización",
       "editTitle": "Editar cotización",
+      "fieldClient": "Cliente",
+      "fieldClientPlaceholder": "Seleccionar cliente (opcional)",
       "fieldTitle": "Título",
       "fieldTitlePlaceholder": "Propuesta de rediseño de sitio web",
       "fieldClientName": "Nombre del cliente",

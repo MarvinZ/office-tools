@@ -23,7 +23,9 @@ const ACTIVITY_ICONS: Record<string, string> = {
   updated:  "✏️",
 };
 
-export default function QuoteDetailClient({ quote }: { quote: QuoteUI }) {
+type ClientOption = { id: string; name: string; billingEmail: string };
+
+export default function QuoteDetailClient({ quote, clients = [] }: { quote: QuoteUI; clients?: ClientOption[] }) {
   const t = useTranslations("quotes");
   const router = useRouter();
   const [showEdit, setShowEdit] = useState(false);
@@ -231,6 +233,7 @@ export default function QuoteDetailClient({ quote }: { quote: QuoteUI }) {
       {showEdit && (
         <EditQuoteModal
           quote={quote}
+          clients={clients}
           isPending={isPending}
           onClose={() => setShowEdit(false)}
           onSave={handleEdit}

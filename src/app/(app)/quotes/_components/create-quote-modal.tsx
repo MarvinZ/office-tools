@@ -6,7 +6,9 @@ import { createQuoteAction } from "../actions";
 import QuoteForm from "./quote-form";
 import type { QuoteInput } from "@/services/quotes/quotes";
 
-export default function CreateQuoteModal() {
+type ClientOption = { id: string; name: string; billingEmail: string };
+
+export default function CreateQuoteModal({ clients = [] }: { clients?: ClientOption[] }) {
   const t = useTranslations("quotes");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -35,6 +37,7 @@ export default function CreateQuoteModal() {
               <button onClick={() => setOpen(false)} className="text-zinc-400 hover:text-black dark:hover:text-white">✕</button>
             </div>
             <QuoteForm
+              clients={clients}
               onCancel={() => setOpen(false)}
               onSubmit={handleSubmit}
             />
