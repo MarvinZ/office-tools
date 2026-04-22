@@ -12,7 +12,9 @@ const TOOLS = [
   { id: "tool_payroll",   name: "Payroll",   slug: "payroll",   description: "Upload and send payroll emails to employees." },
   { id: "tool_assets",    name: "Assets",    slug: "assets",    description: "Track and manage company equipment and resources." },
   { id: "tool_employees", name: "Employees", slug: "employees", description: "Manage your team, roles, and HR records." },
-  { id: "tool_quotes",    name: "Quotes",    slug: "quotes",    description: "Create and send professional quotes to clients." },
+  { id: "tool_quotes",     name: "Quotes",     slug: "quotes",     description: "Create and send professional quotes to clients." },
+  { id: "tool_clients",    name: "Clients",    slug: "clients",    description: "Manage client relationships, contacts, and billing info." },
+  { id: "tool_providers",  name: "Providers",  slug: "providers",  description: "Track suppliers, contracts, and banking details." },
 ];
 
 async function seed() {

@@ -320,6 +320,168 @@ export const quoteActivity = pgTable("quote_activity", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ── Clients ───────────────────────────────────────────────────────────────────
+
+export const clientStatusEnum = pgEnum("client_status", [
+  "active",
+  "inactive",
+  "prospect",
+  "blocked",
+]);
+
+export const paymentTermsEnum = pgEnum("payment_terms", [
+  "immediate",
+  "net_15",
+  "net_30",
+  "net_60",
+  "net_90",
+]);
+
+export const clientDocTypeEnum = pgEnum("client_doc_type", [
+  "contract",
+  "nda",
+  "proposal",
+  "invoice",
+  "other",
+]);
+
+export const clients = pgTable("clients", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  legalName: text("legal_name").notNull(),
+  taxId: text("tax_id").notNull(),
+  industry: text("industry").notNull(),
+  status: clientStatusEnum("status").notNull().default("prospect"),
+  website: text("website"),
+  paymentTerms: paymentTermsEnum("payment_terms").notNull().default("net_30"),
+  currency: text("currency").notNull().default("USD"),
+  creditLimit: numeric("credit_limit", { precision: 12, scale: 2 }),
+  billingEmail: text("billing_email").notNull(),
+  addressStreet: text("address_street"),
+  addressCity: text("address_city"),
+  addressState: text("address_state"),
+  addressZip: text("address_zip"),
+  addressCountry: text("address_country"),
+  clientSince: timestamp("client_since").notNull(),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const clientContacts = pgTable("client_contacts", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  title: text("title"),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const clientDocuments = pgTable("client_documents", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  type: clientDocTypeEnum("type").notNull().default("other"),
+  blobUrl: text("blob_url").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+export const clientNotes = pgTable("client_notes", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  body: text("body").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ── Providers ─────────────────────────────────────────────────────────────────
+
+export const providerStatusEnum = pgEnum("provider_status", [
+  "active",
+  "inactive",
+  "blocked",
+]);
+
+export const providerDocTypeEnum = pgEnum("provider_doc_type", [
+  "contract",
+  "price_list",
+  "certificate",
+  "invoice",
+  "other",
+]);
+
+export const providers = pgTable("providers", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  legalName: text("legal_name").notNull(),
+  taxId: text("tax_id"),
+  category: text("category").notNull(),
+  status: providerStatusEnum("status").notNull().default("active"),
+  website: text("website"),
+  rating: integer("rating").notNull().default(3),
+  currency: text("currency").notNull().default("USD"),
+  paymentTerms: paymentTermsEnum("payment_terms").notNull().default("net_30"),
+  bankName: text("bank_name"),
+  bankAccount: text("bank_account"),
+  bankIban: text("bank_iban"),
+  bankSwift: text("bank_swift"),
+  productsServices: text("products_services").notNull(),
+  leadTimeDays: integer("lead_time_days"),
+  minimumOrderAmount: numeric("minimum_order_amount", { precision: 12, scale: 2 }),
+  contractExpiry: timestamp("contract_expiry"),
+  addressStreet: text("address_street"),
+  addressCity: text("address_city"),
+  addressState: text("address_state"),
+  addressZip: text("address_zip"),
+  addressCountry: text("address_country"),
+  partnerSince: timestamp("partner_since").notNull(),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const providerContacts = pgTable("provider_contacts", {
+  id: text("id").primaryKey(),
+  providerId: text("provider_id").notNull().references(() => providers.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  title: text("title"),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const providerDocuments = pgTable("provider_documents", {
+  id: text("id").primaryKey(),
+  providerId: text("provider_id").notNull().references(() => providers.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  type: providerDocTypeEnum("type").notNull().default("other"),
+  blobUrl: text("blob_url").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+export const providerNotes = pgTable("provider_notes", {
+  id: text("id").primaryKey(),
+  providerId: text("provider_id").notNull().references(() => providers.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  body: text("body").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ── Audit Logs ────────────────────────────────────────────────────────────────
 
 export const auditLogs = pgTable("audit_logs", {
