@@ -1,4 +1,12 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType } from "drizzle-orm/pg-core";
+
+// ── PostGIS custom column type ─────────────────────────────────────────────────
+
+const geometryPolygon = customType<{ data: string }>({
+  dataType() {
+    return "geometry(Polygon,4326)";
+  },
+});
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
@@ -494,4 +502,27 @@ export const auditLogs = pgTable("audit_logs", {
   action: text("action").notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ── Trades ────────────────────────────────────────────────────────────────────
+
+export const trades = pgTable("trades", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  category: text("category").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ── Coverage Areas ────────────────────────────────────────────────────────────
+
+export const coverageAreas = pgTable("coverage_areas", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  tradeId: text("trade_id").notNull().references(() => trades.id),
+  label: text("label"),
+  geom: geometryPolygon("geom").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

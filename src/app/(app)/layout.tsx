@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { slug: "quotes",    href: "/quotes",    labelKey: "quotes" },
   { slug: "clients",   href: "/clients",   labelKey: "clients" },
   { slug: "providers", href: "/providers", labelKey: "providers" },
+  { slug: "coverage",  href: "/coverage",  labelKey: "coverage" },
 ] as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

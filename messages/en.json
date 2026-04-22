@@ -7,6 +7,7 @@
     "quotes": "Quotes",
     "clients": "Clients",
     "providers": "Providers",
+    "coverage": "Coverage",
     "dev": "Dev"
   },
   "dashboard": {
@@ -705,5 +706,18 @@
     "sending": "Sending...",
     "send": "Send email",
     "success": "Email sent!"
+  },
+  "coverage": {
+    "page": {
+      "title": "Coverage",
+      "subtitle": "{count, plural, =0 {No coverage areas yet} one {# coverage area total} other {# coverage areas total}}",
+      "areasCount": "{count, plural, one {# area} other {# areas}}",
+      "noAreas": "No coverage",
+      "empty": "No coverage areas yet",
+      "emptyHint": "Use \"Add trade\" to pick a trade and draw your first coverage area."
+    },
+    "detail": {
+      "subtitle": "{count, plural, =0 {No areas defined} one {# coverage area} other {# coverage areas}}"
+    }
   }
 }

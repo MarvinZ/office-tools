@@ -7,6 +7,7 @@
     "quotes": "Cotizaciones",
     "clients": "Clientes",
     "providers": "Proveedores",
+    "coverage": "Cobertura",
     "dev": "Dev"
   },
   "dashboard": {
@@ -705,5 +706,18 @@
     "sending": "Enviando...",
     "send": "Enviar correo",
     "success": "¡Correo enviado!"
+  },
+  "coverage": {
+    "page": {
+      "title": "Cobertura",
+      "subtitle": "{count, plural, =0 {Sin áreas de cobertura} one {# área de cobertura en total} other {# áreas de cobertura en total}}",
+      "areasCount": "{count, plural, one {# área} other {# áreas}}",
+      "noAreas": "Sin cobertura",
+      "empty": "Sin áreas de cobertura",
+      "emptyHint": "Usa \"Agregar oficio\" para seleccionar un oficio y dibujar tu primera área."
+    },
+    "detail": {
+      "subtitle": "{count, plural, =0 {Sin áreas definidas} one {# área de cobertura} other {# áreas de cobertura}}"
+    }
   }
 }
