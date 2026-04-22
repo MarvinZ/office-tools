@@ -257,6 +257,69 @@ export const assetHistory = pgTable("asset_history", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ── Quotes ────────────────────────────────────────────────────────────────────
+
+export const quoteStatusEnum = pgEnum("quote_status", [
+  "draft",
+  "sent",
+  "viewed",
+  "accepted",
+  "declined",
+  "expired",
+]);
+
+export const quoteActivityActionEnum = pgEnum("quote_activity_action", [
+  "created",
+  "sent",
+  "viewed",
+  "accepted",
+  "declined",
+  "expired",
+  "updated",
+]);
+
+export const quotes = pgTable("quotes", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  number: text("number").notNull(),
+  title: text("title").notNull(),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  status: quoteStatusEnum("status").notNull().default("draft"),
+  issueDate: timestamp("issue_date").notNull(),
+  expiryDate: timestamp("expiry_date").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  taxRate: numeric("tax_rate", { precision: 5, scale: 4 }).notNull().default("0.13"),
+  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
+  taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }).notNull(),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quoteLineItems = pgTable("quote_line_items", {
+  id: text("id").primaryKey(),
+  quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  description: text("description").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
+  position: integer("position").notNull().default(0),
+});
+
+export const quoteActivity = pgTable("quote_activity", {
+  id: text("id").primaryKey(),
+  quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  action: quoteActivityActionEnum("action").notNull(),
+  note: text("note"),
+  userId: text("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ── Audit Logs ────────────────────────────────────────────────────────────────
 
 export const auditLogs = pgTable("audit_logs", {

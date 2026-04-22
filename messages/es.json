@@ -4,6 +4,7 @@
     "payroll": "Planilla",
     "assets": "Activos",
     "employees": "Empleados",
+    "quotes": "Cotizaciones",
     "dev": "Dev"
   },
   "dashboard": {
@@ -21,6 +22,10 @@
     "employeesCard": {
       "title": "Empleados",
       "description": "Administrá tu equipo, roles y expedientes de RRHH."
+    },
+    "quotesCard": {
+      "title": "Cotizaciones",
+      "description": "Creá y enviá cotizaciones profesionales a tus clientes."
     },
     "devCard": {
       "title": "Herramientas Dev",
@@ -350,6 +355,93 @@
       "sent": "Enviado",
       "failed": "Fallido",
       "cancelled": "Cancelado"
+    }
+  },
+  "quotes": {
+    "page": {
+      "title": "Cotizaciones",
+      "subtitle": "{count} cotizaciones",
+      "addButton": "+ Nueva cotización"
+    },
+    "list": {
+      "searchPlaceholder": "Buscar por número, cliente o título...",
+      "allStatuses": "Todos los estados",
+      "colNumber": "Número",
+      "colClient": "Cliente",
+      "colTitle": "Título",
+      "colTotal": "Total",
+      "colExpiry": "Vence",
+      "colStatus": "Estado",
+      "viewLink": "Ver →",
+      "empty": "No se encontraron cotizaciones.",
+      "resultsCount": "{filtered} de {total} cotizaciones"
+    },
+    "status": {
+      "draft": "Borrador",
+      "sent": "Enviada",
+      "viewed": "Vista",
+      "accepted": "Aceptada",
+      "declined": "Rechazada",
+      "expired": "Vencida"
+    },
+    "form": {
+      "addTitle": "Nueva cotización",
+      "editTitle": "Editar cotización",
+      "fieldTitle": "Título",
+      "fieldTitlePlaceholder": "Propuesta de rediseño de sitio web",
+      "fieldClientName": "Nombre del cliente",
+      "fieldClientNamePlaceholder": "Empresa S.A.",
+      "fieldClientEmail": "Correo del cliente",
+      "fieldIssueDate": "Fecha de emisión",
+      "fieldExpiryDate": "Fecha de vencimiento",
+      "fieldCurrency": "Moneda",
+      "fieldTaxRate": "Tasa de impuesto",
+      "fieldNotes": "Notas / Condiciones",
+      "fieldNotesPlaceholder": "Condiciones de pago, notas de entrega...",
+      "lineItemsTitle": "Líneas de detalle",
+      "addLine": "Agregar línea",
+      "colDescription": "Descripción",
+      "colQty": "Cant.",
+      "colUnitPrice": "Precio unitario",
+      "colSubtotal": "Subtotal",
+      "descriptionPlaceholder": "Descripción del servicio o producto...",
+      "cancel": "Cancelar",
+      "createQuote": "Crear cotización",
+      "saveChanges": "Guardar cambios"
+    },
+    "detail": {
+      "tabOverview": "Resumen",
+      "tabActivity": "Actividad",
+      "issuedOn": "Emitida el {date}",
+      "expiresOn": "vence el {date}",
+      "statClient": "Cliente",
+      "statEmail": "Correo",
+      "statItems": "Líneas",
+      "statTotal": "Total",
+      "colDescription": "Descripción",
+      "colQty": "Cant.",
+      "colUnitPrice": "Precio unitario",
+      "colSubtotal": "Subtotal",
+      "subtotal": "Subtotal",
+      "tax": "Impuesto ({rate}%)",
+      "total": "Total",
+      "notes": "Notas / Condiciones",
+      "activityEmpty": "Sin actividad aún.",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "downloadPdf": "Descargar PDF",
+      "sendQuote": "Enviar cotización",
+      "markAccepted": "Marcar como aceptada",
+      "markDeclined": "Marcar como rechazada"
+    },
+    "activity": {
+      "created": "Cotización creada",
+      "sent": "Cotización enviada",
+      "viewed": "Cotización vista por el cliente",
+      "accepted": "Cotización aceptada",
+      "declined": "Cotización rechazada",
+      "expired": "Cotización vencida",
+      "updated": "Cotización actualizada"
     }
   },
   "dev": {

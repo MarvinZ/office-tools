@@ -11,6 +11,7 @@ const TOOL_CARDS = [
   { slug: "payroll",   href: "/payroll",   titleKey: "payrollCard.title",   descKey: "payrollCard.description" },
   { slug: "assets",    href: "/assets",    titleKey: "assetsCard.title",    descKey: "assetsCard.description" },
   { slug: "employees", href: "/employees", titleKey: "employeesCard.title", descKey: "employeesCard.description" },
+  { slug: "quotes",    href: "/quotes",    titleKey: "quotesCard.title",    descKey: "quotesCard.description" },
 ] as const;
 
 export default async function DashboardPage() {

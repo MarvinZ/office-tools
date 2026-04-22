@@ -4,6 +4,7 @@
     "payroll": "Payroll",
     "assets": "Assets",
     "employees": "Employees",
+    "quotes": "Quotes",
     "dev": "Dev"
   },
   "dashboard": {
@@ -21,6 +22,10 @@
     "employeesCard": {
       "title": "Employees",
       "description": "Manage your team, roles, and HR records."
+    },
+    "quotesCard": {
+      "title": "Quotes",
+      "description": "Create and send professional quotes to clients."
     },
     "devCard": {
       "title": "Dev Tools",
@@ -350,6 +355,93 @@
       "sent": "Sent",
       "failed": "Failed",
       "cancelled": "Cancelled"
+    }
+  },
+  "quotes": {
+    "page": {
+      "title": "Quotes",
+      "subtitle": "{count} quotes",
+      "addButton": "+ New quote"
+    },
+    "list": {
+      "searchPlaceholder": "Search by number, client, or title...",
+      "allStatuses": "All statuses",
+      "colNumber": "Number",
+      "colClient": "Client",
+      "colTitle": "Title",
+      "colTotal": "Total",
+      "colExpiry": "Expires",
+      "colStatus": "Status",
+      "viewLink": "View →",
+      "empty": "No quotes found.",
+      "resultsCount": "{filtered} of {total} quotes"
+    },
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "viewed": "Viewed",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "expired": "Expired"
+    },
+    "form": {
+      "addTitle": "New quote",
+      "editTitle": "Edit quote",
+      "fieldTitle": "Title",
+      "fieldTitlePlaceholder": "Website redesign proposal",
+      "fieldClientName": "Client name",
+      "fieldClientNamePlaceholder": "Acme Corp",
+      "fieldClientEmail": "Client email",
+      "fieldIssueDate": "Issue date",
+      "fieldExpiryDate": "Expiry date",
+      "fieldCurrency": "Currency",
+      "fieldTaxRate": "Tax rate",
+      "fieldNotes": "Notes / Terms",
+      "fieldNotesPlaceholder": "Payment terms, delivery notes...",
+      "lineItemsTitle": "Line items",
+      "addLine": "Add line",
+      "colDescription": "Description",
+      "colQty": "Qty",
+      "colUnitPrice": "Unit price",
+      "colSubtotal": "Subtotal",
+      "descriptionPlaceholder": "Service or product description...",
+      "cancel": "Cancel",
+      "createQuote": "Create quote",
+      "saveChanges": "Save changes"
+    },
+    "detail": {
+      "tabOverview": "Overview",
+      "tabActivity": "Activity",
+      "issuedOn": "Issued {date}",
+      "expiresOn": "expires {date}",
+      "statClient": "Client",
+      "statEmail": "Email",
+      "statItems": "Line items",
+      "statTotal": "Total",
+      "colDescription": "Description",
+      "colQty": "Qty",
+      "colUnitPrice": "Unit price",
+      "colSubtotal": "Subtotal",
+      "subtotal": "Subtotal",
+      "tax": "Tax ({rate}%)",
+      "total": "Total",
+      "notes": "Notes / Terms",
+      "activityEmpty": "No activity yet.",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "downloadPdf": "Download PDF",
+      "sendQuote": "Send quote",
+      "markAccepted": "Mark accepted",
+      "markDeclined": "Mark declined"
+    },
+    "activity": {
+      "created": "Quote created",
+      "sent": "Quote sent",
+      "viewed": "Quote viewed by client",
+      "accepted": "Quote accepted",
+      "declined": "Quote declined",
+      "expired": "Quote expired",
+      "updated": "Quote updated"
     }
   },
   "dev": {
