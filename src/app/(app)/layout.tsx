@@ -8,11 +8,14 @@ import { adminGetEnabledTools } from "@/services/admin/tenants";
 import LocaleSwitcher from "@/components/locale-switcher";
 import ThemeToggle from "@/components/theme-toggle";
 
+export const dynamic = "force-dynamic";
+
 const NAV_LINKS = [
   { slug: "payroll",   href: "/payroll",   labelKey: "payroll" },
   { slug: "assets",    href: "/assets",    labelKey: "assets" },
   { slug: "employees", href: "/employees", labelKey: "employees" },
   { slug: "quotes",    href: "/quotes",    labelKey: "quotes" },
+  { slug: "invoices",  href: "/invoices",  labelKey: "invoices" },
   { slug: "clients",   href: "/clients",   labelKey: "clients" },
   { slug: "providers", href: "/providers", labelKey: "providers" },
   { slug: "coverage",  href: "/coverage",  labelKey: "coverage" },

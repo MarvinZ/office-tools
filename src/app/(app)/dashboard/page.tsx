@@ -12,8 +12,10 @@ const TOOL_CARDS = [
   { slug: "assets",    href: "/assets",    titleKey: "assetsCard.title",    descKey: "assetsCard.description" },
   { slug: "employees", href: "/employees", titleKey: "employeesCard.title", descKey: "employeesCard.description" },
   { slug: "quotes",    href: "/quotes",    titleKey: "quotesCard.title",    descKey: "quotesCard.description" },
+  { slug: "invoices",  href: "/invoices",  titleKey: "invoicesCard.title",  descKey: "invoicesCard.description" },
   { slug: "clients",   href: "/clients",   titleKey: "clientsCard.title",   descKey: "clientsCard.description" },
   { slug: "providers", href: "/providers", titleKey: "providersCard.title", descKey: "providersCard.description" },
+  { slug: "coverage",  href: "/coverage",  titleKey: "coverageCard.title",  descKey: "coverageCard.description" },
 ] as const;
 
 export default async function DashboardPage() {

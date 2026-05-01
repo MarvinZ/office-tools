@@ -7,6 +7,7 @@
     "quotes": "Quotes",
     "clients": "Clients",
     "providers": "Providers",
+    "invoices": "Invoices",
     "coverage": "Coverage",
     "dev": "Dev"
   },
@@ -29,6 +30,14 @@
     "quotesCard": {
       "title": "Quotes",
       "description": "Create and send professional quotes to clients."
+    },
+    "invoicesCard": {
+      "title": "Invoices",
+      "description": "Create and manage invoices for your clients."
+    },
+    "coverageCard": {
+      "title": "Coverage",
+      "description": "Map your service coverage areas by trade."
     },
     "clientsCard": {
       "title": "Clients",
@@ -718,6 +727,97 @@
     },
     "detail": {
       "subtitle": "{count, plural, =0 {No areas defined} one {# coverage area} other {# coverage areas}}"
+    }
+  },
+  "invoices": {
+    "page": {
+      "title": "Invoices",
+      "subtitle": "{count, plural, =0 {No invoices yet} one {# invoice} other {# invoices}}",
+      "addButton": "New invoice"
+    },
+    "list": {
+      "searchPlaceholder": "Search by number, title or client…",
+      "allStatuses": "All statuses",
+      "resultsCount": "{filtered} of {total}",
+      "colNumber": "Number",
+      "colClient": "Client",
+      "colTitle": "Title",
+      "colTotal": "Total",
+      "colDue": "Due date",
+      "colStatus": "Status",
+      "viewLink": "View →",
+      "empty": "No invoices found"
+    },
+    "status": {
+      "draft":     "Draft",
+      "sent":      "Sent",
+      "viewed":    "Viewed",
+      "paid":      "Paid",
+      "overdue":   "Overdue",
+      "cancelled": "Cancelled"
+    },
+    "form": {
+      "addTitle": "New invoice",
+      "editTitle": "Edit invoice",
+      "fieldClient": "Client",
+      "fieldClientPlaceholder": "Select a client (optional)",
+      "fieldTitle": "Title",
+      "fieldTitlePlaceholder": "Web development services — May 2026",
+      "fieldClientName": "Client name",
+      "fieldClientNamePlaceholder": "Acme Corp",
+      "fieldClientEmail": "Client email",
+      "fieldIssueDate": "Issue date",
+      "fieldDueDate": "Due date",
+      "fieldCurrency": "Currency",
+      "fieldTaxRate": "Tax rate",
+      "fieldNotes": "Notes / Payment terms",
+      "fieldNotesPlaceholder": "Bank transfer to account 1234-5678. Payment due within 30 days.",
+      "lineItemsTitle": "Line items",
+      "addLine": "Add line",
+      "colDescription": "Description",
+      "colQty": "Qty",
+      "colUnitPrice": "Unit price",
+      "colSubtotal": "Subtotal",
+      "descriptionPlaceholder": "Service description…",
+      "cancel": "Cancel",
+      "saveChanges": "Save changes",
+      "createInvoice": "Create invoice"
+    },
+    "detail": {
+      "issuedOn": "Issued {date}",
+      "dueOn": "Due {date}",
+      "statClient": "Client",
+      "statEmail": "Email",
+      "statItems": "Items",
+      "statTotal": "Total",
+      "tabOverview": "Overview",
+      "tabActivity": "Activity",
+      "colDescription": "Description",
+      "colQty": "Qty",
+      "colUnitPrice": "Unit price",
+      "colSubtotal": "Subtotal",
+      "subtotal": "Subtotal",
+      "tax": "Tax ({rate}%)",
+      "total": "Total",
+      "notes": "Notes / Payment terms",
+      "activityEmpty": "No activity yet.",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "downloadPdf": "Download PDF",
+      "sendInvoice": "Send invoice",
+      "markPaid": "Mark as paid",
+      "markOverdue": "Mark overdue",
+      "markCancelled": "Cancel invoice",
+      "linkedQuote": "Created from quote"
+    },
+    "activity": {
+      "created":   "Invoice created",
+      "sent":      "Invoice sent",
+      "viewed":    "Invoice viewed",
+      "paid":      "Marked as paid",
+      "overdue":   "Marked overdue",
+      "cancelled": "Invoice cancelled",
+      "updated":   "Invoice updated"
     }
   }
 }

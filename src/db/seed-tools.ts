@@ -15,6 +15,7 @@ const TOOLS = [
   { id: "tool_quotes",     name: "Quotes",     slug: "quotes",     description: "Create and send professional quotes to clients." },
   { id: "tool_clients",    name: "Clients",    slug: "clients",    description: "Manage client relationships, contacts, and billing info." },
   { id: "tool_providers",  name: "Providers",  slug: "providers",  description: "Track suppliers, contracts, and banking details." },
+  { id: "tool_invoices",   name: "Invoices",   slug: "invoices",   description: "Create and manage invoices for clients." },
   { id: "tool_coverage",   name: "Coverage",   slug: "coverage",   description: "Map service coverage areas by trade." },
 ];
 

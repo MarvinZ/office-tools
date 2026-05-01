@@ -504,6 +504,72 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ── Invoices ──────────────────────────────────────────────────────────────────
+
+export const invoiceStatusEnum = pgEnum("invoice_status", [
+  "draft",
+  "sent",
+  "viewed",
+  "paid",
+  "overdue",
+  "cancelled",
+]);
+
+export const invoiceActivityActionEnum = pgEnum("invoice_activity_action", [
+  "created",
+  "sent",
+  "viewed",
+  "paid",
+  "overdue",
+  "cancelled",
+  "updated",
+]);
+
+export const invoices = pgTable("invoices", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  clientId: text("client_id").references(() => clients.id),
+  quoteId: text("quote_id").references(() => quotes.id),
+  number: text("number").notNull(),
+  title: text("title").notNull(),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  status: invoiceStatusEnum("status").notNull().default("draft"),
+  issueDate: timestamp("issue_date").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  taxRate: numeric("tax_rate", { precision: 5, scale: 4 }).notNull().default("0.13"),
+  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
+  taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }).notNull(),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const invoiceLineItems = pgTable("invoice_line_items", {
+  id: text("id").primaryKey(),
+  invoiceId: text("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  description: text("description").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
+  position: integer("position").notNull().default(0),
+});
+
+export const invoiceActivity = pgTable("invoice_activity", {
+  id: text("id").primaryKey(),
+  invoiceId: text("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  action: invoiceActivityActionEnum("action").notNull(),
+  note: text("note"),
+  userId: text("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ── Trades ────────────────────────────────────────────────────────────────────
 
 export const trades = pgTable("trades", {

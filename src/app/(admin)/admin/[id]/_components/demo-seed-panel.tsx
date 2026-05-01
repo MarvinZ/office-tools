@@ -11,13 +11,14 @@ type Props = {
   demoEmployees: number;
   demoQuotes: number;
   demoAssets: number;
+  demoInvoices: number;
 };
 
-export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, demoEmployees, demoQuotes, demoAssets }: Props) {
+export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, demoEmployees, demoQuotes, demoAssets, demoInvoices }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const hasDemo = demoClients > 0 || demoProviders > 0 || demoEmployees > 0 || demoQuotes > 0 || demoAssets > 0;
+  const hasDemo = demoClients > 0 || demoProviders > 0 || demoEmployees > 0 || demoQuotes > 0 || demoAssets > 0 || demoInvoices > 0;
 
   function handleSeed() {
     startTransition(async () => {
@@ -43,7 +44,7 @@ export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, de
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-black dark:text-white">Demo data loaded</p>
               <p className="text-xs text-zinc-500">
-                {demoClients} client{demoClients !== 1 ? "s" : ""} · {demoProviders} provider{demoProviders !== 1 ? "s" : ""} · {demoEmployees} employee{demoEmployees !== 1 ? "s" : ""} · {demoQuotes} quote{demoQuotes !== 1 ? "s" : ""} · {demoAssets} asset{demoAssets !== 1 ? "s" : ""}
+                {demoClients} client{demoClients !== 1 ? "s" : ""} · {demoProviders} provider{demoProviders !== 1 ? "s" : ""} · {demoEmployees} employee{demoEmployees !== 1 ? "s" : ""} · {demoQuotes} quote{demoQuotes !== 1 ? "s" : ""} · {demoAssets} asset{demoAssets !== 1 ? "s" : ""} · {demoInvoices} invoice{demoInvoices !== 1 ? "s" : ""}
               </p>
             </div>
             <button
@@ -58,7 +59,7 @@ export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, de
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-black dark:text-white">No demo data</p>
-              <p className="text-xs text-zinc-500">Seeds 5 clients, 5 providers, 5 employees, 4 quotes, and 5 assets.</p>
+              <p className="text-xs text-zinc-500">Seeds 5 clients, 5 providers, 5 employees, 4 quotes, 5 assets, and 4 invoices.</p>
             </div>
             <button
               onClick={handleSeed}

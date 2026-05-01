@@ -1,6 +1,6 @@
 import { eq, and, sql, count } from "drizzle-orm";
 import { db } from "@/db";
-import { clients, providers, employees, quotes, assets } from "@/db/schema";
+import { clients, providers, employees, quotes, assets, invoices } from "@/db/schema";
 import {
   createClient,
   addClientContact,
@@ -12,11 +12,13 @@ import {
 import { createEmployee } from "@/services/employees/employees";
 import { createAsset } from "@/services/assets/assets";
 import { createQuote } from "@/services/quotes/quotes";
+import { createInvoice, updateInvoiceStatus } from "@/services/invoices/invoices";
 import type { ClientInput, ContactInput as ClientContact } from "@/services/clients/clients";
 import type { ProviderInput, ContactInput as ProviderContact } from "@/services/providers/providers";
 import type { EmployeeRow } from "@/services/employees/employees";
 import type { AssetRow } from "@/services/assets/assets";
 import type { QuoteInput } from "@/services/quotes/quotes";
+import type { InvoiceInput } from "@/services/invoices/invoices";
 
 type DemoEmployeeInput = Omit<EmployeeRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt">;
 type DemoAssetData = Omit<AssetRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt" | "assignedToId">;
@@ -589,6 +591,100 @@ const DEMO_ASSETS: DemoAsset[] = [
   },
 ];
 
+// Invoice templates receive clientId and clientName/email at seed time
+type DemoInvoiceTemplate = {
+  clientKey: string;
+  status?: "sent" | "paid" | "overdue";
+  input: Omit<InvoiceInput, "clientId" | "clientName" | "clientEmail">;
+};
+
+const DEMO_INVOICE_TEMPLATES: DemoInvoiceTemplate[] = [
+  {
+    clientKey: "Café Montaña",
+    status: "paid",
+    input: {
+      title: "Brand Refresh — Final Invoice",
+      issueDate: "2025-02-15",
+      dueDate: "2025-03-15",
+      currency: "USD",
+      taxRate: 0.13,
+      subtotal: 3982.30,
+      taxAmount: 517.70,
+      total: 4500.00,
+      notes: "Thank you for your business! Payment via wire transfer.",
+      tags: ["demo"],
+      lineItems: [
+        { description: "Logo redesign & brand identity", quantity: 1, unitPrice: 2200, subtotal: 2200 },
+        { description: "Brand guidelines document", quantity: 1, unitPrice: 900, subtotal: 900 },
+        { description: "Social media kit (10 templates)", quantity: 1, unitPrice: 882.30, subtotal: 882.30 },
+      ],
+    },
+  },
+  {
+    clientKey: "TechFlow Solutions",
+    status: "sent",
+    input: {
+      title: "API Integration — Milestone 1",
+      issueDate: "2025-03-01",
+      dueDate: "2025-03-15",
+      currency: "USD",
+      taxRate: 0,
+      subtotal: 5000,
+      taxAmount: 0,
+      total: 5000,
+      notes: "50% upfront per contract terms. Remaining 50% due on delivery.",
+      tags: ["demo"],
+      lineItems: [
+        { description: "Technical discovery & architecture", quantity: 1, unitPrice: 2500, subtotal: 2500 },
+        { description: "API development — Phase 1 (30h)", quantity: 30, unitPrice: 83.33, subtotal: 2499 },
+        { description: "Project kickoff & planning", quantity: 1, unitPrice: 1, subtotal: 1 },
+      ],
+    },
+  },
+  {
+    clientKey: "Inmobiliaria Pacífico",
+    status: "overdue",
+    input: {
+      title: "Digital Marketing — Q2 Retainer",
+      issueDate: "2025-01-01",
+      dueDate: "2025-01-15",
+      currency: "USD",
+      taxRate: 0.13,
+      subtotal: 6017.70,
+      taxAmount: 782.30,
+      total: 6800,
+      notes: "Q2 2025 retainer. Payment due within 15 days.",
+      tags: ["demo"],
+      lineItems: [
+        { description: "Social media management (3 months)", quantity: 3, unitPrice: 800, subtotal: 2400 },
+        { description: "Google Ads management & budget", quantity: 3, unitPrice: 1200, subtotal: 3600 },
+        { description: "Monthly analytics report", quantity: 3, unitPrice: 5.90, subtotal: 17.70 },
+      ],
+    },
+  },
+  {
+    clientKey: "ArtisanCR",
+    input: {
+      title: "E-Commerce Platform — Draft Invoice",
+      issueDate: "2025-04-01",
+      dueDate: "2025-04-30",
+      currency: "USD",
+      taxRate: 0.13,
+      subtotal: 7256.64,
+      taxAmount: 943.36,
+      total: 8200,
+      notes: "Draft for client review before final delivery.",
+      tags: ["demo"],
+      lineItems: [
+        { description: "Custom Shopify theme development", quantity: 1, unitPrice: 4500, subtotal: 4500 },
+        { description: "Product catalog setup (50 SKUs)", quantity: 50, unitPrice: 25, subtotal: 1250 },
+        { description: "Payment gateway & shipping config", quantity: 1, unitPrice: 800, subtotal: 800 },
+        { description: "Launch training session (2h)", quantity: 2, unitPrice: 353.32, subtotal: 706.64 },
+      ],
+    },
+  },
+];
+
 // ── Status ────────────────────────────────────────────────────────────────────
 
 export async function getDemoStatus(tenantId: string): Promise<{
@@ -597,8 +693,9 @@ export async function getDemoStatus(tenantId: string): Promise<{
   employees: number;
   quotes: number;
   assets: number;
+  invoices: number;
 }> {
-  const [clientRows, providerRows, employeeRows, quoteRows, assetRows] = await Promise.all([
+  const [clientRows, providerRows, employeeRows, quoteRows, assetRows, invoiceRows] = await Promise.all([
     db
       .select({ n: count() })
       .from(clients)
@@ -619,6 +716,10 @@ export async function getDemoStatus(tenantId: string): Promise<{
       .select({ n: count() })
       .from(assets)
       .where(and(eq(assets.tenantId, tenantId), sql`${assets.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .select({ n: count() })
+      .from(invoices)
+      .where(and(eq(invoices.tenantId, tenantId), sql`${invoices.tags} @> ARRAY['demo']::text[]`)),
   ]);
   return {
     clients: Number(clientRows[0]?.n ?? 0),
@@ -626,6 +727,7 @@ export async function getDemoStatus(tenantId: string): Promise<{
     employees: Number(employeeRows[0]?.n ?? 0),
     quotes: Number(quoteRows[0]?.n ?? 0),
     assets: Number(assetRows[0]?.n ?? 0),
+    invoices: Number(invoiceRows[0]?.n ?? 0),
   };
 }
 
@@ -681,16 +783,36 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
         : {}),
     });
   }
+
+  // Invoices (linked to demo clients by name)
+  for (const tmpl of DEMO_INVOICE_TEMPLATES) {
+    const clientRef = clientIdByName.get(tmpl.clientKey);
+    if (!clientRef) continue;
+    const clientEntry = DEMO_CLIENTS.find((c) => c.input.name === tmpl.clientKey);
+    const primaryEmail = clientEntry?.contacts.find((c) => c.isPrimary)?.email ?? clientRef.email;
+    const inv = await createInvoice(tenantId, seededBy, {
+      ...tmpl.input,
+      clientId: clientRef.id,
+      clientName: tmpl.clientKey,
+      clientEmail: primaryEmail,
+    });
+    if (tmpl.status) {
+      await updateInvoiceStatus(tenantId, inv.id, seededBy, tmpl.status);
+    }
+  }
 }
 
 // ── Reset ─────────────────────────────────────────────────────────────────────
 
 export async function resetDemoData(tenantId: string): Promise<void> {
-  // Delete quotes first (FK → clients) and assets first (FK → employees)
+  // Delete quotes, invoices, and assets first (FK parents)
   await Promise.all([
     db
       .delete(quotes)
       .where(and(eq(quotes.tenantId, tenantId), sql`${quotes.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .delete(invoices)
+      .where(and(eq(invoices.tenantId, tenantId), sql`${invoices.tags} @> ARRAY['demo']::text[]`)),
     db
       .delete(assets)
       .where(and(eq(assets.tenantId, tenantId), sql`${assets.tags} @> ARRAY['demo']::text[]`)),

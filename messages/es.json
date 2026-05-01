@@ -7,6 +7,7 @@
     "quotes": "Cotizaciones",
     "clients": "Clientes",
     "providers": "Proveedores",
+    "invoices": "Facturas",
     "coverage": "Cobertura",
     "dev": "Dev"
   },
@@ -29,6 +30,14 @@
     "quotesCard": {
       "title": "Cotizaciones",
       "description": "Creá y enviá cotizaciones profesionales a tus clientes."
+    },
+    "invoicesCard": {
+      "title": "Facturas",
+      "description": "Creá y gestioná facturas para tus clientes."
+    },
+    "coverageCard": {
+      "title": "Cobertura",
+      "description": "Mapeá tus áreas de cobertura de servicio por oficio."
     },
     "clientsCard": {
       "title": "Clientes",
@@ -718,6 +727,97 @@
     },
     "detail": {
       "subtitle": "{count, plural, =0 {Sin áreas definidas} one {# área de cobertura} other {# áreas de cobertura}}"
+    }
+  },
+  "invoices": {
+    "page": {
+      "title": "Facturas",
+      "subtitle": "{count, plural, =0 {Sin facturas} one {# factura} other {# facturas}}",
+      "addButton": "Nueva factura"
+    },
+    "list": {
+      "searchPlaceholder": "Buscar por número, título o cliente…",
+      "allStatuses": "Todos los estados",
+      "resultsCount": "{filtered} de {total}",
+      "colNumber": "Número",
+      "colClient": "Cliente",
+      "colTitle": "Título",
+      "colTotal": "Total",
+      "colDue": "Vencimiento",
+      "colStatus": "Estado",
+      "viewLink": "Ver →",
+      "empty": "No se encontraron facturas"
+    },
+    "status": {
+      "draft":     "Borrador",
+      "sent":      "Enviada",
+      "viewed":    "Vista",
+      "paid":      "Pagada",
+      "overdue":   "Vencida",
+      "cancelled": "Cancelada"
+    },
+    "form": {
+      "addTitle": "Nueva factura",
+      "editTitle": "Editar factura",
+      "fieldClient": "Cliente",
+      "fieldClientPlaceholder": "Seleccionar cliente (opcional)",
+      "fieldTitle": "Título",
+      "fieldTitlePlaceholder": "Servicios de desarrollo web — Mayo 2026",
+      "fieldClientName": "Nombre del cliente",
+      "fieldClientNamePlaceholder": "Empresa S.A.",
+      "fieldClientEmail": "Correo del cliente",
+      "fieldIssueDate": "Fecha de emisión",
+      "fieldDueDate": "Fecha de vencimiento",
+      "fieldCurrency": "Moneda",
+      "fieldTaxRate": "Tasa de impuesto",
+      "fieldNotes": "Notas / Condiciones de pago",
+      "fieldNotesPlaceholder": "Transferencia a cuenta 1234-5678. Pago a 30 días.",
+      "lineItemsTitle": "Líneas de detalle",
+      "addLine": "Agregar línea",
+      "colDescription": "Descripción",
+      "colQty": "Cant.",
+      "colUnitPrice": "Precio unitario",
+      "colSubtotal": "Subtotal",
+      "descriptionPlaceholder": "Descripción del servicio…",
+      "cancel": "Cancelar",
+      "saveChanges": "Guardar cambios",
+      "createInvoice": "Crear factura"
+    },
+    "detail": {
+      "issuedOn": "Emitida {date}",
+      "dueOn": "Vence {date}",
+      "statClient": "Cliente",
+      "statEmail": "Correo",
+      "statItems": "Ítems",
+      "statTotal": "Total",
+      "tabOverview": "Resumen",
+      "tabActivity": "Actividad",
+      "colDescription": "Descripción",
+      "colQty": "Cant.",
+      "colUnitPrice": "Precio unitario",
+      "colSubtotal": "Subtotal",
+      "subtotal": "Subtotal",
+      "tax": "Impuesto ({rate}%)",
+      "total": "Total",
+      "notes": "Notas / Condiciones de pago",
+      "activityEmpty": "Sin actividad aún.",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "downloadPdf": "Descargar PDF",
+      "sendInvoice": "Enviar factura",
+      "markPaid": "Marcar como pagada",
+      "markOverdue": "Marcar como vencida",
+      "markCancelled": "Cancelar factura",
+      "linkedQuote": "Creada desde cotización"
+    },
+    "activity": {
+      "created":   "Factura creada",
+      "sent":      "Factura enviada",
+      "viewed":    "Factura vista",
+      "paid":      "Marcada como pagada",
+      "overdue":   "Marcada como vencida",
+      "cancelled": "Factura cancelada",
+      "updated":   "Factura actualizada"
     }
   }
 }
