@@ -1,6 +1,6 @@
-import { eq, and, sql, count } from "drizzle-orm";
+import { eq, and, sql, count, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { clients, providers, employees, quotes, assets, invoices } from "@/db/schema";
+import { clients, providers, employees, quotes, assets, invoices, services, locations, barbers, barberActivities } from "@/db/schema";
 import {
   createClient,
   addClientContact,
@@ -13,12 +13,19 @@ import { createEmployee } from "@/services/employees/employees";
 import { createAsset } from "@/services/assets/assets";
 import { createQuote } from "@/services/quotes/quotes";
 import { createInvoice, updateInvoiceStatus } from "@/services/invoices/invoices";
+import { createService } from "@/services/barbers/catalog";
+import { createLocation, setLocationServicePrice } from "@/services/barbers/locations";
+import { createBarber, setBarberLocations, setBarberServiceRate } from "@/services/barbers/barbers";
+import { logActivity } from "@/services/barbers/activities";
 import type { ClientInput, ContactInput as ClientContact } from "@/services/clients/clients";
 import type { ProviderInput, ContactInput as ProviderContact } from "@/services/providers/providers";
 import type { EmployeeRow } from "@/services/employees/employees";
 import type { AssetRow } from "@/services/assets/assets";
 import type { QuoteInput } from "@/services/quotes/quotes";
 import type { InvoiceInput } from "@/services/invoices/invoices";
+import type { ServiceInput } from "@/services/barbers/catalog";
+import type { LocationInput } from "@/services/barbers/locations";
+import type { BarberInput } from "@/services/barbers/barbers";
 
 type DemoEmployeeInput = Omit<EmployeeRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt">;
 type DemoAssetData = Omit<AssetRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt" | "assignedToId">;
@@ -685,6 +692,72 @@ const DEMO_INVOICE_TEMPLATES: DemoInvoiceTemplate[] = [
   },
 ];
 
+// ── Barbers demo data ─────────────────────────────────────────────────────────
+
+const DEMO_LOCATIONS: LocationInput[] = [
+  {
+    name: "Barbería Escalante",
+    addressStreet: "Calle 33, Barrio Escalante",
+    addressCity: "San José",
+    addressState: "San José",
+    addressCountry: "Costa Rica",
+    phone: "+506 2224-5566",
+    status: "active",
+    tags: ["demo"],
+  },
+  {
+    name: "Barbería Santa Ana",
+    addressStreet: "Plaza Itskatzú, Local 12",
+    addressCity: "Santa Ana",
+    addressState: "San José",
+    addressCountry: "Costa Rica",
+    phone: "+506 2288-9900",
+    status: "active",
+    tags: ["demo"],
+  },
+];
+
+// name -> [priceAtEscalante, priceAtSantaAna]
+const DEMO_SERVICES: { input: ServiceInput; prices: [number, number] }[] = [
+  { input: { name: "Corte de cabello", category: "Cabello", defaultCommissionRate: 0.20, status: "active", tags: ["demo"] }, prices: [8000, 9500] },
+  { input: { name: "Arreglo de barba", category: "Barba", defaultCommissionRate: 0.20, status: "active", tags: ["demo"] }, prices: [5000, 6000] },
+  { input: { name: "Corte + Barba", category: "Combo", defaultCommissionRate: 0.22, status: "active", tags: ["demo"] }, prices: [11500, 13500] },
+  { input: { name: "Afeitado clásico", category: "Barba", defaultCommissionRate: 0.18, status: "active", tags: ["demo"] }, prices: [6000, 7000] },
+  { input: { name: "Manicure", category: "Uñas", defaultCommissionRate: 0.15, status: "active", tags: ["demo"] }, prices: [4500, 5000] },
+];
+
+// locationIndexes: which of DEMO_LOCATIONS this barber works at
+// overrides: serviceName -> commissionRate override (barber-negotiated rate)
+const DEMO_BARBERS: { input: BarberInput; locationIndexes: number[]; overrides?: Record<string, number> }[] = [
+  {
+    input: { firstName: "Kevin", lastName: "Salas", phone: "+506 8811-2233", email: "kevin.salas@example.com", status: "active", tags: ["demo"] },
+    locationIndexes: [0],
+    overrides: { "Corte de cabello": 0.25, "Corte + Barba": 0.27 },
+  },
+  {
+    input: { firstName: "Jonathan", lastName: "Rojas", phone: "+506 8822-3344", email: "jonathan.rojas@example.com", status: "active", tags: ["demo"] },
+    locationIndexes: [0, 1],
+  },
+  {
+    input: { firstName: "Esteban", lastName: "Chacón", phone: "+506 8833-4455", email: "esteban.chacon@example.com", status: "active", tags: ["demo"] },
+    locationIndexes: [1],
+    overrides: { "Arreglo de barba": 0.25, "Afeitado clásico": 0.22 },
+  },
+];
+
+// Logged activities: barberIndex, locationIndex, serviceName, customerName?, daysAgo
+const DEMO_ACTIVITIES: { barberIndex: number; locationIndex: number; serviceName: string; customerName?: string; daysAgo: number }[] = [
+  { barberIndex: 0, locationIndex: 0, serviceName: "Corte de cabello", customerName: "Diego Fernández", daysAgo: 1 },
+  { barberIndex: 0, locationIndex: 0, serviceName: "Corte + Barba", customerName: "Manuel Rojas", daysAgo: 1 },
+  { barberIndex: 0, locationIndex: 0, serviceName: "Corte de cabello", daysAgo: 3 },
+  { barberIndex: 1, locationIndex: 0, serviceName: "Corte de cabello", customerName: "Pablo Guzmán", daysAgo: 1 },
+  { barberIndex: 1, locationIndex: 1, serviceName: "Afeitado clásico", daysAgo: 2 },
+  { barberIndex: 1, locationIndex: 0, serviceName: "Manicure", customerName: "Fernando Ureña", daysAgo: 4 },
+  { barberIndex: 2, locationIndex: 1, serviceName: "Arreglo de barba", customerName: "Ricardo Solano", daysAgo: 1 },
+  { barberIndex: 2, locationIndex: 1, serviceName: "Corte + Barba", daysAgo: 2 },
+  { barberIndex: 2, locationIndex: 1, serviceName: "Afeitado clásico", customerName: "Andrés Villalobos", daysAgo: 5 },
+];
+
 // ── Status ────────────────────────────────────────────────────────────────────
 
 export async function getDemoStatus(tenantId: string): Promise<{
@@ -694,8 +767,11 @@ export async function getDemoStatus(tenantId: string): Promise<{
   quotes: number;
   assets: number;
   invoices: number;
+  barbers: number;
+  locations: number;
+  barberServices: number;
 }> {
-  const [clientRows, providerRows, employeeRows, quoteRows, assetRows, invoiceRows] = await Promise.all([
+  const [clientRows, providerRows, employeeRows, quoteRows, assetRows, invoiceRows, barberRows, locationRows, serviceRows] = await Promise.all([
     db
       .select({ n: count() })
       .from(clients)
@@ -720,6 +796,18 @@ export async function getDemoStatus(tenantId: string): Promise<{
       .select({ n: count() })
       .from(invoices)
       .where(and(eq(invoices.tenantId, tenantId), sql`${invoices.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .select({ n: count() })
+      .from(barbers)
+      .where(and(eq(barbers.tenantId, tenantId), sql`${barbers.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .select({ n: count() })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), sql`${locations.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .select({ n: count() })
+      .from(services)
+      .where(and(eq(services.tenantId, tenantId), sql`${services.tags} @> ARRAY['demo']::text[]`)),
   ]);
   return {
     clients: Number(clientRows[0]?.n ?? 0),
@@ -728,6 +816,9 @@ export async function getDemoStatus(tenantId: string): Promise<{
     quotes: Number(quoteRows[0]?.n ?? 0),
     assets: Number(assetRows[0]?.n ?? 0),
     invoices: Number(invoiceRows[0]?.n ?? 0),
+    barbers: Number(barberRows[0]?.n ?? 0),
+    locations: Number(locationRows[0]?.n ?? 0),
+    barberServices: Number(serviceRows[0]?.n ?? 0),
   };
 }
 
@@ -800,6 +891,61 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
       await updateInvoiceStatus(tenantId, inv.id, seededBy, tmpl.status);
     }
   }
+
+  // Barbers: locations, then services (with per-location prices), then barbers
+  // (with location assignments + rate overrides), then logged activities.
+  const createdLocationIds: string[] = [];
+  for (const loc of DEMO_LOCATIONS) {
+    const location = await createLocation(tenantId, seededBy, loc);
+    createdLocationIds.push(location.id);
+  }
+
+  const serviceIdByName = new Map<string, string>();
+  for (const demo of DEMO_SERVICES) {
+    const service = await createService(tenantId, seededBy, demo.input);
+    serviceIdByName.set(demo.input.name, service.id);
+    for (let i = 0; i < createdLocationIds.length; i++) {
+      await setLocationServicePrice(tenantId, createdLocationIds[i], service.id, demo.prices[i]);
+    }
+  }
+
+  const createdBarberIds: string[] = [];
+  for (const demo of DEMO_BARBERS) {
+    const barber = await createBarber(tenantId, seededBy, demo.input);
+    createdBarberIds.push(barber.id);
+
+    const locationIds = demo.locationIndexes.map((i) => createdLocationIds[i]);
+    await setBarberLocations(tenantId, barber.id, locationIds);
+
+    if (demo.overrides) {
+      for (const [serviceName, rate] of Object.entries(demo.overrides)) {
+        const serviceId = serviceIdByName.get(serviceName);
+        if (serviceId) await setBarberServiceRate(tenantId, barber.id, serviceId, rate);
+      }
+    }
+  }
+
+  for (const activity of DEMO_ACTIVITIES) {
+    const barberId = createdBarberIds[activity.barberIndex];
+    const locationId = createdLocationIds[activity.locationIndex];
+    const serviceId = serviceIdByName.get(activity.serviceName);
+    if (!barberId || !locationId || !serviceId) continue;
+
+    const serviceDemo = DEMO_SERVICES.find((s) => s.input.name === activity.serviceName);
+    const price = serviceDemo?.prices[activity.locationIndex] ?? 0;
+
+    const performedAt = new Date();
+    performedAt.setDate(performedAt.getDate() - activity.daysAgo);
+
+    await logActivity(tenantId, seededBy, {
+      barberId,
+      locationId,
+      serviceId,
+      customerName: activity.customerName,
+      priceCharged: price,
+      performedAt: performedAt.toISOString(),
+    });
+  }
 }
 
 // ── Reset ─────────────────────────────────────────────────────────────────────
@@ -829,5 +975,30 @@ export async function resetDemoData(tenantId: string): Promise<void> {
     db
       .delete(employees)
       .where(and(eq(employees.tenantId, tenantId), sql`${employees.tags} @> ARRAY['demo']::text[]`)),
+  ]);
+
+  // Barbers: activities have no cascade (historical records), so delete every
+  // demo tenant's activity first, before deleting the demo barbers/locations/
+  // services they reference. The join tables (barber_locations,
+  // location_services, barber_service_rates) cascade off their parents and
+  // don't need explicit deletes.
+  const demoBarberIds = await db
+    .select({ id: barbers.id })
+    .from(barbers)
+    .where(and(eq(barbers.tenantId, tenantId), sql`${barbers.tags} @> ARRAY['demo']::text[]`));
+
+  if (demoBarberIds.length > 0) {
+    await db.delete(barberActivities).where(
+      and(
+        eq(barberActivities.tenantId, tenantId),
+        inArray(barberActivities.barberId, demoBarberIds.map((b) => b.id))
+      )
+    );
+  }
+
+  await Promise.all([
+    db.delete(barbers).where(and(eq(barbers.tenantId, tenantId), sql`${barbers.tags} @> ARRAY['demo']::text[]`)),
+    db.delete(locations).where(and(eq(locations.tenantId, tenantId), sql`${locations.tags} @> ARRAY['demo']::text[]`)),
+    db.delete(services).where(and(eq(services.tenantId, tenantId), sql`${services.tags} @> ARRAY['demo']::text[]`)),
   ]);
 }

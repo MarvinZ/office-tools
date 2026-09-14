@@ -9,6 +9,7 @@
     "providers": "Providers",
     "invoices": "Invoices",
     "coverage": "Coverage",
+    "barbers": "Barbers",
     "dev": "Dev"
   },
   "dashboard": {
@@ -46,6 +47,10 @@
     "providersCard": {
       "title": "Providers",
       "description": "Track suppliers, contracts, payment terms, and banking details."
+    },
+    "barbersCard": {
+      "title": "Barbers",
+      "description": "Log barber services and track commission payouts by location."
     },
     "devCard": {
       "title": "Dev Tools",
@@ -818,6 +823,170 @@
       "overdue":   "Marked overdue",
       "cancelled": "Invoice cancelled",
       "updated":   "Invoice updated"
+    }
+  },
+  "barbers": {
+    "tabLog": "Log Activity",
+    "tabBarbers": "Barbers",
+    "tabLocations": "Locations",
+    "tabServices": "Services",
+    "tabReports": "Reports",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "log": {
+      "title": "Log Activity",
+      "subtitle": "Record a service on the spot. The form stays open so you can log the next one right away.",
+      "chooseLocationSubtitle": "Choose which location this device is at. You won't be asked again on this device.",
+      "changeLocation": "Change location",
+      "noLocationsYet": "No active locations yet. Add one from the Locations tab first.",
+      "rosterTitle": "Who's working today?",
+      "noBarbersAtLocation": "No barbers are assigned to this location yet. Assign some from the Barbers tab.",
+      "noOneCheckedIn": "No one is checked in yet — tap a name above to check a barber in before logging activity.",
+      "fieldBarber": "Barber",
+      "fieldLocation": "Location",
+      "fieldService": "Service",
+      "fieldCustomerName": "Customer name",
+      "fieldCustomerNamePlaceholder": "Optional",
+      "fieldPrice": "Price charged",
+      "fieldCommissionRate": "Commission rate",
+      "fieldPerformedAt": "Date & time",
+      "selectPlaceholder": "Select...",
+      "submitButton": "Log activity",
+      "errorMissingFields": "Please select a barber and service.",
+      "errorInvalidNumbers": "Price and commission rate must be valid numbers.",
+      "errorSubmitFailed": "Could not log this activity. Please try again.",
+      "todaySectionTitle": "Today's activity",
+      "colTime": "Time",
+      "colBarber": "Barber",
+      "colLocation": "Location",
+      "colService": "Service",
+      "colCustomer": "Customer",
+      "colPrice": "Price",
+      "colCommission": "Commission",
+      "empty": "No activity logged today yet.",
+      "deleteRow": "Delete entry"
+    },
+    "barbersPage": {
+      "title": "Barbers",
+      "subtitle": "{total} barbers · {active} active",
+      "addButton": "+ Add barber",
+      "searchPlaceholder": "Search by name, email, phone...",
+      "allStatuses": "All statuses",
+      "colBarber": "Barber",
+      "colContact": "Contact",
+      "colStatus": "Status",
+      "empty": "No barbers found.",
+      "resultsCount": "{filtered} of {total} barbers"
+    },
+    "barberForm": {
+      "addTitle": "Add barber",
+      "editTitle": "Edit barber",
+      "fieldFirstName": "First name",
+      "fieldLastName": "Last name",
+      "fieldPhone": "Phone",
+      "fieldEmail": "Email",
+      "fieldStatus": "Status",
+      "fieldNotes": "Notes",
+      "fieldLocations": "Assign to locations",
+      "noLocations": "No active locations yet. Add one from the Locations tab first.",
+      "createBarber": "Create barber"
+    },
+    "barberDetail": {
+      "sectionNotes": "Notes",
+      "sectionLocations": "Assigned locations",
+      "sectionRates": "Commission rates",
+      "noLocationsAvailable": "No locations exist yet.",
+      "noActiveServices": "No active services yet.",
+      "colService": "Service",
+      "colDefaultRate": "Default rate",
+      "colEffectiveRate": "Effective rate",
+      "colSource": "Source",
+      "colOverride": "Set override",
+      "sourceOverride": "Override",
+      "sourceDefault": "Default",
+      "resetToDefault": "Reset to default"
+    },
+    "locationsPage": {
+      "title": "Locations",
+      "subtitle": "{total} locations · {active} active",
+      "addButton": "+ Add location",
+      "searchPlaceholder": "Search by name or city...",
+      "allStatuses": "All statuses",
+      "colLocation": "Location",
+      "colAddress": "Address",
+      "colPhone": "Phone",
+      "colStatus": "Status",
+      "empty": "No locations found.",
+      "resultsCount": "{filtered} of {total} locations"
+    },
+    "locationForm": {
+      "addTitle": "Add location",
+      "editTitle": "Edit location",
+      "fieldName": "Location name",
+      "fieldStreet": "Street",
+      "fieldCity": "City",
+      "fieldState": "State / Province",
+      "fieldZip": "ZIP / Postal code",
+      "fieldCountry": "Country",
+      "fieldPhone": "Phone",
+      "fieldStatus": "Status",
+      "createLocation": "Create location"
+    },
+    "locationDetail": {
+      "sectionBarbers": "Assigned barbers",
+      "sectionPricing": "Service pricing",
+      "barbersEmpty": "No barbers assigned to this location yet.",
+      "manageAssignmentsNote": "Manage assignments from each barber's page.",
+      "noServices": "No services in the catalog yet.",
+      "colService": "Service",
+      "colCurrentPrice": "Current price",
+      "colSetPrice": "Set price"
+    },
+    "servicesPage": {
+      "title": "Services",
+      "subtitle": "{total} services · {active} active",
+      "addButton": "+ Add service",
+      "searchPlaceholder": "Search by name or category...",
+      "allStatuses": "All statuses",
+      "colService": "Service",
+      "colCategory": "Category",
+      "colDefaultRate": "Default commission",
+      "colStatus": "Status",
+      "empty": "No services found.",
+      "resultsCount": "{filtered} of {total} services"
+    },
+    "serviceForm": {
+      "addTitle": "Add service",
+      "editTitle": "Edit service",
+      "fieldName": "Service name",
+      "fieldCategory": "Category",
+      "fieldCategoryPlaceholder": "Haircut, Color, Beard...",
+      "fieldDefaultRate": "Default commission rate",
+      "rateHint": "Enter as a decimal, e.g. 0.20 for 20%.",
+      "fieldStatus": "Status",
+      "createService": "Create service"
+    },
+    "reportsPage": {
+      "title": "Payout Reports",
+      "subtitle": "Commission payouts by barber for a given date range.",
+      "fieldBarber": "Barber",
+      "fieldFrom": "From",
+      "fieldTo": "To",
+      "allBarbers": "All barbers",
+      "colBarber": "Barber",
+      "colCount": "Services",
+      "colTotalPrice": "Total charged",
+      "colTotalCommission": "Total commission",
+      "colDate": "Date",
+      "colLocation": "Location",
+      "colService": "Service",
+      "colPrice": "Price",
+      "colCommission": "Commission",
+      "grandTotal": "Grand total",
+      "lineItemsTitle": "Line items",
+      "empty": "No activity in this date range."
     }
   }
 }

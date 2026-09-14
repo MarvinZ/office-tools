@@ -12,13 +12,16 @@ type Props = {
   demoQuotes: number;
   demoAssets: number;
   demoInvoices: number;
+  demoBarbers: number;
+  demoLocations: number;
+  demoBarberServices: number;
 };
 
-export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, demoEmployees, demoQuotes, demoAssets, demoInvoices }: Props) {
+export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, demoEmployees, demoQuotes, demoAssets, demoInvoices, demoBarbers, demoLocations, demoBarberServices }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const hasDemo = demoClients > 0 || demoProviders > 0 || demoEmployees > 0 || demoQuotes > 0 || demoAssets > 0 || demoInvoices > 0;
+  const hasDemo = demoClients > 0 || demoProviders > 0 || demoEmployees > 0 || demoQuotes > 0 || demoAssets > 0 || demoInvoices > 0 || demoBarbers > 0 || demoLocations > 0 || demoBarberServices > 0;
 
   function handleSeed() {
     startTransition(async () => {
@@ -44,7 +47,7 @@ export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, de
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-black dark:text-white">Demo data loaded</p>
               <p className="text-xs text-zinc-500">
-                {demoClients} client{demoClients !== 1 ? "s" : ""} · {demoProviders} provider{demoProviders !== 1 ? "s" : ""} · {demoEmployees} employee{demoEmployees !== 1 ? "s" : ""} · {demoQuotes} quote{demoQuotes !== 1 ? "s" : ""} · {demoAssets} asset{demoAssets !== 1 ? "s" : ""} · {demoInvoices} invoice{demoInvoices !== 1 ? "s" : ""}
+                {demoClients} client{demoClients !== 1 ? "s" : ""} · {demoProviders} provider{demoProviders !== 1 ? "s" : ""} · {demoEmployees} employee{demoEmployees !== 1 ? "s" : ""} · {demoQuotes} quote{demoQuotes !== 1 ? "s" : ""} · {demoAssets} asset{demoAssets !== 1 ? "s" : ""} · {demoInvoices} invoice{demoInvoices !== 1 ? "s" : ""} · {demoLocations} location{demoLocations !== 1 ? "s" : ""} · {demoBarberServices} barber service{demoBarberServices !== 1 ? "s" : ""} · {demoBarbers} barber{demoBarbers !== 1 ? "s" : ""}
               </p>
             </div>
             <button
@@ -59,7 +62,7 @@ export default function DemoSeedPanel({ tenantId, demoClients, demoProviders, de
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-black dark:text-white">No demo data</p>
-              <p className="text-xs text-zinc-500">Seeds 5 clients, 5 providers, 5 employees, 4 quotes, 5 assets, and 4 invoices.</p>
+              <p className="text-xs text-zinc-500">Seeds 5 clients, 5 providers, 5 employees, 4 quotes, 5 assets, 4 invoices, 2 barber locations, 5 barber services, 3 barbers, and 9 logged activities.</p>
             </div>
             <button
               onClick={handleSeed}

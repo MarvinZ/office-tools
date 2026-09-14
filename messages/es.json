@@ -9,6 +9,7 @@
     "providers": "Proveedores",
     "invoices": "Facturas",
     "coverage": "Cobertura",
+    "barbers": "Barbería",
     "dev": "Dev"
   },
   "dashboard": {
@@ -46,6 +47,10 @@
     "providersCard": {
       "title": "Proveedores",
       "description": "Gestioná proveedores, contratos, condiciones de pago y datos bancarios."
+    },
+    "barbersCard": {
+      "title": "Barbería",
+      "description": "Registrá los servicios de tus barberos y calculá las comisiones por local."
     },
     "devCard": {
       "title": "Herramientas Dev",
@@ -818,6 +823,170 @@
       "overdue":   "Marcada como vencida",
       "cancelled": "Factura cancelada",
       "updated":   "Factura actualizada"
+    }
+  },
+  "barbers": {
+    "tabLog": "Registrar servicio",
+    "tabBarbers": "Barberos",
+    "tabLocations": "Sucursales",
+    "tabServices": "Servicios",
+    "tabReports": "Reportes",
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "log": {
+      "title": "Registrar servicio",
+      "subtitle": "Registra un servicio al momento. El formulario se mantiene abierto para que puedas registrar el siguiente de inmediato.",
+      "chooseLocationSubtitle": "Elegí en qué sucursal está este dispositivo. No te lo volveremos a preguntar en este dispositivo.",
+      "changeLocation": "Cambiar sucursal",
+      "noLocationsYet": "Aún no hay sucursales activas. Agregá una desde la pestaña Sucursales primero.",
+      "rosterTitle": "¿Quién trabaja hoy?",
+      "noBarbersAtLocation": "Aún no hay barberos asignados a esta sucursal. Asigná algunos desde la pestaña Barberos.",
+      "noOneCheckedIn": "Nadie ha marcado entrada todavía — tocá un nombre arriba para registrar a un barbero antes de anotar actividad.",
+      "fieldBarber": "Barbero",
+      "fieldLocation": "Sucursal",
+      "fieldService": "Servicio",
+      "fieldCustomerName": "Nombre del cliente",
+      "fieldCustomerNamePlaceholder": "Opcional",
+      "fieldPrice": "Precio cobrado",
+      "fieldCommissionRate": "Porcentaje de comisión",
+      "fieldPerformedAt": "Fecha y hora",
+      "selectPlaceholder": "Seleccionar...",
+      "submitButton": "Registrar servicio",
+      "errorMissingFields": "Selecciona un barbero y un servicio.",
+      "errorInvalidNumbers": "El precio y el porcentaje de comisión deben ser números válidos.",
+      "errorSubmitFailed": "No se pudo registrar el servicio. Intenta de nuevo.",
+      "todaySectionTitle": "Actividad de hoy",
+      "colTime": "Hora",
+      "colBarber": "Barbero",
+      "colLocation": "Sucursal",
+      "colService": "Servicio",
+      "colCustomer": "Cliente",
+      "colPrice": "Precio",
+      "colCommission": "Comisión",
+      "empty": "Aún no se ha registrado actividad hoy.",
+      "deleteRow": "Eliminar registro"
+    },
+    "barbersPage": {
+      "title": "Barberos",
+      "subtitle": "{total} barberos · {active} activos",
+      "addButton": "+ Agregar barbero",
+      "searchPlaceholder": "Buscar por nombre, correo, teléfono...",
+      "allStatuses": "Todos los estados",
+      "colBarber": "Barbero",
+      "colContact": "Contacto",
+      "colStatus": "Estado",
+      "empty": "No se encontraron barberos.",
+      "resultsCount": "{filtered} de {total} barberos"
+    },
+    "barberForm": {
+      "addTitle": "Agregar barbero",
+      "editTitle": "Editar barbero",
+      "fieldFirstName": "Nombre",
+      "fieldLastName": "Apellido",
+      "fieldPhone": "Teléfono",
+      "fieldEmail": "Correo electrónico",
+      "fieldStatus": "Estado",
+      "fieldNotes": "Notas",
+      "fieldLocations": "Asignar a sucursales",
+      "noLocations": "Todavía no hay sucursales activas. Agrega una primero desde la pestaña Sucursales.",
+      "createBarber": "Crear barbero"
+    },
+    "barberDetail": {
+      "sectionNotes": "Notas",
+      "sectionLocations": "Sucursales asignadas",
+      "sectionRates": "Porcentajes de comisión",
+      "noLocationsAvailable": "Todavía no hay sucursales creadas.",
+      "noActiveServices": "Todavía no hay servicios activos.",
+      "colService": "Servicio",
+      "colDefaultRate": "Porcentaje predeterminado",
+      "colEffectiveRate": "Porcentaje aplicado",
+      "colSource": "Origen",
+      "colOverride": "Definir excepción",
+      "sourceOverride": "Excepción",
+      "sourceDefault": "Predeterminado",
+      "resetToDefault": "Restablecer al predeterminado"
+    },
+    "locationsPage": {
+      "title": "Sucursales",
+      "subtitle": "{total} sucursales · {active} activas",
+      "addButton": "+ Agregar sucursal",
+      "searchPlaceholder": "Buscar por nombre o ciudad...",
+      "allStatuses": "Todos los estados",
+      "colLocation": "Sucursal",
+      "colAddress": "Dirección",
+      "colPhone": "Teléfono",
+      "colStatus": "Estado",
+      "empty": "No se encontraron sucursales.",
+      "resultsCount": "{filtered} de {total} sucursales"
+    },
+    "locationForm": {
+      "addTitle": "Agregar sucursal",
+      "editTitle": "Editar sucursal",
+      "fieldName": "Nombre de la sucursal",
+      "fieldStreet": "Dirección",
+      "fieldCity": "Ciudad",
+      "fieldState": "Provincia / Estado",
+      "fieldZip": "Código postal",
+      "fieldCountry": "País",
+      "fieldPhone": "Teléfono",
+      "fieldStatus": "Estado",
+      "createLocation": "Crear sucursal"
+    },
+    "locationDetail": {
+      "sectionBarbers": "Barberos asignados",
+      "sectionPricing": "Precios de servicios",
+      "barbersEmpty": "Todavía no hay barberos asignados a esta sucursal.",
+      "manageAssignmentsNote": "Las asignaciones se administran desde la página de cada barbero.",
+      "noServices": "Todavía no hay servicios en el catálogo.",
+      "colService": "Servicio",
+      "colCurrentPrice": "Precio actual",
+      "colSetPrice": "Definir precio"
+    },
+    "servicesPage": {
+      "title": "Servicios",
+      "subtitle": "{total} servicios · {active} activos",
+      "addButton": "+ Agregar servicio",
+      "searchPlaceholder": "Buscar por nombre o categoría...",
+      "allStatuses": "Todos los estados",
+      "colService": "Servicio",
+      "colCategory": "Categoría",
+      "colDefaultRate": "Comisión predeterminada",
+      "colStatus": "Estado",
+      "empty": "No se encontraron servicios.",
+      "resultsCount": "{filtered} de {total} servicios"
+    },
+    "serviceForm": {
+      "addTitle": "Agregar servicio",
+      "editTitle": "Editar servicio",
+      "fieldName": "Nombre del servicio",
+      "fieldCategory": "Categoría",
+      "fieldCategoryPlaceholder": "Corte, Color, Barba...",
+      "fieldDefaultRate": "Porcentaje de comisión predeterminado",
+      "rateHint": "Ingrésalo como decimal, por ejemplo 0.20 para 20%.",
+      "fieldStatus": "Estado",
+      "createService": "Crear servicio"
+    },
+    "reportsPage": {
+      "title": "Reportes de comisiones",
+      "subtitle": "Comisiones a pagar por barbero en un rango de fechas.",
+      "fieldBarber": "Barbero",
+      "fieldFrom": "Desde",
+      "fieldTo": "Hasta",
+      "allBarbers": "Todos los barberos",
+      "colBarber": "Barbero",
+      "colCount": "Servicios",
+      "colTotalPrice": "Total cobrado",
+      "colTotalCommission": "Total de comisión",
+      "colDate": "Fecha",
+      "colLocation": "Sucursal",
+      "colService": "Servicio",
+      "colPrice": "Precio",
+      "colCommission": "Comisión",
+      "grandTotal": "Total general",
+      "lineItemsTitle": "Detalle de servicios",
+      "empty": "No hay actividad en este rango de fechas."
     }
   }
 }

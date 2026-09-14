@@ -17,6 +17,7 @@ const TOOLS = [
   { id: "tool_providers",  name: "Providers",  slug: "providers",  description: "Track suppliers, contracts, and banking details." },
   { id: "tool_invoices",   name: "Invoices",   slug: "invoices",   description: "Create and manage invoices for clients." },
   { id: "tool_coverage",   name: "Coverage",   slug: "coverage",   description: "Map service coverage areas by trade." },
+  { id: "tool_barbers",    name: "Barbers",    slug: "barbers",    description: "Log barber services and track commission payouts by location." },
 ];
 
 async function seed() {

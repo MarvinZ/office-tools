@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType, date } from "drizzle-orm/pg-core";
 
 // ── PostGIS custom column type ─────────────────────────────────────────────────
 
@@ -591,4 +591,118 @@ export const coverageAreas = pgTable("coverage_areas", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ── Barbers ───────────────────────────────────────────────────────────────────
+
+export const serviceStatusEnum = pgEnum("service_status", [
+  "active",
+  "inactive",
+]);
+
+export const locationStatusEnum = pgEnum("location_status", [
+  "active",
+  "inactive",
+]);
+
+export const barberStatusEnum = pgEnum("barber_status", [
+  "active",
+  "inactive",
+]);
+
+export const services = pgTable("services", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  category: text("category"),
+  defaultCommissionRate: numeric("default_commission_rate", { precision: 5, scale: 4 }).notNull(),
+  status: serviceStatusEnum("status").notNull().default("active"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const locations = pgTable("locations", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  addressStreet: text("address_street"),
+  addressCity: text("address_city"),
+  addressState: text("address_state"),
+  addressZip: text("address_zip"),
+  addressCountry: text("address_country"),
+  phone: text("phone"),
+  status: locationStatusEnum("status").notNull().default("active"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const barbers = pgTable("barbers", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  status: barberStatusEnum("status").notNull().default("active"),
+  notes: text("notes"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const barberLocations = pgTable("barber_locations", {
+  barberId: text("barber_id").notNull().references(() => barbers.id, { onDelete: "cascade" }),
+  locationId: text("location_id").notNull().references(() => locations.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.barberId, t.locationId] })]);
+
+export const locationServices = pgTable("location_services", {
+  locationId: text("location_id").notNull().references(() => locations.id, { onDelete: "cascade" }),
+  serviceId: text("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.locationId, t.serviceId] })]);
+
+export const barberServiceRates = pgTable("barber_service_rates", {
+  barberId: text("barber_id").notNull().references(() => barbers.id, { onDelete: "cascade" }),
+  serviceId: text("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  commissionRate: numeric("commission_rate", { precision: 5, scale: 4 }).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.barberId, t.serviceId] })]);
+
+// A barber checked in to work at a location on a given calendar day. Filters
+// the fast-entry form's barber picker to who's actually in today, separate
+// from barberLocations (which locations a barber is ever permitted to work)
+// and from barbers.status (still-employed vs retired). Editable all day:
+// checking in inserts a row, checking out deletes it — no lock, no history
+// kept for who-was-in-when (this is a live roster, not an attendance log).
+export const barberDailyRoster = pgTable("barber_daily_roster", {
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  locationId: text("location_id").notNull().references(() => locations.id, { onDelete: "cascade" }),
+  barberId: text("barber_id").notNull().references(() => barbers.id, { onDelete: "cascade" }),
+  workDate: date("work_date").notNull(),
+  checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.locationId, t.barberId, t.workDate] })]);
+
+export const barberActivities = pgTable("barber_activities", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  barberId: text("barber_id").notNull().references(() => barbers.id),
+  locationId: text("location_id").notNull().references(() => locations.id),
+  serviceId: text("service_id").notNull().references(() => services.id),
+  customerName: text("customer_name"),
+  priceCharged: numeric("price_charged", { precision: 12, scale: 2 }).notNull(),
+  commissionRate: numeric("commission_rate", { precision: 5, scale: 4 }).notNull(), // snapshot at log time
+  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull(), // computed server-side
+  performedAt: timestamp("performed_at").defaultNow().notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
