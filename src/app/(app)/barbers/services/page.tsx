@@ -13,7 +13,7 @@ export default async function ServicesListPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-black dark:text-white">{t("servicesPage.title")}</h1>
           <p className="mt-1 text-sm text-zinc-500">{t("servicesPage.subtitle", { total: services.length, active })}</p>

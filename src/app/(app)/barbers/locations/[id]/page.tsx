@@ -30,7 +30,7 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
         <span className="text-black dark:text-white">{location.name}</span>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-black dark:text-white">{location.name}</h1>
           <p className="mt-0.5 text-sm text-zinc-500">{address || tc("notApplicable")}</p>

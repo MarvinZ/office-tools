@@ -30,7 +30,7 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
         <span className="text-black dark:text-white">{barber.firstName} {barber.lastName}</span>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-xl font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
             {barber.firstName[0]}{barber.lastName[0]}

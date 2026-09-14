@@ -37,6 +37,7 @@ export default function LocationPricingEditor({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
@@ -77,6 +78,7 @@ export default function LocationPricingEditor({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

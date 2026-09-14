@@ -23,6 +23,7 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
     <div className="flex flex-col gap-6">
       {/* Per-barber summary */}
       <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
@@ -56,12 +57,14 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
             </tfoot>
           )}
         </table>
+        </div>
       </div>
 
       {/* Line items */}
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-black dark:text-white">{t("reportsPage.lineItemsTitle")}</h2>
         <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
@@ -87,6 +90,7 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
