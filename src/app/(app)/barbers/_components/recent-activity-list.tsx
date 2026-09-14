@@ -4,15 +4,12 @@ import { useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { deleteActivityAction } from "../actions";
+import { fmtColones } from "@/lib/barbers/currency";
 import type { ActivityListItem } from "@/services/barbers/activities";
 
 function fmtTime(d: Date | string): string {
   const date = typeof d === "string" ? new Date(d) : d;
   return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-}
-
-function fmtMoney(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 }
 
 export default function RecentActivityList({ activities }: { activities: ActivityListItem[] }) {
@@ -46,8 +43,8 @@ export default function RecentActivityList({ activities }: { activities: Activit
               <td className="px-4 py-3 font-medium text-black dark:text-white">{a.barberName}</td>
               <td className="px-4 py-3 text-zinc-500">{a.serviceName}</td>
               <td className="px-4 py-3 text-zinc-500">{a.customerName ?? "—"}</td>
-              <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtMoney(a.priceCharged)}</td>
-              <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtMoney(a.commissionAmount)}</td>
+              <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(a.priceCharged)}</td>
+              <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(a.commissionAmount)}</td>
               <td className="px-4 py-3 text-right">
                 <button
                   onClick={() => handleDelete(a.id)}

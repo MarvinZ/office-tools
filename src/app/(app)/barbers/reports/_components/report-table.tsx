@@ -1,11 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { fmtColones } from "@/lib/barbers/currency";
 import type { PayoutReport } from "@/services/barbers/payout-report";
-
-function fmtMoney(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
-}
 
 /**
  * Render the stored timestamp as a YYYY-MM-DD calendar day in UTC — the same
@@ -43,8 +40,8 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
               <tr key={s.barberId} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                 <td className="px-4 py-3 font-medium text-black dark:text-white">{s.barberName}</td>
                 <td className="px-4 py-3 text-zinc-500">{s.count}</td>
-                <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtMoney(s.sumPrice)}</td>
-                <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtMoney(s.sumCommission)}</td>
+                <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(s.sumPrice)}</td>
+                <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(s.sumCommission)}</td>
               </tr>
             ))}
           </tbody>
@@ -53,8 +50,8 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
               <tr className="border-t border-zinc-200 bg-zinc-50 font-semibold dark:border-zinc-800 dark:bg-zinc-900">
                 <td className="px-4 py-3 text-black dark:text-white">{t("reportsPage.grandTotal")}</td>
                 <td className="px-4 py-3 text-black dark:text-white">{report.grandTotal.count}</td>
-                <td className="px-4 py-3 text-black dark:text-white">{fmtMoney(report.grandTotal.sumPrice)}</td>
-                <td className="px-4 py-3 text-black dark:text-white">{fmtMoney(report.grandTotal.sumCommission)}</td>
+                <td className="px-4 py-3 text-black dark:text-white">{fmtColones(report.grandTotal.sumPrice)}</td>
+                <td className="px-4 py-3 text-black dark:text-white">{fmtColones(report.grandTotal.sumCommission)}</td>
               </tr>
             </tfoot>
           )}
@@ -84,8 +81,8 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
                   <td className="px-4 py-3 text-black dark:text-white">{item.barberName}</td>
                   <td className="px-4 py-3 text-zinc-500">{item.locationName}</td>
                   <td className="px-4 py-3 text-zinc-500">{item.serviceName}</td>
-                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtMoney(item.priceCharged)}</td>
-                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtMoney(item.commissionAmount)}</td>
+                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(item.priceCharged)}</td>
+                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(item.commissionAmount)}</td>
                 </tr>
               ))}
             </tbody>

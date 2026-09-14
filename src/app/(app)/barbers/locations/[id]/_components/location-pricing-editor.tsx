@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { LocationServicePriceItem } from "@/services/barbers/locations";
 import { setLocationServicePriceAction } from "../actions";
-
-function fmtMoney(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
-}
+import { fmtColones } from "@/lib/barbers/currency";
 
 export default function LocationPricingEditor({
   locationId,
@@ -55,7 +52,7 @@ export default function LocationPricingEditor({
                 {s.serviceName}
                 {s.status === "inactive" && <span className="ml-2 text-xs text-zinc-400">({t("status.inactive")})</span>}
               </td>
-              <td className="px-4 py-3 text-zinc-500">{s.price != null ? fmtMoney(s.price) : tc("notApplicable")}</td>
+              <td className="px-4 py-3 text-zinc-500">{s.price != null ? fmtColones(s.price) : tc("notApplicable")}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
                   <input
