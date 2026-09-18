@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Scissors, Users, MapPin, Sparkles, BarChart3 } from "lucide-react";
+import { Scissors, Users, MapPin, Sparkles, CreditCard, BarChart3 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -10,6 +10,7 @@ const TABS = [
   { href: "/barbers/barbers", labelKey: "tabBarbers", icon: Users, exact: false },
   { href: "/barbers/locations", labelKey: "tabLocations", icon: MapPin, exact: false },
   { href: "/barbers/services", labelKey: "tabServices", icon: Sparkles, exact: false },
+  { href: "/barbers/payment-methods", labelKey: "tabPaymentMethods", icon: CreditCard, exact: false },
   { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3, exact: false },
 ] as const;
 

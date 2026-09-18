@@ -1,6 +1,6 @@
 import { eq, and, sql, count, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { clients, providers, employees, quotes, assets, invoices, services, locations, barbers, barberActivities } from "@/db/schema";
+import { clients, providers, employees, quotes, assets, invoices, services, locations, barbers, barberActivities, paymentMethods } from "@/db/schema";
 import {
   createClient,
   addClientContact,
@@ -16,7 +16,9 @@ import { createInvoice, updateInvoiceStatus } from "@/services/invoices/invoices
 import { createService } from "@/services/barbers/catalog";
 import { createLocation, setLocationServicePrice } from "@/services/barbers/locations";
 import { createBarber, setBarberLocations, setBarberServiceRate } from "@/services/barbers/barbers";
+import { createPaymentMethod } from "@/services/barbers/payment-methods";
 import { logActivity } from "@/services/barbers/activities";
+import { DEMO_BARBER_SERVICES } from "@/services/admin/demo-barber-services";
 import type { ClientInput, ContactInput as ClientContact } from "@/services/clients/clients";
 import type { ProviderInput, ContactInput as ProviderContact } from "@/services/providers/providers";
 import type { EmployeeRow } from "@/services/employees/employees";
@@ -26,6 +28,7 @@ import type { InvoiceInput } from "@/services/invoices/invoices";
 import type { ServiceInput } from "@/services/barbers/catalog";
 import type { LocationInput } from "@/services/barbers/locations";
 import type { BarberInput } from "@/services/barbers/barbers";
+import type { PaymentMethodInput } from "@/services/barbers/payment-methods";
 
 type DemoEmployeeInput = Omit<EmployeeRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt">;
 type DemoAssetData = Omit<AssetRow, "id" | "tenantId" | "createdBy" | "createdAt" | "updatedAt" | "assignedToId">;
@@ -717,13 +720,21 @@ const DEMO_LOCATIONS: LocationInput[] = [
   },
 ];
 
-// name -> [priceAtEscalante, priceAtSantaAna]
-const DEMO_SERVICES: { input: ServiceInput; prices: [number, number] }[] = [
-  { input: { name: "Corte de cabello", category: "Cabello", defaultCommissionRate: 0.20, status: "active", tags: ["demo"] }, prices: [8000, 9500] },
-  { input: { name: "Arreglo de barba", category: "Barba", defaultCommissionRate: 0.20, status: "active", tags: ["demo"] }, prices: [5000, 6000] },
-  { input: { name: "Corte + Barba", category: "Combo", defaultCommissionRate: 0.22, status: "active", tags: ["demo"] }, prices: [11500, 13500] },
-  { input: { name: "Afeitado clásico", category: "Barba", defaultCommissionRate: 0.18, status: "active", tags: ["demo"] }, prices: [6000, 7000] },
-  { input: { name: "Manicure", category: "Uñas", defaultCommissionRate: 0.15, status: "active", tags: ["demo"] }, prices: [4500, 5000] },
+// A realistic ~185-service catalog (see demo-barber-services.ts) so the
+// typeahead/combobox and "most used at this location" favorites have enough
+// volume to actually be worth trying — it includes, verbatim, the handful of
+// service names DEMO_BARBERS' rate overrides and DEMO_ACTIVITIES reference
+// by name ("Corte de cabello", "Arreglo de barba", "Corte + Barba",
+// "Afeitado clásico", "Manicure"), so nothing below needs to change.
+const DEMO_SERVICES: { input: ServiceInput; prices: [number, number] }[] = DEMO_BARBER_SERVICES;
+
+// Tagged "demo" like the rest of the barbers demo data so resetDemoData can
+// clean them up. A non-demo tenant instead gets its defaults from
+// ensureDefaultPaymentMethods, which is untagged and never reset.
+const DEMO_PAYMENT_METHODS: PaymentMethodInput[] = [
+  { name: "Efectivo", feeRate: 0, status: "active", tags: ["demo"] },
+  { name: "SINPE", feeRate: 0.02, status: "active", tags: ["demo"] },
+  { name: "Tarjeta de crédito", feeRate: 0.06, status: "active", tags: ["demo"] },
 ];
 
 // locationIndexes: which of DEMO_LOCATIONS this barber works at
@@ -745,17 +756,19 @@ const DEMO_BARBERS: { input: BarberInput; locationIndexes: number[]; overrides?:
   },
 ];
 
-// Logged activities: barberIndex, locationIndex, serviceName, customerName?, daysAgo
-const DEMO_ACTIVITIES: { barberIndex: number; locationIndex: number; serviceName: string; customerName?: string; daysAgo: number }[] = [
-  { barberIndex: 0, locationIndex: 0, serviceName: "Corte de cabello", customerName: "Diego Fernández", daysAgo: 1 },
-  { barberIndex: 0, locationIndex: 0, serviceName: "Corte + Barba", customerName: "Manuel Rojas", daysAgo: 1 },
-  { barberIndex: 0, locationIndex: 0, serviceName: "Corte de cabello", daysAgo: 3 },
-  { barberIndex: 1, locationIndex: 0, serviceName: "Corte de cabello", customerName: "Pablo Guzmán", daysAgo: 1 },
-  { barberIndex: 1, locationIndex: 1, serviceName: "Afeitado clásico", daysAgo: 2 },
-  { barberIndex: 1, locationIndex: 0, serviceName: "Manicure", customerName: "Fernando Ureña", daysAgo: 4 },
-  { barberIndex: 2, locationIndex: 1, serviceName: "Arreglo de barba", customerName: "Ricardo Solano", daysAgo: 1 },
-  { barberIndex: 2, locationIndex: 1, serviceName: "Corte + Barba", daysAgo: 2 },
-  { barberIndex: 2, locationIndex: 1, serviceName: "Afeitado clásico", customerName: "Andrés Villalobos", daysAgo: 5 },
+// Logged activities: barberIndex, locationIndex, serviceName, customerName?,
+// daysAgo, paymentMethodIndex (into DEMO_PAYMENT_METHODS — a spread of cash /
+// SINPE / card so the fee-reduced commission is visible in the demo report).
+const DEMO_ACTIVITIES: { barberIndex: number; locationIndex: number; serviceName: string; customerName?: string; daysAgo: number; paymentMethodIndex: number }[] = [
+  { barberIndex: 0, locationIndex: 0, serviceName: "Corte de cabello", customerName: "Diego Fernández", daysAgo: 1, paymentMethodIndex: 0 },
+  { barberIndex: 0, locationIndex: 0, serviceName: "Corte + Barba", customerName: "Manuel Rojas", daysAgo: 1, paymentMethodIndex: 2 },
+  { barberIndex: 0, locationIndex: 0, serviceName: "Corte de cabello", daysAgo: 3, paymentMethodIndex: 1 },
+  { barberIndex: 1, locationIndex: 0, serviceName: "Corte de cabello", customerName: "Pablo Guzmán", daysAgo: 1, paymentMethodIndex: 0 },
+  { barberIndex: 1, locationIndex: 1, serviceName: "Afeitado clásico", daysAgo: 2, paymentMethodIndex: 1 },
+  { barberIndex: 1, locationIndex: 0, serviceName: "Manicure", customerName: "Fernando Ureña", daysAgo: 4, paymentMethodIndex: 2 },
+  { barberIndex: 2, locationIndex: 1, serviceName: "Arreglo de barba", customerName: "Ricardo Solano", daysAgo: 1, paymentMethodIndex: 0 },
+  { barberIndex: 2, locationIndex: 1, serviceName: "Corte + Barba", daysAgo: 2, paymentMethodIndex: 2 },
+  { barberIndex: 2, locationIndex: 1, serviceName: "Afeitado clásico", customerName: "Andrés Villalobos", daysAgo: 5, paymentMethodIndex: 1 },
 ];
 
 // ── Status ────────────────────────────────────────────────────────────────────
@@ -770,8 +783,9 @@ export async function getDemoStatus(tenantId: string): Promise<{
   barbers: number;
   locations: number;
   barberServices: number;
+  paymentMethods: number;
 }> {
-  const [clientRows, providerRows, employeeRows, quoteRows, assetRows, invoiceRows, barberRows, locationRows, serviceRows] = await Promise.all([
+  const [clientRows, providerRows, employeeRows, quoteRows, assetRows, invoiceRows, barberRows, locationRows, serviceRows, paymentMethodRows] = await Promise.all([
     db
       .select({ n: count() })
       .from(clients)
@@ -808,6 +822,10 @@ export async function getDemoStatus(tenantId: string): Promise<{
       .select({ n: count() })
       .from(services)
       .where(and(eq(services.tenantId, tenantId), sql`${services.tags} @> ARRAY['demo']::text[]`)),
+    db
+      .select({ n: count() })
+      .from(paymentMethods)
+      .where(and(eq(paymentMethods.tenantId, tenantId), sql`${paymentMethods.tags} @> ARRAY['demo']::text[]`)),
   ]);
   return {
     clients: Number(clientRows[0]?.n ?? 0),
@@ -819,6 +837,7 @@ export async function getDemoStatus(tenantId: string): Promise<{
     barbers: Number(barberRows[0]?.n ?? 0),
     locations: Number(locationRows[0]?.n ?? 0),
     barberServices: Number(serviceRows[0]?.n ?? 0),
+    paymentMethods: Number(paymentMethodRows[0]?.n ?? 0),
   };
 }
 
@@ -892,8 +911,15 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
     }
   }
 
-  // Barbers: locations, then services (with per-location prices), then barbers
-  // (with location assignments + rate overrides), then logged activities.
+  // Barbers: payment methods, locations, then services (with per-location
+  // prices), then barbers (with location assignments + rate overrides), then
+  // logged activities.
+  const createdPaymentMethodIds: string[] = [];
+  for (const pm of DEMO_PAYMENT_METHODS) {
+    const method = await createPaymentMethod(tenantId, seededBy, pm);
+    createdPaymentMethodIds.push(method.id);
+  }
+
   const createdLocationIds: string[] = [];
   for (const loc of DEMO_LOCATIONS) {
     const location = await createLocation(tenantId, seededBy, loc);
@@ -929,7 +955,8 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
     const barberId = createdBarberIds[activity.barberIndex];
     const locationId = createdLocationIds[activity.locationIndex];
     const serviceId = serviceIdByName.get(activity.serviceName);
-    if (!barberId || !locationId || !serviceId) continue;
+    const paymentMethodId = createdPaymentMethodIds[activity.paymentMethodIndex];
+    if (!barberId || !locationId || !serviceId || !paymentMethodId) continue;
 
     const serviceDemo = DEMO_SERVICES.find((s) => s.input.name === activity.serviceName);
     const price = serviceDemo?.prices[activity.locationIndex] ?? 0;
@@ -941,6 +968,7 @@ export async function seedDemoData(tenantId: string, seededBy: string): Promise<
       barberId,
       locationId,
       serviceId,
+      paymentMethodId,
       customerName: activity.customerName,
       priceCharged: price,
       performedAt: performedAt.toISOString(),
@@ -979,7 +1007,7 @@ export async function resetDemoData(tenantId: string): Promise<void> {
 
   // Barbers: activities have no cascade (historical records), so delete every
   // demo tenant's activity first, before deleting the demo barbers/locations/
-  // services they reference. The join tables (barber_locations,
+  // services/payment methods they reference. The join tables (barber_locations,
   // location_services, barber_service_rates) cascade off their parents and
   // don't need explicit deletes.
   const demoBarberIds = await db
@@ -1000,5 +1028,6 @@ export async function resetDemoData(tenantId: string): Promise<void> {
     db.delete(barbers).where(and(eq(barbers.tenantId, tenantId), sql`${barbers.tags} @> ARRAY['demo']::text[]`)),
     db.delete(locations).where(and(eq(locations.tenantId, tenantId), sql`${locations.tags} @> ARRAY['demo']::text[]`)),
     db.delete(services).where(and(eq(services.tenantId, tenantId), sql`${services.tags} @> ARRAY['demo']::text[]`)),
+    db.delete(paymentMethods).where(and(eq(paymentMethods.tenantId, tenantId), sql`${paymentMethods.tags} @> ARRAY['demo']::text[]`)),
   ]);
 }

@@ -623,6 +623,28 @@ export const services = pgTable("services", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const paymentMethodStatusEnum = pgEnum("payment_method_status", [
+  "active",
+  "inactive",
+]);
+
+// How a customer paid. Each method carries a processing fee rate that REDUCES
+// the barber's commission (the shop passes the card/transfer fee through), so
+// this is payout-affecting configuration, not a cosmetic label. Tenants get
+// three editable defaults seeded (Cash 0%, SINPE 2%, Credit Card 6%) — they are
+// ordinary rows, freely renamable/addable/deactivatable, not system constants.
+export const paymentMethods = pgTable("payment_methods", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  feeRate: numeric("fee_rate", { precision: 5, scale: 4 }).notNull(),
+  status: paymentMethodStatusEnum("status").notNull().default("active"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const locations = pgTable("locations", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
@@ -698,9 +720,16 @@ export const barberActivities = pgTable("barber_activities", {
   barberId: text("barber_id").notNull().references(() => barbers.id),
   locationId: text("location_id").notNull().references(() => locations.id),
   serviceId: text("service_id").notNull().references(() => services.id),
+  // No onDelete cascade, same as barberId/locationId/serviceId: a payout record
+  // must outlive edits to the catalog it was created from.
+  paymentMethodId: text("payment_method_id").notNull().references(() => paymentMethods.id),
   customerName: text("customer_name"),
   priceCharged: numeric("price_charged", { precision: 12, scale: 2 }).notNull(),
   commissionRate: numeric("commission_rate", { precision: 5, scale: 4 }).notNull(), // snapshot at log time
+  // Snapshot of the payment method's fee rate at log time, for the same reason
+  // commissionRate is snapshotted: re-pricing a payment method later must never
+  // retroactively change what a barber was already owed for past work.
+  paymentMethodFeeRate: numeric("payment_method_fee_rate", { precision: 5, scale: 4 }).notNull(),
   commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull(), // computed server-side
   performedAt: timestamp("performed_at").defaultNow().notNull(),
   createdBy: text("created_by").notNull(),

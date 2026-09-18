@@ -106,6 +106,7 @@ export default async function AdminClientPage({ params }: Props) {
         demoBarbers={demoStatus.barbers}
         demoLocations={demoStatus.locations}
         demoBarberServices={demoStatus.barberServices}
+        demoPaymentMethods={demoStatus.paymentMethods}
       />
 
       {/* Clerk Org ID (for reference) */}

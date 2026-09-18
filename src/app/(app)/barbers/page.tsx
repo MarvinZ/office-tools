@@ -1,8 +1,10 @@
 import { getTranslations } from "next-intl/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { requireTenant } from "@/services/tenants";
 import { listBarbersAtLocation } from "@/services/barbers/barbers";
 import { listLocations } from "@/services/barbers/locations";
-import { listServices } from "@/services/barbers/catalog";
+import { listServices, getMostUsedServicesAtLocation } from "@/services/barbers/catalog";
+import { listPaymentMethods, ensureDefaultPaymentMethods } from "@/services/barbers/payment-methods";
 import { listActivities, resolveEffectiveCommissionRates } from "@/services/barbers/activities";
 import { listRoster } from "@/services/barbers/roster";
 import { startOfDayUtc, endOfDayUtc } from "@/services/barbers/payout-report";
@@ -34,11 +36,17 @@ export default async function BarbersLogPage({
 }: {
   searchParams: Promise<{ locationId?: string }>;
 }) {
-  const [{ locationId }, tenant, t] = await Promise.all([
+  const [{ locationId }, tenant, t, user] = await Promise.all([
     searchParams,
     requireTenant(),
     getTranslations("barbers"),
+    currentUser(),
   ]);
+
+  // Idempotent (no-ops once the tenant has any payment method): guarantees this
+  // page can never render with an empty payment-method picker, which would make
+  // the entry form unsubmittable.
+  await ensureDefaultPaymentMethods(tenant.id, user?.id ?? "system");
 
   const allLocations = await listLocations(tenant.id);
   const activeLocations = allLocations.filter((l) => l.status === "active");
@@ -60,9 +68,11 @@ export default async function BarbersLogPage({
 
   const today = todayUtcDateString();
 
-  const [barbersAtLocation, allServices, roster, todaysActivities, priceRows] = await Promise.all([
+  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows] = await Promise.all([
     listBarbersAtLocation(tenant.id, selectedLocation.id),
     listServices(tenant.id),
+    listPaymentMethods(tenant.id),
+    getMostUsedServicesAtLocation(tenant.id, selectedLocation.id),
     listRoster(tenant.id, selectedLocation.id, today),
     listActivities(tenant.id, {
       locationId: selectedLocation.id,
@@ -73,6 +83,7 @@ export default async function BarbersLogPage({
   ]);
 
   const activeServices = allServices.filter((s) => s.status === "active");
+  const activePaymentMethods = allPaymentMethods.filter((m) => m.status === "active");
   const checkedInIds = new Set(roster.map((r) => r.barberId));
   const checkedInBarbers = barbersAtLocation.filter((b) => checkedInIds.has(b.id));
 
@@ -114,6 +125,8 @@ export default async function BarbersLogPage({
         locationId={selectedLocation.id}
         barbers={checkedInBarbers}
         services={activeServices}
+        paymentMethods={activePaymentMethods}
+        favoriteServices={favoriteServices}
         priceMap={priceMap}
         effectiveRateMap={effectiveRateMap}
         initialActivities={todaysActivities}

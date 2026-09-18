@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { currentUser } from "@clerk/nextjs/server";
 import { requireTenant } from "@/services/tenants";
-import { logActivity, deleteActivity } from "@/services/barbers/activities";
+import { logActivity, logActivityBatch, deleteActivity } from "@/services/barbers/activities";
 import { checkInBarber, checkOutBarber } from "@/services/barbers/roster";
-import type { LogActivityInput } from "@/services/barbers/activities";
+import type { LogActivityInput, LogActivityBatchInput } from "@/services/barbers/activities";
 
 export async function logActivityAction(data: LogActivityInput) {
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
@@ -13,6 +13,14 @@ export async function logActivityAction(data: LogActivityInput) {
   const row = await logActivity(tenant.id, user.id, data);
   revalidatePath("/barbers");
   return row;
+}
+
+export async function logActivityBatchAction(data: LogActivityBatchInput) {
+  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
+  if (!user) throw new Error("Not authenticated.");
+  const rows = await logActivityBatch(tenant.id, user.id, data);
+  revalidatePath("/barbers");
+  return rows;
 }
 
 export async function deleteActivityAction(id: string) {

@@ -830,6 +830,7 @@
     "tabBarbers": "Barberos",
     "tabLocations": "Sucursales",
     "tabServices": "Servicios",
+    "tabPaymentMethods": "Métodos de pago",
     "tabReports": "Reportes",
     "status": {
       "active": "Activo",
@@ -866,7 +867,19 @@
       "colPrice": "Precio",
       "colCommission": "Comisión",
       "empty": "Aún no se ha registrado actividad hoy.",
-      "deleteRow": "Eliminar registro"
+      "deleteRow": "Eliminar registro",
+      "fieldPaymentMethod": "Método de pago",
+      "serviceSearchPlaceholder": "Buscar servicios...",
+      "favoritesTitle": "Más usados aquí",
+      "cartTitle": "Servicios por registrar",
+      "cartEmpty": "Aún no has agregado servicios — tocá uno de los más usados o buscalo para agregarlo.",
+      "cartTotal": "Total cobrado",
+      "cartEstimatedCommission": "Comisión estimada",
+      "removeLine": "Quitar servicio",
+      "submitAllButton": "Registrar {count, plural, one {# servicio} other {# servicios}}",
+      "noPaymentMethods": "No hay métodos de pago activos. Agregá uno desde la pestaña Métodos de pago primero.",
+      "colPaymentMethod": "Pago",
+      "errorEmptyCart": "Agregá al menos un servicio antes de registrar."
     },
     "barbersPage": {
       "title": "Barberos",
@@ -968,6 +981,29 @@
       "fieldStatus": "Estado",
       "createService": "Crear servicio"
     },
+    "paymentMethodsPage": {
+      "title": "Métodos de pago",
+      "subtitle": "{total} métodos de pago · {active} activos",
+      "addButton": "+ Agregar método de pago",
+      "searchPlaceholder": "Buscar por nombre...",
+      "allStatuses": "Todos los estados",
+      "colName": "Método de pago",
+      "colFeeRate": "Comisión del medio de pago",
+      "colStatus": "Estado",
+      "empty": "No se encontraron métodos de pago.",
+      "resultsCount": "{filtered} de {total} métodos de pago"
+    },
+    "paymentMethodForm": {
+      "addTitle": "Agregar método de pago",
+      "editTitle": "Editar método de pago",
+      "fieldName": "Nombre",
+      "fieldNamePlaceholder": "Efectivo, SINPE, Tarjeta de crédito...",
+      "fieldFeeRate": "Porcentaje de comisión del medio de pago",
+      "feeRateHint": "Ingrésalo como decimal, por ejemplo 0.06 para 6%. Este cargo se descuenta de la comisión del barbero.",
+      "fieldStatus": "Estado",
+      "historyNote": "Cambiar el porcentaje solo aplica a los servicios que se registren de ahora en adelante. Los registros anteriores conservan el porcentaje con el que se guardaron.",
+      "createPaymentMethod": "Crear método de pago"
+    },
     "reportsPage": {
       "title": "Reportes de comisiones",
       "subtitle": "Comisiones a pagar por barbero en un rango de fechas.",
@@ -982,6 +1018,7 @@
       "colDate": "Fecha",
       "colLocation": "Sucursal",
       "colService": "Servicio",
+      "colPaymentMethod": "Pago",
       "colPrice": "Precio",
       "colCommission": "Comisión",
       "grandTotal": "Total general",

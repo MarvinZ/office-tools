@@ -830,6 +830,7 @@
     "tabBarbers": "Barbers",
     "tabLocations": "Locations",
     "tabServices": "Services",
+    "tabPaymentMethods": "Payment Methods",
     "tabReports": "Reports",
     "status": {
       "active": "Active",
@@ -866,7 +867,19 @@
       "colPrice": "Price",
       "colCommission": "Commission",
       "empty": "No activity logged today yet.",
-      "deleteRow": "Delete entry"
+      "deleteRow": "Delete entry",
+      "fieldPaymentMethod": "Payment method",
+      "serviceSearchPlaceholder": "Search services...",
+      "favoritesTitle": "Most used here",
+      "cartTitle": "Services to log",
+      "cartEmpty": "No services added yet — tap a favorite above or search to add one.",
+      "cartTotal": "Total charged",
+      "cartEstimatedCommission": "Estimated commission",
+      "removeLine": "Remove service",
+      "submitAllButton": "Log {count, plural, one {# service} other {# services}}",
+      "noPaymentMethods": "No active payment methods. Add one from the Payment Methods tab first.",
+      "colPaymentMethod": "Payment",
+      "errorEmptyCart": "Add at least one service before logging."
     },
     "barbersPage": {
       "title": "Barbers",
@@ -968,6 +981,29 @@
       "fieldStatus": "Status",
       "createService": "Create service"
     },
+    "paymentMethodsPage": {
+      "title": "Payment Methods",
+      "subtitle": "{total} payment methods · {active} active",
+      "addButton": "+ Add payment method",
+      "searchPlaceholder": "Search by name...",
+      "allStatuses": "All statuses",
+      "colName": "Payment method",
+      "colFeeRate": "Processing fee",
+      "colStatus": "Status",
+      "empty": "No payment methods found.",
+      "resultsCount": "{filtered} of {total} payment methods"
+    },
+    "paymentMethodForm": {
+      "addTitle": "Add payment method",
+      "editTitle": "Edit payment method",
+      "fieldName": "Name",
+      "fieldNamePlaceholder": "Cash, SINPE, Credit card...",
+      "fieldFeeRate": "Processing fee rate",
+      "feeRateHint": "Enter as a decimal, e.g. 0.06 for 6%. This fee is deducted from the barber's commission.",
+      "fieldStatus": "Status",
+      "historyNote": "Changing the fee only affects services logged from now on. Past records keep the rate they were logged with.",
+      "createPaymentMethod": "Create payment method"
+    },
     "reportsPage": {
       "title": "Payout Reports",
       "subtitle": "Commission payouts by barber for a given date range.",
@@ -982,6 +1018,7 @@
       "colDate": "Date",
       "colLocation": "Location",
       "colService": "Service",
+      "colPaymentMethod": "Payment",
       "colPrice": "Price",
       "colCommission": "Commission",
       "grandTotal": "Grand total",

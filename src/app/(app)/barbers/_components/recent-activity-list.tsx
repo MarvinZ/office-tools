@@ -28,7 +28,7 @@ export default function RecentActivityList({ activities }: { activities: Activit
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-            {[t("log.colTime"), t("log.colBarber"), t("log.colService"), t("log.colCustomer"), t("log.colPrice"), t("log.colCommission"), ""].map((h, i) => (
+            {[t("log.colTime"), t("log.colBarber"), t("log.colService"), t("log.colCustomer"), t("log.colPaymentMethod"), t("log.colPrice"), t("log.colCommission"), ""].map((h, i) => (
               <th key={i} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">{h}</th>
             ))}
           </tr>
@@ -36,7 +36,7 @@ export default function RecentActivityList({ activities }: { activities: Activit
         <tbody>
           {activities.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-sm text-zinc-400">{t("log.empty")}</td>
+              <td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-400">{t("log.empty")}</td>
             </tr>
           ) : activities.map((a) => (
             <tr key={a.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/50">
@@ -44,6 +44,7 @@ export default function RecentActivityList({ activities }: { activities: Activit
               <td className="px-4 py-3 font-medium text-black dark:text-white">{a.barberName}</td>
               <td className="px-4 py-3 text-zinc-500">{a.serviceName}</td>
               <td className="px-4 py-3 text-zinc-500">{a.customerName ?? "—"}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-zinc-500">{a.paymentMethodName}</td>
               <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(a.priceCharged)}</td>
               <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(a.commissionAmount)}</td>
               <td className="px-4 py-3 text-right">
