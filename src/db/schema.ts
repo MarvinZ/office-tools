@@ -735,3 +735,79 @@ export const barberActivities = pgTable("barber_activities", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// A "vale": a cash advance handed to a barber before their normal payday (paid
+// on the 15th, needs money on the 12th). Purely a record that it happened —
+// there is deliberately NO settlement/payout integration yet, and no tax or
+// commission math: the amount is exactly what was handed over. Deferred to a
+// future payments feature.
+//
+// No updatedAt and no update path: a mistaken vale is deleted and re-entered,
+// which keeps "what was handed over" unambiguous.
+export const barberVouchers = pgTable("barber_vouchers", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  // No onDelete cascade, same reasoning as barberActivities' refs: a record of
+  // cash actually handed to someone must outlive later edits to the barber.
+  barberId: text("barber_id").notNull().references(() => barbers.id),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  // A plain calendar date, like barberDailyRoster.workDate: a vale is dated
+  // "the 12th", not a specific instant.
+  issuedDate: date("issued_date").notNull(),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const productStatusEnum = pgEnum("product_status", [
+  "active",
+  "inactive",
+]);
+
+// Things the shop sells to its barbers (blades, product, whatever they need).
+// Mirrors `services` in shape, with one deliberate difference: a single
+// tenant-wide price rather than a per-location one — the shop charges its own
+// barbers the same everywhere, so there is no location_products join table.
+//
+// Like `services`, there is no delete path: once a sale references a product,
+// deactivating it (status: "inactive") is the only way to retire it.
+export const products = pgTable("products", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  status: productStatusEnum("status").notNull().default("active"),
+  tags: text("tags").array().notNull().default([]),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// A product sold to a barber on credit: the same kind of debt against future
+// pay as a vale, but for a physical item instead of cash. Deliberately a
+// separate table from barberVouchers rather than one unified ledger — the owner
+// wants to know *what* sold, which a free-text vale note can't answer.
+//
+// No tax or commission math is involved, exactly like barberVouchers.
+//
+// No updatedAt and no update path: a mistaken sale is deleted and re-entered.
+export const productSales = pgTable("product_sales", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  // No onDelete cascade on either ref, same reasoning as barberActivities and
+  // barberVouchers: the record of a real debt must outlive later edits to the
+  // barber or to the product catalog it was created from.
+  barberId: text("barber_id").notNull().references(() => barbers.id),
+  productId: text("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  // Snapshot of products.price at sale time, for the same reason
+  // barberActivities snapshots commissionRate: re-pricing a product later must
+  // never retroactively change what a barber already owes for a past sale.
+  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+  totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(), // computed server-side
+  // A plain calendar date, like barberVouchers.issuedDate.
+  saleDate: date("sale_date").notNull(),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
