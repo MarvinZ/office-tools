@@ -69,13 +69,22 @@ export default function BarbersLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex flex-1 flex-col">
       <div className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-1 overflow-x-auto px-4">
-          {OPERATION_TABS.map(({ href, labelKey, icon: Icon, exact }) => (
-            <Link key={href} href={href} className={tabCls(isActive(pathname, href, exact))}>
-              <Icon size={14} />
-              {t(labelKey)}
-            </Link>
-          ))}
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-1 px-4">
+          {/*
+            Only the tab links scroll horizontally on narrow screens. The
+            Catalogs dropdown sits outside this scroll container on purpose:
+            an `overflow-x-auto` ancestor also clips the OTHER axis, so an
+            absolutely-positioned dropdown panel inside it gets cut off the
+            moment it extends past the row's bottom edge.
+          */}
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+            {OPERATION_TABS.map(({ href, labelKey, icon: Icon, exact }) => (
+              <Link key={href} href={href} className={tabCls(isActive(pathname, href, exact))}>
+                <Icon size={14} />
+                {t(labelKey)}
+              </Link>
+            ))}
+          </div>
 
           <div ref={menuRef} className="relative shrink-0">
             <button
