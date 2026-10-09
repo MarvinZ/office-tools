@@ -10,6 +10,7 @@
     "invoices": "Facturas",
     "coverage": "Cobertura",
     "barbers": "Barbería",
+    "webhooks": "Webhooks",
     "dev": "Dev"
   },
   "dashboard": {
@@ -1108,6 +1109,61 @@
       "grandTotal": "Total general",
       "lineItemsTitle": "Detalle de servicios",
       "empty": "No hay actividad en este rango de fechas."
+    }
+  },
+  "webhooks": {
+    "page": {
+      "title": "Webhooks",
+      "subtitle": "Recibe e inspecciona payloads de webhooks entrantes para pruebas."
+    },
+    "create": {
+      "title": "Configura tu endpoint de webhook",
+      "subtitle": "Dale un nombre — recibirás una URL única y un secreto de firma para configurar en el otro sistema.",
+      "namePlaceholder": "ej. Prueba de Stripe, sincronización CRM",
+      "button": "Crear endpoint"
+    },
+    "endpoint": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "activate": "Activar",
+      "deactivate": "Desactivar",
+      "urlLabel": "URL del endpoint",
+      "secretLabel": "Secreto de firma",
+      "copy": "Copiar",
+      "copied": "¡Copiado!",
+      "reveal": "Mostrar",
+      "hide": "Ocultar",
+      "regenerate": "Regenerar",
+      "regenerateConfirm": "¿Regenerar el secreto de firma? Cualquier sistema que use el secreto anterior fallará la verificación de firma.",
+      "hmacHint": "Firma cada cuerpo de solicitud con HMAC-SHA256 usando este secreto, y envía el digest hexadecimal en un encabezado X-Signature."
+    },
+    "list": {
+      "searchPlaceholder": "Buscar payloads recibidos...",
+      "resultsCount": "{filtered} de {total} eventos",
+      "clearAll": "Borrar todo",
+      "clearConfirm": "¿Eliminar todos los eventos recibidos de este endpoint? Esto no se puede deshacer.",
+      "colReceived": "Recibido",
+      "colStatus": "Firma",
+      "colSource": "IP de origen",
+      "colPreview": "Vista previa",
+      "viewLink": "Ver →",
+      "empty": "Aún no se han recibido eventos de webhook.",
+      "unknownSource": "Desconocido",
+      "status": {
+        "valid": "Válida",
+        "invalid": "Inválida"
+      }
+    },
+    "detail": {
+      "title": "Evento de webhook",
+      "sourceIp": "IP de origen",
+      "signature": "Firma",
+      "signatureValid": "Verificada",
+      "signatureInvalid": "No verificada",
+      "bodyTitle": "Payload",
+      "headersTitle": "Encabezados",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar este evento de webhook?"
     }
   }
 }

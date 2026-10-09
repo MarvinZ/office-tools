@@ -64,6 +64,7 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 
 ### Other Modules (clients, providers, employees, assets, quotes, invoices, coverage)
 - All follow the same shape: `services/<module>/*.ts` (tenant-scoped DB access) → `(app)/<module>/actions.ts` (server actions) → `page.tsx` + `_components/*-list-client.tsx` (client list/detail UI) → optional `[id]/` detail route with tabs, documents, notes, activity history.
+- **Building a new module? Read [`MODULE_BLUEPRINT.md`](./MODULE_BLUEPRINT.md) first.** It's the exact as-built pattern (schema shape, service conventions, action file split, component layout, i18n structure, tool-gating steps) derived from the `clients` module, including where it diverges from this file's stack table (no zod/react-hook-form in practice — see blueprint §0).
 - Quotes and invoices share a near-identical shape (line items + activity log + status enum) and both link to `clients`.
 - Assets and employees both support document/photo uploads to Vercel Blob and have their own history/audit tables (`asset_history`, activity logs).
 - Coverage is different: maps trade-based service areas as PostGIS polygons (`coverage_areas.geom`), rendered via `@react-google-maps/api` in `coverage-map-client.tsx`.
@@ -92,6 +93,7 @@ Schema lives entirely in `src/db/schema.ts` (Drizzle). No separate migrations-as
 - **Quotes**: `quotes`, `quote_line_items`, `quote_activity`
 - **Invoices**: `invoices`, `invoice_line_items`, `invoice_activity`
 - **Coverage**: `trades`, `coverage_areas` (PostGIS geometry column)
+- **Webhooks**: `webhook_endpoints` (one per tenant, HMAC-SHA256 signing secret), `webhook_events` (logged payloads, verified or not)
 - **Audit**: `audit_logs` (table exists; not yet consistently written to or surfaced in UI)
 
 Run `npm run db:push` (or `db:generate`/`db:migrate`) after schema changes. Seed scripts: `db:seed`, `db:seed-tools`, `db:seed-trades`. PostGIS setup: `npm run db:setup-postgis`.
@@ -107,6 +109,7 @@ Run `npm run db:push` (or `db:generate`/`db:migrate`) after schema changes. Seed
 - Payroll: upload → parse → draft → review → queue → QStash → Resend send, with per-email status tracking
 - Employees, Assets, Clients, Providers, Quotes, Invoices — full CRUD + detail pages, documents/notes/activity where applicable
 - Coverage: trade-based service area mapping with PostGIS + Google Maps
+- Webhooks: tenant-configured single inbound endpoint (`/api/webhooks/ingest/[endpointId]`), HMAC-SHA256 verified (`X-Signature` header, raw body), logs every delivery (verified or not) for inspection in the portal
 - i18n (EN/ES), dark mode
 
 ### Known gaps / cleanup needed

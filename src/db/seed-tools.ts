@@ -18,6 +18,7 @@ const TOOLS = [
   { id: "tool_invoices",   name: "Invoices",   slug: "invoices",   description: "Create and manage invoices for clients." },
   { id: "tool_coverage",   name: "Coverage",   slug: "coverage",   description: "Map service coverage areas by trade." },
   { id: "tool_barbers",    name: "Barbers",    slug: "barbers",    description: "Log barber services and track commission payouts by location." },
+  { id: "tool_webhooks",   name: "Webhooks",   slug: "webhooks",   description: "Receive and inspect inbound webhook payloads from other systems." },
 ];
 
 async function seed() {

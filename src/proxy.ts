@@ -5,6 +5,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/workers/(.*)", // QStash workers — auth handled via signature verification
+  "/api/webhooks/ingest/(.*)", // inbound webhook receiver — auth handled via per-endpoint HMAC signature
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

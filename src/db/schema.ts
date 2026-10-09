@@ -811,3 +811,33 @@ export const productSales = pgTable("product_sales", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ── Webhooks ──────────────────────────────────────────────────────────────────
+// A generic inbound-webhook receiver: one endpoint per tenant, HMAC-SHA256
+// signed, for testing payloads from other systems. Every request that hits the
+// public ingest route is logged as a webhookEvent regardless of whether its
+// signature verifies — a failed/unverified delivery is itself useful
+// diagnostic info, not something to silently drop.
+
+export const webhookEndpoints = pgTable("webhook_endpoints", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id).unique(),
+  name: text("name").notNull(),
+  signingSecret: text("signing_secret").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const webhookEvents = pgTable("webhook_events", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  endpointId: text("endpoint_id").notNull().references(() => webhookEndpoints.id, { onDelete: "cascade" }),
+  headers: jsonb("headers").notNull(),
+  body: jsonb("body"), // parsed JSON body, null if the raw body wasn't valid JSON
+  rawBody: text("raw_body").notNull(), // kept verbatim — the signature was computed over this, not the parsed body
+  sourceIp: text("source_ip"),
+  signatureValid: boolean("signature_valid").notNull(),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+});

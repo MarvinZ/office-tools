@@ -10,6 +10,7 @@
     "invoices": "Invoices",
     "coverage": "Coverage",
     "barbers": "Barbers",
+    "webhooks": "Webhooks",
     "dev": "Dev"
   },
   "dashboard": {
@@ -1108,6 +1109,61 @@
       "grandTotal": "Grand total",
       "lineItemsTitle": "Line items",
       "empty": "No activity in this date range."
+    }
+  },
+  "webhooks": {
+    "page": {
+      "title": "Webhooks",
+      "subtitle": "Receive and inspect inbound webhook payloads for testing."
+    },
+    "create": {
+      "title": "Set up your webhook endpoint",
+      "subtitle": "Give it a name — you'll get a unique URL and signing secret to configure in the other system.",
+      "namePlaceholder": "e.g. Stripe test, CRM sync",
+      "button": "Create endpoint"
+    },
+    "endpoint": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "urlLabel": "Endpoint URL",
+      "secretLabel": "Signing secret",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "reveal": "Reveal",
+      "hide": "Hide",
+      "regenerate": "Regenerate",
+      "regenerateConfirm": "Regenerate the signing secret? Any system still using the old secret will fail signature verification.",
+      "hmacHint": "Sign each request body with HMAC-SHA256 using this secret, and send the hex digest in an X-Signature header."
+    },
+    "list": {
+      "searchPlaceholder": "Search received payloads...",
+      "resultsCount": "{filtered} of {total} events",
+      "clearAll": "Clear all",
+      "clearConfirm": "Delete all received events for this endpoint? This can't be undone.",
+      "colReceived": "Received",
+      "colStatus": "Signature",
+      "colSource": "Source IP",
+      "colPreview": "Preview",
+      "viewLink": "View →",
+      "empty": "No webhook events received yet.",
+      "unknownSource": "Unknown",
+      "status": {
+        "valid": "Valid",
+        "invalid": "Invalid"
+      }
+    },
+    "detail": {
+      "title": "Webhook event",
+      "sourceIp": "Source IP",
+      "signature": "Signature",
+      "signatureValid": "Verified",
+      "signatureInvalid": "Not verified",
+      "bodyTitle": "Payload",
+      "headersTitle": "Headers",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this webhook event?"
     }
   }
 }
