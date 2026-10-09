@@ -60,3 +60,17 @@ export async function toggleToolAction(tenantId: string, toolId: string, enabled
   }
   revalidatePath(`/admin/${tenantId}`);
 }
+
+export async function inviteMemberAction(tenantId: string, clerkOrgId: string, email: string) {
+  const trimmed = email.trim();
+  if (!trimmed) return { error: "Email is required." };
+
+  try {
+    await inviteClientAdmin(clerkOrgId, trimmed);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to send invitation." };
+  }
+
+  revalidatePath(`/admin/${tenantId}`);
+  return { success: true };
+}

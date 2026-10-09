@@ -6,6 +6,7 @@ import { getOrgMembers, getOrgInvitations } from "@/lib/clerk-admin";
 import ToolToggles from "./_components/tool-toggles";
 import StatusToggle from "./_components/status-toggle";
 import DemoSeedPanel from "./_components/demo-seed-panel";
+import InviteMember from "./_components/invite-member";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -60,6 +61,8 @@ export default async function AdminClientPage({ params }: Props) {
         {/* Team / Members */}
         <section className="flex flex-col gap-4">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Team Members</h2>
+
+          <InviteMember tenantId={tenant.id} clerkOrgId={tenant.clerkOrgId} />
 
           {memberList.length === 0 && invitationList.length === 0 ? (
             <p className="text-sm text-zinc-400">No members yet.</p>
