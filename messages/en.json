@@ -11,6 +11,7 @@
     "coverage": "Coverage",
     "barbers": "Barbers",
     "webhooks": "Webhooks",
+    "team": "Team",
     "dev": "Dev"
   },
   "dashboard": {
@@ -1168,6 +1169,20 @@
       "headersTitle": "Headers",
       "delete": "Delete",
       "deleteConfirm": "Delete this webhook event?"
+    }
+  },
+  "team": {
+    "page": {
+      "title": "Team",
+      "subtitle": "Manage who has access to your organization.",
+      "empty": "No members yet.",
+      "invitationPending": "Invitation pending",
+      "pending": "Pending"
+    },
+    "invite": {
+      "title": "Invite a team member",
+      "placeholder": "user@example.com",
+      "button": "Invite"
     }
   }
 }

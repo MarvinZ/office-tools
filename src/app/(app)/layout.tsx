@@ -24,7 +24,7 @@ const NAV_LINKS = [
 ] as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { orgId } = await auth();
+  const { orgId, orgRole } = await auth();
 
   // If the user is in the internal admin org, send them to /admin
   if (orgId && orgId === process.env.INTERNAL_ORG_ID) {
@@ -38,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     adminGetEnabledTools(tenant.id),
   ]);
 
+  const isOrgAdmin = orgRole === "org:admin";
   const visibleLinks = NAV_LINKS.filter((l) => enabledSlugs.includes(l.slug));
 
   return (
@@ -56,6 +57,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   {t(link.labelKey)}
                 </Link>
               ))}
+              {isOrgAdmin && (
+                <Link href="/team" className="shrink-0 text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                  {t("team")}
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex shrink-0 items-center gap-3">
