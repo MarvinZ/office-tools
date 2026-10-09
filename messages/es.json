@@ -53,6 +53,10 @@
       "title": "Barbería",
       "description": "Registrá los servicios de tus barberos y calculá las comisiones por local."
     },
+    "webhooksCard": {
+      "title": "Webhooks",
+      "description": "Recibe e inspecciona payloads de webhooks entrantes de otros sistemas."
+    },
     "devCard": {
       "title": "Herramientas Dev",
       "description": "Explorador de archivos y utilidades de prueba."

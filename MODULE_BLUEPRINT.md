@@ -160,7 +160,16 @@ don't replicate those for a new module, just the enums/config/options.
    { slug: "<module>", href: "/<module>", labelKey: "nav.<module>" }
    ```
    Layout filters `NAV_LINKS` by `adminGetEnabledTools(tenant.id)` slugs.
-3. Admin toggle UI (`(admin)/admin/[id]/_components/tool-toggles.tsx`) needs no changes —
+3. **`src/app/(app)/dashboard/page.tsx`** — append to its *separate* `TOOL_CARDS` array:
+   ```ts
+   { slug: "<module>", href: "/<module>", titleKey: "<module>Card.title", descKey: "<module>Card.description" }
+   ```
+   **Easy to miss** — this is a second, independent gated list from `NAV_LINKS`. Forgetting
+   it means the module works and shows in the nav, but has no card on `/dashboard`, so
+   tenants with no other way to discover it won't find it. Needs matching
+   `"<module>Card": { "title", "description" }` keys under the `"dashboard"` i18n namespace
+   (not under the module's own namespace) in both locale files.
+4. Admin toggle UI (`(admin)/admin/[id]/_components/tool-toggles.tsx`) needs no changes —
    it reads the `tools` table generically. `adminEnableTool`/`adminDisableTool` in
    `src/services/admin/tenants.ts` insert/delete `tenantTools` rows.
 
@@ -203,6 +212,7 @@ src/app/(app)/<module>/
       <module>-tabs.tsx
       edit-<module>-modal.tsx
 src/app/(app)/layout.tsx                            — NAV_LINKS entry
+src/app/(app)/dashboard/page.tsx                    — TOOL_CARDS entry (separate gated list, easy to miss)
 messages/en.json, messages/es.json                  — "nav.<module>" + "<module>.{page,list,...,form,detail}"
 ```
 

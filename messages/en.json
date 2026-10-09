@@ -53,6 +53,10 @@
       "title": "Barbers",
       "description": "Log barber services and track commission payouts by location."
     },
+    "webhooksCard": {
+      "title": "Webhooks",
+      "description": "Receive and inspect inbound webhook payloads from other systems."
+    },
     "devCard": {
       "title": "Dev Tools",
       "description": "File browser and test email utilities."

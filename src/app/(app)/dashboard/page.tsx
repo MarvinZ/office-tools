@@ -17,6 +17,7 @@ const TOOL_CARDS = [
   { slug: "providers", href: "/providers", titleKey: "providersCard.title", descKey: "providersCard.description" },
   { slug: "coverage",  href: "/coverage",  titleKey: "coverageCard.title",  descKey: "coverageCard.description" },
   { slug: "barbers",   href: "/barbers",   titleKey: "barbersCard.title",   descKey: "barbersCard.description" },
+  { slug: "webhooks",  href: "/webhooks",  titleKey: "webhooksCard.title",  descKey: "webhooksCard.description" },
 ] as const;
 
 export default async function DashboardPage() {
