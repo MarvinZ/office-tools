@@ -116,8 +116,8 @@ export async function updatePaymentMethod(
  */
 const DEFAULT_PAYMENT_METHODS: { name: string; feeRate: number }[] = [
   { name: "Cash", feeRate: 0 },
-  { name: "SINPE", feeRate: 0.02 },
-  { name: "Credit Card", feeRate: 0.06 },
+  { name: "SINPE", feeRate: 0 },
+  { name: "Credit Card", feeRate: 0.065 },
 ];
 
 /**

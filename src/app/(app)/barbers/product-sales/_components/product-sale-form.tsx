@@ -8,20 +8,7 @@ import { fmtColones } from "@/lib/barbers/currency";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { ProductRow } from "@/services/barbers/products";
 import type { ProductSaleWithDetails } from "@/services/barbers/product-sales";
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/**
- * "Today" as a UTC calendar day, matching the day-boundary convention used
- * everywhere else in this module (see startOfDayUtc/endOfDayUtc in
- * payout-report.ts) so a date means the same thing across tabs.
- */
-function todayUtcDateString(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${pad2(now.getUTCMonth() + 1)}-${pad2(now.getUTCDate())}`;
-}
+import { todayBusinessDate } from "@/lib/barbers/dates";
 
 export default function ProductSaleForm({
   barbers,
@@ -41,7 +28,7 @@ export default function ProductSaleForm({
   const [barberId, setBarberId] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("1");
-  const [saleDate, setSaleDate] = useState(todayUtcDateString());
+  const [saleDate, setSaleDate] = useState(todayBusinessDate());
   const [note, setNote] = useState("");
 
   const selectedProduct = useMemo(
@@ -109,7 +96,7 @@ export default function ProductSaleForm({
         // for the same person in a row. Everything else resets.
         setProductId("");
         setQuantity("1");
-        setSaleDate(todayUtcDateString());
+        setSaleDate(todayBusinessDate());
         setNote("");
       } catch {
         setError(t("productSales.errorSubmitFailed"));

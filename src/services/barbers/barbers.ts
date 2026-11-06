@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, getTableColumns } from "drizzle-orm";
 import { db } from "@/db";
 import { barbers, barberLocations, locations, services, barberServiceRates } from "@/db/schema";
 import { resolveEffectiveCommissionRates } from "./activities";
@@ -43,20 +43,7 @@ export async function listBarbers(tenantId: string): Promise<BarberRow[]> {
 /** Active barbers permanently assigned to work at this location (barberLocations). */
 export async function listBarbersAtLocation(tenantId: string, locationId: string): Promise<BarberRow[]> {
   return db
-    .select({
-      id: barbers.id,
-      tenantId: barbers.tenantId,
-      firstName: barbers.firstName,
-      lastName: barbers.lastName,
-      phone: barbers.phone,
-      email: barbers.email,
-      status: barbers.status,
-      notes: barbers.notes,
-      tags: barbers.tags,
-      createdBy: barbers.createdBy,
-      createdAt: barbers.createdAt,
-      updatedAt: barbers.updatedAt,
-    })
+    .select(getTableColumns(barbers))
     .from(barberLocations)
     .innerJoin(barbers, eq(barbers.id, barberLocations.barberId))
     .where(
@@ -160,6 +147,42 @@ export async function updateBarber(
       phone: data.phone !== undefined ? (data.phone ?? null) : undefined,
       email: data.email !== undefined ? (data.email ?? null) : undefined,
       notes: data.notes !== undefined ? (data.notes ?? null) : undefined,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, id)))
+    .returning();
+  return row ?? null;
+}
+
+// ── Settlement profile ───────────────────────────────────────────────────────
+
+/** How a barber is paid at settlement time. See lib/barbers/settlement.ts. */
+export type BarberSettlementProfileInput = {
+  appliesMaintenance: boolean;
+  ivaBaseRate: number; // 0–1
+  ivaInformative: boolean;
+  fortnightlyAddition: number; // ≥ 0
+};
+
+export async function updateBarberSettlementProfile(
+  tenantId: string,
+  id: string,
+  data: BarberSettlementProfileInput
+): Promise<BarberRow | null> {
+  if (!Number.isFinite(data.ivaBaseRate) || data.ivaBaseRate < 0 || data.ivaBaseRate > 1) {
+    throw new Error("IVA base must be a decimal between 0 and 1 (e.g. 0.5 for 50%).");
+  }
+  if (!Number.isFinite(data.fortnightlyAddition) || data.fortnightlyAddition < 0) {
+    throw new Error("Fortnightly addition must be zero or a positive amount.");
+  }
+
+  const [row] = await db
+    .update(barbers)
+    .set({
+      appliesMaintenance: data.appliesMaintenance,
+      ivaBaseRate: String(data.ivaBaseRate),
+      ivaInformative: data.ivaInformative,
+      fortnightlyAddition: String(data.fortnightlyAddition),
       updatedAt: new Date(),
     })
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, id)))

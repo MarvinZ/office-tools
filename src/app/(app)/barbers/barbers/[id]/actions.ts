@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/services/tenants";
 import {
   updateBarber, setBarberLocations, setBarberServiceRate, removeBarberServiceRate,
+  updateBarberSettlementProfile,
 } from "@/services/barbers/barbers";
-import type { BarberInput } from "@/services/barbers/barbers";
+import type { BarberInput, BarberSettlementProfileInput } from "@/services/barbers/barbers";
 
 export async function updateBarberAction(id: string, data: Partial<BarberInput>) {
   const tenant = await requireTenant();
@@ -30,4 +31,11 @@ export async function removeBarberServiceRateAction(id: string, serviceId: strin
   const tenant = await requireTenant();
   await removeBarberServiceRate(tenant.id, id, serviceId);
   revalidatePath(`/barbers/barbers/${id}`);
+}
+
+export async function updateBarberSettlementProfileAction(id: string, data: BarberSettlementProfileInput) {
+  const tenant = await requireTenant();
+  await updateBarberSettlementProfile(tenant.id, id, data);
+  revalidatePath(`/barbers/barbers/${id}`);
+  revalidatePath("/barbers/settlements");
 }

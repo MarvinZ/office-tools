@@ -15,6 +15,9 @@ import {
   Sparkles,
   Package,
   CreditCard,
+  HandCoins,
+  Calculator,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -23,6 +26,8 @@ const OPERATION_TABS = [
   { href: "/barbers", labelKey: "tabLog", icon: Scissors, exact: true },
   { href: "/barbers/vales", labelKey: "tabVales", icon: Banknote, exact: false },
   { href: "/barbers/product-sales", labelKey: "tabProductSales", icon: ShoppingCart, exact: false },
+  { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins, exact: false },
+  { href: "/barbers/settlements", labelKey: "tabSettlements", icon: Calculator, exact: false },
   { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3, exact: false },
 ] as const;
 
@@ -34,6 +39,7 @@ const CATALOG_ITEMS = [
   { href: "/barbers/services", labelKey: "tabServices", icon: Sparkles },
   { href: "/barbers/products", labelKey: "tabProducts", icon: Package },
   { href: "/barbers/payment-methods", labelKey: "tabPaymentMethods", icon: CreditCard },
+  { href: "/barbers/settings", labelKey: "tabSettings", icon: SlidersHorizontal },
 ] as const;
 
 function isActive(pathname: string, href: string, exact: boolean): boolean {

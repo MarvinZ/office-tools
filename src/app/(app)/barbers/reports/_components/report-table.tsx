@@ -2,19 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import { fmtColones } from "@/lib/barbers/currency";
+import { businessDateOf } from "@/lib/barbers/dates";
 import type { PayoutReport } from "@/services/barbers/payout-report";
 
 /**
- * Render the stored timestamp as a YYYY-MM-DD calendar day in UTC — the same
- * frame the report's from/to range is evaluated in (see startOfDayUtc /
- * endOfDayUtc in payout-report.ts). Formatting in local time here would let a
- * row display a day outside the range it was actually selected by.
+ * Render the stored timestamp as its Costa Rica business day — the same frame
+ * the report's from/to range is evaluated in (see lib/barbers/dates.ts), so a
+ * row can never display a day outside the range that selected it.
  */
-function fmtDate(d: Date | string): string {
-  const date = typeof d === "string" ? new Date(d) : d;
-  const pad2 = (n: number) => String(n).padStart(2, "0");
-  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
-}
+const fmtDate = businessDateOf;
 
 export default function ReportTable({ report }: { report: PayoutReport }) {
   const t = useTranslations("barbers");

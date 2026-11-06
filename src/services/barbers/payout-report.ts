@@ -1,5 +1,6 @@
 import { listActivities } from "./activities";
 import type { ActivityListItem } from "./activities";
+import { startOfBusinessDay, endOfBusinessDay } from "@/lib/barbers/dates";
 
 // ── UI-ready types ────────────────────────────────────────────────────────────
 
@@ -24,28 +25,13 @@ export type PayoutReport = {
 /**
  * Dates are plain `YYYY-MM-DD` strings everywhere in the report flow (URL params,
  * props, display). They are only turned into `Date` objects here, at the DB-query
- * boundary, and always as explicit UTC boundaries — so no local/UTC round-trip
- * can shift the range.
+ * boundary, as Costa Rica business-day boundaries (see lib/barbers/dates.ts).
  */
 export type PayoutReportFilter = {
   barberId?: string | "all";
   dateFrom: string; // YYYY-MM-DD, inclusive
   dateTo: string;   // YYYY-MM-DD, inclusive
 };
-
-const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Start of the given calendar day, in UTC. */
-export function startOfDayUtc(dateStr: string): Date {
-  if (!DATE_ONLY_RE.test(dateStr)) throw new Error(`Expected a YYYY-MM-DD date, got: ${dateStr}`);
-  return new Date(`${dateStr}T00:00:00.000Z`);
-}
-
-/** End of the given calendar day, in UTC. */
-export function endOfDayUtc(dateStr: string): Date {
-  if (!DATE_ONLY_RE.test(dateStr)) throw new Error(`Expected a YYYY-MM-DD date, got: ${dateStr}`);
-  return new Date(`${dateStr}T23:59:59.999Z`);
-}
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -57,8 +43,8 @@ export async function getPayoutReport(
 ): Promise<PayoutReport> {
   const lineItems = await listActivities(tenantId, {
     barberId: filter.barberId && filter.barberId !== "all" ? filter.barberId : undefined,
-    dateFrom: startOfDayUtc(filter.dateFrom),
-    dateTo: endOfDayUtc(filter.dateTo),
+    dateFrom: startOfBusinessDay(filter.dateFrom),
+    dateTo: endOfBusinessDay(filter.dateTo),
   });
 
   const summaryByBarber = new Map<string, PayoutBarberSummary>();

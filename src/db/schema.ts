@@ -628,11 +628,12 @@ export const paymentMethodStatusEnum = pgEnum("payment_method_status", [
   "inactive",
 ]);
 
-// How a customer paid. Each method carries a processing fee rate that REDUCES
-// the barber's commission (the shop passes the card/transfer fee through), so
-// this is payout-affecting configuration, not a cosmetic label. Tenants get
-// three editable defaults seeded (Cash 0%, SINPE 2%, Credit Card 6%) — they are
-// ordinary rows, freely renamable/addable/deactivatable, not system constants.
+// How a customer paid. Each method carries a processing fee rate charged on the
+// IVA-free base of services paid that way and deducted in the barber's
+// settlement (the card "datáfono" fee), so this is payout-affecting
+// configuration, not a cosmetic label. Tenants get three editable defaults
+// seeded (Cash 0%, SINPE 0%, Credit Card 6.5%) — they are ordinary rows, freely
+// renamable/addable/deactivatable, not system constants.
 export const paymentMethods = pgTable("payment_methods", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
@@ -672,8 +673,33 @@ export const barbers = pgTable("barbers", {
   status: barberStatusEnum("status").notNull().default("active"),
   notes: text("notes"),
   tags: text("tags").array().notNull().default([]),
+  // ── Settlement ("liquidación") profile — see src/lib/barbers/settlement.ts.
+  // Plain per-barber fields rather than a rules engine: each covers one real
+  // variation in how a barber is paid. No effective dating on purpose (small
+  // shop); history will be protected by snapshotting settlements once paid.
+  //
+  // Daily maintenance fee is charged for each day with ≥1 service; false = exempt.
+  appliesMaintenance: boolean("applies_maintenance").notNull().default(true),
+  // Share of service income that the barber's IVA is computed on. 1 normally;
+  // 0.5 for a barber whose IVA only applies to half the base.
+  ivaBaseRate: numeric("iva_base_rate", { precision: 5, scale: 4 }).notNull().default("1"),
+  // IVA is calculated and shown but NOT added to the invoice/transfer.
+  ivaInformative: boolean("iva_informative").notNull().default(false),
+  // Fixed IVA-bearing amount added every fortnight (e.g. a cleaning stipend).
+  fortnightlyAddition: numeric("fortnightly_addition", { precision: 12, scale: 2 }).notNull().default("0"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// One row per tenant: the shop-wide numbers the settlement engine needs. A row
+// is created with these defaults on first read (getBarberSettings), so there is
+// never a "missing settings" state to handle.
+export const barberSettings = pgTable("barber_settings", {
+  tenantId: text("tenant_id").primaryKey().references(() => tenants.id),
+  ivaRate: numeric("iva_rate", { precision: 5, scale: 4 }).notNull().default("0.13"),
+  maintenanceDailyFee: numeric("maintenance_daily_fee", { precision: 12, scale: 2 }).notNull().default("1000"),
+  updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -730,17 +756,19 @@ export const barberActivities = pgTable("barber_activities", {
   // commissionRate is snapshotted: re-pricing a payment method later must never
   // retroactively change what a barber was already owed for past work.
   paymentMethodFeeRate: numeric("payment_method_fee_rate", { precision: 5, scale: 4 }).notNull(),
-  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull(), // computed server-side
+  // price ÷ (1 + IVA) × commissionRate, computed server-side, rounded for
+  // display. Settlements recompute from the raw fields instead of summing this.
+  // Rows logged before the settlement engine hold the old fee-reduced figure.
+  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull(),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // A "vale": a cash advance handed to a barber before their normal payday (paid
-// on the 15th, needs money on the 12th). Purely a record that it happened —
-// there is deliberately NO settlement/payout integration yet, and no tax or
-// commission math: the amount is exactly what was handed over. Deferred to a
-// future payments feature.
+// on the 15th, needs money on the 12th). No tax or commission math: the amount
+// is exactly what was handed over, and the settlement engine deducts it in full
+// from the fortnight its issuedDate falls in.
 //
 // No updatedAt and no update path: a mistaken vale is deleted and re-entered,
 // which keeps "what was handed over" unambiguous.
@@ -754,6 +782,20 @@ export const barberVouchers = pgTable("barber_vouchers", {
   // A plain calendar date, like barberDailyRoster.workDate: a vale is dated
   // "the 12th", not a specific instant.
   issuedDate: date("issued_date").notNull(),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// A tip ("propina") owed to a barber. Tips are paid out in full on top of the
+// settlement transfer: no IVA, not part of the electronic invoice. Same shape
+// and same delete-and-re-enter correction policy as barberVouchers.
+export const barberTips = pgTable("barber_tips", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  barberId: text("barber_id").notNull().references(() => barbers.id),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  tipDate: date("tip_date").notNull(),
   note: text("note"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

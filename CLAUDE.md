@@ -47,7 +47,7 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 
 ### Tools System
 - `tools` table + `tenant_tools` join table (see `src/db/schema.ts`). Enabled tools per tenant are read via `adminGetEnabledTools` (`src/services/admin/tenants.ts`).
-- Current tools (seeded in `src/db/seed-tools.ts`): **payroll, assets, employees, quotes, clients, providers, invoices, coverage**.
+- Current tools (seeded in `src/db/seed-tools.ts`): **payroll, assets, employees, quotes, clients, providers, invoices, coverage, barbers, webhooks**.
 - Adding a new tool = new row in `TOOLS` seed array + a new route under `(app)/` + nav entry in `(app)/layout.tsx`'s `NAV_LINKS`. No schema changes needed for the gating mechanism itself.
 
 ### Payroll Tool Flow (the original flagship flow, now one of many)
@@ -69,6 +69,15 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 - Assets and employees both support document/photo uploads to Vercel Blob and have their own history/audit tables (`asset_history`, activity logs).
 - Coverage is different: maps trade-based service areas as PostGIS polygons (`coverage_areas.geom`), rendered via `@react-google-maps/api` in `coverage-map-client.tsx`.
 - **Note:** several modules import shared constants/enums/types from a folder literally named `_mock/data.ts` (e.g. `clients/_mock/data.ts`, `assets/_mock/data.ts`). Despite the name, this is **not fake data** — it's real constants (status configs, industry lists, category enums) that got left in a mock-data folder from early scaffolding. Real data comes from the DB via `services/*`. This naming is misleading and worth renaming (e.g. to `_constants/` or `_lib/`) but is not a functional bug.
+
+### Barbers Module (`(app)/barbers/`) — built for NOURA Center, a Costa Rica barbershop/salon
+- Front-desk logging of services per barber/location/payment method, daily check-in roster, vales (cash advances), product sales on credit, tips, payout report, and **fortnightly settlements** ("liquidaciones").
+- Source spec: `NOURA_Especificacion_Funcional_Tecnica_Sistema_Liquidaciones.pdf` (v1.3, not in repo — contains personal/bank data). **Keep it simple**: small shop, plain per-barber fields over rule engines.
+- **Settlement engine** is a pure function in `src/lib/barbers/settlement.ts` (decimal.js, no intermediate rounding, unit-tested against the spec's CA cases in `settlement.test.ts`). `services/barbers/settlements.ts` only loads data and calls it. Per line: commission = price ÷ (1+IVA) × rate. Card fee = base × payment method `feeRate`, a settlement deduction (not a commission reduction). Maintenance = days with ≥1 service × daily fee. Then net → IVA → invoice → + tips = transfer.
+- Per-barber settlement fields live on `barbers` (`appliesMaintenance`, `ivaBaseRate`, `ivaInformative`, `fortnightlyAddition`); shop-wide IVA % and maintenance fee in `barber_settings` (one row per tenant). No effective dating — settlements are computed live, not stored yet.
+- **Dates are Costa Rica business days** (`src/lib/barbers/dates.ts`, fixed UTC−6). Never bucket `performedAt` by UTC day.
+- Daily-closing Excel import (`CIERRE DD-MM-AAAA.xlsx`): pure parser + normalizers exist in `src/lib/barbers/closing-import/` (tested with synthetic workbooks). DB wiring/upload UI pending a real sample file. Real sample files go in gitignored `fixtures/noura/`.
+- Tests: `npm test` (Vitest).
 
 ### File Storage
 - Vercel Blob, already configured and in use (asset photos/documents, employee documents, payroll uploads).

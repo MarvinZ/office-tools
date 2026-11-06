@@ -4,37 +4,18 @@ import { getPayoutReport } from "@/services/barbers/payout-report";
 import { listBarbers } from "@/services/barbers/barbers";
 import ReportFilterBar from "./_components/report-filter-bar";
 import ReportTable from "./_components/report-table";
+import { isDateString, todayBusinessDate } from "@/lib/barbers/dates";
 
 export const dynamic = "force-dynamic";
 
-const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/**
- * Dates stay plain `YYYY-MM-DD` strings through the whole report flow (search
- * params -> this page -> filter bar -> back into search params). They are only
- * converted to Date objects inside getPayoutReport, as explicit UTC boundaries.
- * Never serialize these through `new Date(...).toISOString()` — that's where the
- * one-day drift came from.
- */
-function toDateString(y: number, monthIndex: number, day: number): string {
-  return `${y}-${pad2(monthIndex + 1)}-${pad2(day)}`;
-}
-
-/** Default range: current month to date, as YYYY-MM-DD strings. */
+/** Default range: current month to date (Costa Rica calendar), as YYYY-MM-DD strings. */
 function defaultRange(): { from: string; to: string } {
-  const now = new Date();
-  return {
-    from: toDateString(now.getFullYear(), now.getMonth(), 1),
-    to: toDateString(now.getFullYear(), now.getMonth(), now.getDate()),
-  };
+  const today = todayBusinessDate();
+  return { from: `${today.slice(0, 8)}01`, to: today };
 }
 
 function parseDateParam(value: string | undefined, fallback: string): string {
-  return value && DATE_ONLY_RE.test(value) ? value : fallback;
+  return isDateString(value) ? value : fallback;
 }
 
 export default async function ReportsPage({
