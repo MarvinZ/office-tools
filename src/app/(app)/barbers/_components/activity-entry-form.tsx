@@ -12,6 +12,8 @@ import type { BarberRow } from "@/services/barbers/barbers";
 import type { ServiceRow } from "@/services/barbers/catalog";
 import type { PaymentMethodRow } from "@/services/barbers/payment-methods";
 import type { ActivityListItem } from "@/services/barbers/activities";
+import Decimal from "decimal.js";
+import { lineCommission } from "@/lib/barbers/settlement";
 
 type PriceEntry = { serviceId: string; price: number };
 /**
@@ -50,6 +52,7 @@ export default function ActivityEntryForm({
   priceMap,
   effectiveRateMap,
   initialActivities,
+  ivaRate,
 }: {
   locationId: string;
   barbers: BarberRow[];
@@ -59,6 +62,7 @@ export default function ActivityEntryForm({
   priceMap: PriceEntry[];
   effectiveRateMap: EffectiveRateEntry[];
   initialActivities: ActivityListItem[];
+  ivaRate: number;
 }) {
   const t = useTranslations("barbers");
   const tc = useTranslations("common");
@@ -92,35 +96,28 @@ export default function ActivityEntryForm({
     return map;
   }, [effectiveRateMap]);
 
-  const feeRateById = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const m of paymentMethods) map.set(m.id, parseFloat(m.feeRate));
-    return map;
-  }, [paymentMethods]);
-
   const cartTotal = useMemo(
     () => lines.reduce((sum, l) => sum + (parseFloat(l.priceCharged) || 0), 0),
     [lines]
   );
 
   /**
-   * Display-only preview of the commission the server will compute, using the
-   * same three-factor formula (price x effective rate x (1 - payment fee)).
-   * None of this is submitted — the server resolves its own authoritative rates.
+   * Display-only preview of the commission the server will store: commission on
+   * the IVA-free base (lineCommission), before settlement deductions such as
+   * the card fee. Nothing here is submitted — the server resolves its own
+   * authoritative rates.
    */
   const previewCommission = useMemo(() => {
-    if (!barberId || !paymentMethodId) return null;
-    const feeRate = feeRateById.get(paymentMethodId);
-    if (feeRate == null) return null;
-    let total = 0;
+    if (!barberId) return null;
+    let total = new Decimal(0);
     for (const l of lines) {
       const rate = effectiveRateLookup.get(`${barberId}:${l.serviceId}`);
       const price = parseFloat(l.priceCharged);
       if (rate == null || Number.isNaN(price)) return null;
-      total += Math.round(price * rate * (1 - feeRate) * 100) / 100;
+      total = total.plus(lineCommission(price, rate, ivaRate));
     }
-    return Math.round(total * 100) / 100;
-  }, [barberId, paymentMethodId, lines, effectiveRateLookup, feeRateById]);
+    return total.toDecimalPlaces(2).toNumber();
+  }, [barberId, lines, effectiveRateLookup, ivaRate]);
 
   function addService(serviceId: string) {
     const service = serviceById.get(serviceId);

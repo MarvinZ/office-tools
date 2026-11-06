@@ -6,20 +6,7 @@ import { createVoucherAction } from "../actions";
 import VoucherList from "./voucher-list";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { VoucherWithBarberName } from "@/services/barbers/vouchers";
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/**
- * "Today" as a UTC calendar day, matching the day-boundary convention used
- * everywhere else in this module (see startOfDayUtc/endOfDayUtc in
- * payout-report.ts) so a date means the same thing across tabs.
- */
-function todayUtcDateString(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${pad2(now.getUTCMonth() + 1)}-${pad2(now.getUTCDate())}`;
-}
+import { todayBusinessDate } from "@/lib/barbers/dates";
 
 export default function VoucherForm({
   barbers,
@@ -36,7 +23,7 @@ export default function VoucherForm({
 
   const [barberId, setBarberId] = useState("");
   const [amount, setAmount] = useState("");
-  const [issuedDate, setIssuedDate] = useState(todayUtcDateString());
+  const [issuedDate, setIssuedDate] = useState(todayBusinessDate());
   const [note, setNote] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
@@ -74,7 +61,7 @@ export default function VoucherForm({
 
         setBarberId("");
         setAmount("");
-        setIssuedDate(todayUtcDateString());
+        setIssuedDate(todayBusinessDate());
         setNote("");
       } catch {
         setError(t("vales.errorSubmitFailed"));

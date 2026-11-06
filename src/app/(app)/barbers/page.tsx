@@ -7,7 +7,8 @@ import { listServices, getMostUsedServicesAtLocation } from "@/services/barbers/
 import { listPaymentMethods, ensureDefaultPaymentMethods } from "@/services/barbers/payment-methods";
 import { listActivities, resolveEffectiveCommissionRates } from "@/services/barbers/activities";
 import { listRoster } from "@/services/barbers/roster";
-import { startOfDayUtc, endOfDayUtc } from "@/services/barbers/payout-report";
+import { getBarberSettings } from "@/services/barbers/settings";
+import { startOfBusinessDay, endOfBusinessDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { db } from "@/db";
 import { locationServices } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -16,20 +17,6 @@ import RosterChecklist from "./_components/roster-checklist";
 import ActivityEntryForm from "./_components/activity-entry-form";
 
 export const dynamic = "force-dynamic";
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/**
- * "Today" as a UTC calendar day, matching the payout report's day-boundary
- * convention exactly (see startOfDayUtc/endOfDayUtc in payout-report.ts) so
- * "today" means the same thing everywhere in this module.
- */
-function todayUtcDateString(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${pad2(now.getUTCMonth() + 1)}-${pad2(now.getUTCDate())}`;
-}
 
 export default async function BarbersLogPage({
   searchParams,
@@ -66,9 +53,9 @@ export default async function BarbersLogPage({
     );
   }
 
-  const today = todayUtcDateString();
+  const today = todayBusinessDate();
 
-  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows] = await Promise.all([
+  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows, settings] = await Promise.all([
     listBarbersAtLocation(tenant.id, selectedLocation.id),
     listServices(tenant.id),
     listPaymentMethods(tenant.id),
@@ -76,10 +63,11 @@ export default async function BarbersLogPage({
     listRoster(tenant.id, selectedLocation.id, today),
     listActivities(tenant.id, {
       locationId: selectedLocation.id,
-      dateFrom: startOfDayUtc(today),
-      dateTo: endOfDayUtc(today),
+      dateFrom: startOfBusinessDay(today),
+      dateTo: endOfBusinessDay(today),
     }),
     db.select().from(locationServices).where(eq(locationServices.tenantId, tenant.id)),
+    getBarberSettings(tenant.id),
   ]);
 
   const activeServices = allServices.filter((s) => s.status === "active");
@@ -130,6 +118,7 @@ export default async function BarbersLogPage({
         priceMap={priceMap}
         effectiveRateMap={effectiveRateMap}
         initialActivities={todaysActivities}
+        ivaRate={settings.ivaRate}
       />
     </div>
   );

@@ -1,8 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { requireTenant } from "@/services/tenants";
-import { adminGetEnabledTools } from "@/services/admin/tenants";
+import { getAvailableTools, requireTenant } from "@/services/tenants";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +26,7 @@ export default async function DashboardPage() {
     getTranslations("dashboard"),
   ]);
 
-  const enabledSlugs = await adminGetEnabledTools(tenant.id);
+  const enabledSlugs = await getAvailableTools(tenant);
   const visibleCards = TOOL_CARDS.filter((c) => enabledSlugs.includes(c.slug));
 
   return (
@@ -41,7 +40,7 @@ export default async function DashboardPage() {
 
       {visibleCards.length === 0 ? (
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">{t("noTools")}</p>
+          <p className="text-sm text-zinc-500">{t(tenant.isActive ? "noTools" : "inactive")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

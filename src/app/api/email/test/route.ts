@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resend } from "@/lib/resend";
 
+// Dev-only scaffolding: sends mail to any address through our Resend account,
+// so it must never be reachable in production.
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production") return new NextResponse(null, { status: 404 });
   const { email } = await req.json();
 
   if (!email || !email.includes("@")) {

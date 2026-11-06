@@ -7,6 +7,8 @@ import { listLocations } from "@/services/barbers/locations";
 import EditBarberModal from "./_components/edit-barber-modal";
 import BarberLocationsEditor from "./_components/barber-locations-editor";
 import BarberRatesEditor from "./_components/barber-rates-editor";
+import BarberSettlementEditor from "./_components/barber-settlement-editor";
+import BarberPaymentEditor from "./_components/barber-payment-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +65,27 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-black dark:text-white">{t("barberDetail.sectionRates")}</h2>
         <BarberRatesEditor barberId={barber.id} rates={barber.effectiveRates} />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-black dark:text-white">{t("barberDetail.sectionSettlement")}</h2>
+        <BarberSettlementEditor
+          barberId={barber.id}
+          initial={{
+            appliesMaintenance: barber.appliesMaintenance,
+            ivaBaseRate: barber.ivaBaseRate,
+            ivaInformative: barber.ivaInformative,
+            fortnightlyAddition: barber.fortnightlyAddition,
+          }}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-black dark:text-white">{t("barberDetail.sectionPayment")}</h2>
+        <BarberPaymentEditor
+          barberId={barber.id}
+          initial={{ idNumber: barber.idNumber, iban: barber.iban, aliases: barber.aliases }}
+        />
       </div>
     </div>
   );

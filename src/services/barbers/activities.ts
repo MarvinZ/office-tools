@@ -2,6 +2,8 @@ import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { barberActivities, barbers, locations, services, barberServiceRates, locationServices, paymentMethods } from "@/db/schema";
 import { getPaymentMethodFeeRate } from "./payment-methods";
+import { getBarberSettings } from "./settings";
+import { lineCommission } from "@/lib/barbers/settlement";
 import type { InferSelectModel } from "drizzle-orm";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
@@ -34,14 +36,17 @@ export type ActivityListItem = {
 // ── Commission math ───────────────────────────────────────────────────────────
 
 /**
- * THE canonical commission formula for this module. Three factors:
+ * THE per-line commission stored on barber_activities.commission_amount:
  *
- *   commissionAmount = priceCharged × effectiveCommissionRate × (1 − paymentMethodFeeRate)
+ *   commissionAmount = (priceCharged / (1 + ivaRate)) × effectiveCommissionRate
  *
- * The payment method's processing fee is passed through to the barber, so paying
- * by card yields a smaller commission than the same sale in cash. Example:
- * ₡100 at a 50% commission rate on a credit card (6% fee) →
- * 100 × 0.50 × 0.94 = ₡47.00.
+ * i.e. commission on the IVA-free base, BEFORE expenses. The payment method's
+ * fee (card "datáfono") is NOT applied here any more: it is a separate
+ * settlement deduction on the base (see src/lib/barbers/settlement.ts), and the
+ * fee rate is still snapshotted on the row for that purpose.
+ *
+ * Rounded to céntimos for display only — settlements recompute from the raw
+ * line fields and never sum these stored rounded values.
  *
  * Every write path (logActivity, logActivityBatch, updateActivity) must go
  * through this function so they can never drift apart.
@@ -49,9 +54,9 @@ export type ActivityListItem = {
 export function computeCommissionAmount(
   priceCharged: number,
   commissionRate: number,
-  paymentMethodFeeRate: number
+  ivaRate: number
 ): number {
-  return Math.round(priceCharged * commissionRate * (1 - paymentMethodFeeRate) * 100) / 100;
+  return lineCommission(priceCharged, commissionRate, ivaRate).toDecimalPlaces(2).toNumber();
 }
 
 // ── Resolvers ─────────────────────────────────────────────────────────────────
@@ -226,15 +231,16 @@ export async function logActivity(
     data.paymentMethodId
   );
 
-  const [effective, feeRate] = await Promise.all([
+  const [effective, feeRate, settings] = await Promise.all([
     getEffectiveCommissionRate(tenantId, data.barberId, data.serviceId),
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
+    getBarberSettings(tenantId),
   ]);
   if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
   if (feeRate == null) throw new Error("Could not resolve a fee rate for this payment method.");
 
   const commissionRate = effective.rate;
-  const commissionAmount = computeCommissionAmount(data.priceCharged, commissionRate, feeRate);
+  const commissionAmount = computeCommissionAmount(data.priceCharged, commissionRate, settings.ivaRate);
 
   const [row] = await db
     .insert(barberActivities)
@@ -314,9 +320,10 @@ export async function logActivityBatch(
 
   // Resolve every rate up front: effective commission rates for all services in
   // one batch query, and the payment method's fee rate once for the whole cart.
-  const [rateByService, feeRate] = await Promise.all([
+  const [rateByService, feeRate, settings] = await Promise.all([
     resolveEffectiveCommissionRates(tenantId, data.barberId, serviceRows),
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
+    getBarberSettings(tenantId),
   ]);
   if (feeRate == null) throw new Error("Could not resolve a fee rate for this payment method.");
 
@@ -337,7 +344,7 @@ export async function logActivityBatch(
       priceCharged: String(line.priceCharged),
       commissionRate: String(resolved.rate),
       paymentMethodFeeRate: String(feeRate),
-      commissionAmount: String(computeCommissionAmount(line.priceCharged, resolved.rate, feeRate)),
+      commissionAmount: String(computeCommissionAmount(line.priceCharged, resolved.rate, settings.ivaRate)),
       performedAt,
       createdBy,
     };
@@ -482,9 +489,11 @@ export async function updateActivity(
   }
 
   // Recompute commissionAmount from the (possibly updated) price and the
-  // server-resolved rates, via the single canonical formula.
+  // server-resolved rate, via the single canonical formula. The fee rate is
+  // still snapshotted above: the settlement engine uses it for the card fee.
   const priceCharged = data.priceCharged ?? parseFloat(existing.priceCharged);
-  const commissionAmount = computeCommissionAmount(priceCharged, commissionRate, paymentMethodFeeRate);
+  const { ivaRate } = await getBarberSettings(tenantId);
+  const commissionAmount = computeCommissionAmount(priceCharged, commissionRate, ivaRate);
 
   const [row] = await db
     .update(barberActivities)

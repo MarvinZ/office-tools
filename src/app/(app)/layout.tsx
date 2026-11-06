@@ -3,8 +3,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { getTranslations, getLocale } from "next-intl/server";
-import { requireTenant } from "@/services/tenants";
-import { adminGetEnabledTools } from "@/services/admin/tenants";
+import { getAvailableTools, requireTenant } from "@/services/tenants";
 import LocaleSwitcher from "@/components/locale-switcher";
 import ThemeToggle from "@/components/theme-toggle";
 
@@ -35,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [t, locale, enabledSlugs] = await Promise.all([
     getTranslations("nav"),
     getLocale(),
-    adminGetEnabledTools(tenant.id),
+    getAvailableTools(tenant),
   ]);
 
   const isOrgAdmin = orgRole === "org:admin";
@@ -43,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
+      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black print:hidden">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
           <div className="flex min-w-0 items-center gap-6">
             <Link href="/dashboard" className="shrink-0 text-sm font-semibold text-black dark:text-white">

@@ -1,8 +1,11 @@
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import FileManager from "../dashboard/_components/file-manager";
 import SendEmailForm from "../dashboard/_components/send-email-form";
 
+// Dev-only scaffolding page (blob browser + test email); 404 in production.
 export default async function DevToolsPage() {
+  if (process.env.NODE_ENV === "production") notFound();
   const t = await getTranslations("dev");
 
   return (
