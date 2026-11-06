@@ -4,7 +4,8 @@ import { requireTenant } from "@/services/tenants";
 import { getSettlementDocuments } from "@/services/barbers/settlements";
 import { fortnightOf, parseFortnightKey } from "@/lib/barbers/settlement";
 import { settlementDocLines } from "@/lib/barbers/settlement-document";
-import { businessDateOf, fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
+import { fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
+import { closingStatus, parseVersion } from "../_lib/closing-status";
 import { fmtColones } from "@/lib/barbers/currency";
 import PrintButton from "../_components/print-button";
 
@@ -18,20 +19,18 @@ export const dynamic = "force-dynamic";
 export default async function SettlementPrintPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; barber?: string }>;
+  searchParams: Promise<{ period?: string; barber?: string; version?: string }>;
 }) {
-  const { period, barber } = await searchParams;
+  const { period, barber, version } = await searchParams;
   const [tenant, t] = await Promise.all([requireTenant(), getTranslations("barbers")]);
   const fortnight = parseFortnightKey(period) ?? fortnightOf(todayBusinessDate());
-  const { effective, closing, documents } = await getSettlementDocuments(tenant.id, fortnight);
+  const { effective, closing, documents } = await getSettlementDocuments(tenant.id, fortnight, parseVersion(version));
 
   const selected = barber ? documents.filter((d) => d.barberId === barber) : documents;
   if (barber && selected.length === 0) notFound();
 
   const periodLabel = `${t(fortnight.half === 1 ? "settlements.firstHalf" : "settlements.secondHalf")} · ${fmtDay(fortnight.from)} – ${fmtDay(fortnight.to)}`;
-  const status = closing
-    ? t("settlements.closedOn", { date: fmtDay(businessDateOf(closing.closedAt)) })
-    : t("settlements.preliminary");
+  const status = closingStatus(t, closing);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10 print:max-w-none print:gap-0 print:p-0">

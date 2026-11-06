@@ -59,6 +59,11 @@ export type BarberSettlementInput = {
   vales: DecimalLike[];
   productCredit: DecimalLike[];
   tips: DecimalLike[];
+  /**
+   * Unpaid balance carried in from the previous (closed) fortnight — its
+   * shortfall. Deducted like a vale. Omitted/0 when there's nothing owed.
+   */
+  carryOver?: DecimalLike;
 };
 
 export type BarberSettlement = {
@@ -71,6 +76,7 @@ export type BarberSettlement = {
   maintenance: number;
   productCredit: number;
   vales: number;
+  carryOver: number; // previous fortnight's shortfall, deducted now
   totalExpenses: number;
   net: number;
   ivaBase: number;
@@ -145,7 +151,9 @@ export function computeBarberSettlement(
   const tips = sum(input.tips);
   const addition = new Decimal(profile.fortnightlyAddition);
 
-  const totalExpenses = cardFee.plus(maintenance).plus(productCredit).plus(vales);
+  const carryOver = new Decimal(input.carryOver ?? 0);
+
+  const totalExpenses = cardFee.plus(maintenance).plus(productCredit).plus(vales).plus(carryOver);
   const net = serviceIncome.plus(addition).minus(totalExpenses);
   const ivaBase = serviceIncome.times(profile.ivaBaseRate).plus(addition).minus(totalExpenses);
   const iva = Decimal.max(ZERO, ivaBase).times(ivaRate);
@@ -164,6 +172,7 @@ export function computeBarberSettlement(
     maintenance: cents(maintenance),
     productCredit: cents(productCredit),
     vales: cents(vales),
+    carryOver: cents(carryOver),
     totalExpenses: cents(totalExpenses),
     net: cents(net),
     ivaBase: cents(ivaBase),

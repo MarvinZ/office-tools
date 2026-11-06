@@ -15,6 +15,7 @@ export type SettlementDocLineKey =
   | "maintenance"
   | "productCredit"
   | "vales"
+  | "carryOver"
   | "net"
   | "iva"
   | "invoice"
@@ -37,6 +38,7 @@ export function settlementDocLines(s: BarberSettlement): SettlementDocLine[] {
     { key: "maintenance", amount: s.maintenance, sign: "−" },
     { key: "productCredit", amount: s.productCredit, sign: "−" },
     { key: "vales", amount: s.vales, sign: "−" },
+    ...(s.carryOver !== 0 ? [{ key: "carryOver" as const, amount: s.carryOver, sign: "−" as const }] : []),
     { key: "net", amount: s.net, sign: "=" },
     // Informative IVA is shown but not added — the invoice line makes that visible.
     { key: "iva", amount: s.iva, sign: s.ivaInformative ? "=" : "+" },
@@ -73,7 +75,7 @@ export type WorkbookLabels = {
 };
 
 const SUMMARY_KEYS = [
-  "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales",
+  "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver",
   "net", "iva", "invoice", "tips", "transfer",
 ] as const;
 

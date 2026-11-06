@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { getWebhookEndpointById, recordWebhookEvent } from "@/services/webhooks/webhooks";
+import { getAvailableTools, getTenant } from "@/services/tenants";
 
 function verifySignature(rawBody: string, secret: string, signature: string | null): boolean {
   if (!signature) return false;
@@ -16,6 +17,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ end
   const endpoint = await getWebhookEndpointById(endpointId);
 
   if (!endpoint || !endpoint.isActive) {
+    return NextResponse.json({ error: "Unknown endpoint" }, { status: 404 });
+  }
+  // Same answer as an unknown endpoint when the tenant is inactive or has the
+  // Webhooks tool disabled — don't reveal the endpoint exists.
+  const tenant = await getTenant(endpoint.tenantId);
+  if (!tenant || !(await getAvailableTools(tenant)).includes("webhooks")) {
     return NextResponse.json({ error: "Unknown endpoint" }, { status: 404 });
   }
 

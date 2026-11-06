@@ -3,8 +3,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { getTranslations, getLocale } from "next-intl/server";
-import { requireTenant } from "@/services/tenants";
-import { adminGetEnabledTools } from "@/services/admin/tenants";
+import { getAvailableTools, requireTenant } from "@/services/tenants";
 import LocaleSwitcher from "@/components/locale-switcher";
 import ThemeToggle from "@/components/theme-toggle";
 
@@ -35,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [t, locale, enabledSlugs] = await Promise.all([
     getTranslations("nav"),
     getLocale(),
-    adminGetEnabledTools(tenant.id),
+    getAvailableTools(tenant),
   ]);
 
   const isOrgAdmin = orgRole === "org:admin";

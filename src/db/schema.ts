@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType, date } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType, date, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── PostGIS custom column type ─────────────────────────────────────────────────
 
@@ -711,16 +712,27 @@ export const barberSettings = pgTable("barber_settings", {
 
 // A closed ("paid") fortnight. Settlements are computed live from the raw
 // data; closing freezes that result here so later edits to rates, settings or
-// movements never change what was already paid. Reopening deletes the row.
-// snapshot holds the full FortnightSettlements result (services/barbers/
-// settlements.ts) — read-only, never recomputed.
+// movements never change what was already paid. snapshot holds the full
+// FortnightSettlements result (services/barbers/settlements.ts) — read-only,
+// never recomputed.
+//
+// Versioned: reopening stamps reopenedAt on the current row instead of
+// deleting it, and closing again adds version + 1. The current closing is
+// the one row per fortnight with reopenedAt null (enforced by the index).
 export const barberFortnightClosings = pgTable("barber_fortnight_closings", {
+  id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   period: text("period").notNull(), // "YYYY-MM-H", H = 1 (1–15) or 2 (16–end)
+  version: integer("version").notNull(),
   snapshot: jsonb("snapshot").notNull(),
   closedBy: text("closed_by").notNull(),
   closedAt: timestamp("closed_at").defaultNow().notNull(),
-}, (t) => [primaryKey({ columns: [t.tenantId, t.period] })]);
+  reopenedBy: text("reopened_by"),
+  reopenedAt: timestamp("reopened_at"),
+}, (t) => [
+  uniqueIndex("barber_fortnight_closings_version_uq").on(t.tenantId, t.period, t.version),
+  uniqueIndex("barber_fortnight_closings_current_uq").on(t.tenantId, t.period).where(sql`${t.reopenedAt} is null`),
+]);
 
 export const barberLocations = pgTable("barber_locations", {
   barberId: text("barber_id").notNull().references(() => barbers.id, { onDelete: "cascade" }),

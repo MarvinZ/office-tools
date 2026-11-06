@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { AlertTriangle, ChevronLeft, ChevronRight, FileSpreadsheet, Lock, Printer, Settings } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, FileSpreadsheet, History, Lock, Printer, Settings } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireTenant } from "@/services/tenants";
 import { getSettlementView, type BarberSettlementRow, type SettlementTotals } from "@/services/barbers/settlements";
@@ -8,21 +8,30 @@ import { fortnightKey, fortnightOf, parseFortnightKey, shiftFortnight } from "@/
 import { businessDateOf, fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { fmtColones } from "@/lib/barbers/currency";
 import ClosingControls from "./_components/closing-controls";
+import { closingStatus, parseVersion } from "./_lib/closing-status";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettlementsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; version?: string }>;
 }) {
-  const { period } = await searchParams;
+  const { period, version } = await searchParams;
   const [tenant, t, { orgRole }] = await Promise.all([requireTenant(), getTranslations("barbers"), auth()]);
   // ?period=YYYY-MM-H, H = 1 (days 1–15) or 2 (16–end of month).
   const fortnight = parseFortnightKey(period) ?? fortnightOf(todayBusinessDate());
   const key = fortnightKey(fortnight);
-  const { effective, closing, changedSinceClose } = await getSettlementView(tenant.id, fortnight);
+  const { effective, closing, isClosed, changedSinceClose, versions } = await getSettlementView(
+    tenant.id,
+    fortnight,
+    parseVersion(version)
+  );
   const { rows, totals, settings } = effective;
+  // Viewing an older, superseded closing rather than the fortnight's current state.
+  const viewingOld = !!closing?.reopenedAt;
+  // Print/export show exactly what's on screen.
+  const docQuery = viewingOld ? `period=${key}&version=${closing!.version}` : `period=${key}`;
   const isAdmin = orgRole === "org:admin";
   const canClose = fortnight.from <= todayBusinessDate();
 
@@ -41,6 +50,8 @@ export default async function SettlementsPage({
     { key: "maintenance", label: t("settlements.colMaintenance"), deduction: true },
     { key: "productCredit", label: t("settlements.colProductCredit"), deduction: true },
     { key: "vales", label: t("settlements.colVales"), deduction: true },
+    // Only when someone actually carries a balance in — keeps the table narrow.
+    ...(totals.carryOver > 0 ? [{ key: "carryOver" as const, label: t("settlements.colCarryOver"), deduction: true }] : []),
     { key: "net", label: t("settlements.colNet") },
     { key: "iva", label: t("settlements.colIva") },
     { key: "invoice", label: t("settlements.colInvoice") },
@@ -91,10 +102,15 @@ export default async function SettlementsPage({
         <Link href={`/barbers/settlements?period=${fortnightKey(shiftFortnight(fortnight, 1))}`} className={navCls} aria-label={t("settlements.next")}>
           <ChevronRight size={16} />
         </Link>
-        {closing ? (
+        {viewingOld ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+            <History size={12} />
+            {closingStatus(t, closing)}
+          </span>
+        ) : closing ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
             <Lock size={12} />
-            {t("settlements.closedOn", { date: fmtDay(businessDateOf(closing.closedAt)) })}
+            {closingStatus(t, closing)}
           </span>
         ) : (
           <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
@@ -104,17 +120,23 @@ export default async function SettlementsPage({
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {rows.length > 0 && (
             <>
-              <a href={`/barbers/settlements/export?period=${key}`} className={btnCls}>
+              <a href={`/barbers/settlements/export?${docQuery}`} className={btnCls}>
                 <FileSpreadsheet size={14} />
                 {t("settlements.exportExcel")}
               </a>
-              <Link href={`/barbers/settlements/print?period=${key}`} target="_blank" className={btnCls}>
+              <Link href={`/barbers/settlements/print?${docQuery}`} target="_blank" className={btnCls}>
                 <Printer size={14} />
                 {t("settlements.printAll")}
               </Link>
             </>
           )}
-          {isAdmin && (closing || canClose) && <ClosingControls period={key} closed={!!closing} />}
+          {viewingOld ? (
+            <Link href={`/barbers/settlements?period=${key}`} className={btnCls}>
+              {t("settlements.backToCurrent")}
+            </Link>
+          ) : (
+            isAdmin && (isClosed || canClose) && <ClosingControls period={key} closed={isClosed} />
+          )}
         </div>
       </div>
 
@@ -154,7 +176,7 @@ export default async function SettlementsPage({
                       <span className="inline-flex items-center gap-2">
                         <Link href={`/barbers/barbers/${r.barberId}`} className="hover:underline">{r.barberName}</Link>
                         <Link
-                          href={`/barbers/settlements/print?period=${key}&barber=${r.barberId}`}
+                          href={`/barbers/settlements/print?${docQuery}&barber=${r.barberId}`}
                           target="_blank"
                           aria-label={t("settlements.printOne", { name: r.barberName })}
                           title={t("settlements.printOne", { name: r.barberName })}
@@ -201,7 +223,48 @@ export default async function SettlementsPage({
 
       <p className="text-xs text-zinc-400">
         {t("settlements.footnote")} {t(closing ? "settlements.footnoteClosed" : "settlements.footnoteLive")}
+        {totals.carryOver > 0 && ` ${t("settlements.footnoteCarryOver")}`}
       </p>
+
+      {versions.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-black dark:text-white">
+            <History size={14} />
+            {t("settlements.historyTitle")}
+          </h2>
+          <ul className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 text-sm dark:divide-zinc-800 dark:border-zinc-800">
+            {versions.map((v) => {
+              const active = closing?.version === v.version;
+              return (
+                <li key={v.version} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5">
+                  <span className="font-medium text-black dark:text-white">v{v.version}</span>
+                  <span className="text-zinc-500">
+                    {t("settlements.historyClosed", { date: fmtDay(businessDateOf(v.closedAt)) })}
+                    {v.reopenedAt
+                      ? ` · ${t("settlements.historyReopened", { date: fmtDay(businessDateOf(v.reopenedAt)) })}`
+                      : ` · ${t("settlements.historyCurrent")}`}
+                  </span>
+                  <span className="text-zinc-600 dark:text-zinc-300">
+                    {t("settlements.historyTransfer", { amount: fmtColones(v.totalTransfer) })}
+                  </span>
+                  <span className="ml-auto">
+                    {active ? (
+                      <span className="text-xs text-zinc-400">{t("settlements.historyShowing")}</span>
+                    ) : (
+                      <Link
+                        href={v.reopenedAt ? `/barbers/settlements?period=${key}&version=${v.version}` : `/barbers/settlements?period=${key}`}
+                        className="text-xs text-zinc-500 underline hover:text-black dark:hover:text-white"
+                      >
+                        {t("settlements.historyView")}
+                      </Link>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

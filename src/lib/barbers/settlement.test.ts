@@ -35,6 +35,7 @@ function settle(partial: Omit<Partial<BarberSettlementInput>, "profile"> & { pro
       vales: partial.vales ?? [],
       productCredit: partial.productCredit ?? [],
       tips: partial.tips ?? [],
+      carryOver: partial.carryOver,
       profile: { ...STANDARD, ...partial.profile },
     },
     SETTINGS
@@ -131,6 +132,15 @@ describe("computeBarberSettlement", () => {
     expect(r.invoice).toBe(0);
     expect(r.transfer).toBe(0);
     expect(r.shortfall).toBe(10000);
+  });
+
+  it("carries a previous shortfall into the next fortnight as a deduction", () => {
+    // CA 10's ₡10,000 shortfall, repaid out of next fortnight's ₡20,000 income.
+    const r = settle({ lines: [line(22600, 1)], carryOver: 10000, profile: { appliesMaintenance: false } });
+    expect(r.carryOver).toBe(10000);
+    expect(r.totalExpenses).toBe(10000);
+    expect(r.net).toBe(10000);
+    expect(r.shortfall).toBe(0);
   });
 
   it("CA 11: Jorge — IVA shown but excluded from the transfer", () => {

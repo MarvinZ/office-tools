@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { payrollBatches, payrollUploads, payrollEmails } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 
 export async function getBatchHistory(tenantId: string) {
   const batches = await db
@@ -29,9 +29,10 @@ export async function getBatchWithEmails(batchId: string, tenantId: string) {
     })
     .from(payrollBatches)
     .innerJoin(payrollUploads, eq(payrollBatches.uploadId, payrollUploads.id))
-    .where(eq(payrollBatches.id, batchId))
+    .where(and(eq(payrollBatches.id, batchId), eq(payrollBatches.tenantId, tenantId)))
     .limit(1);
 
+  // Batch is verified to belong to this tenant, so its emails do too.
   if (!batch) return null;
 
   const emails = await db

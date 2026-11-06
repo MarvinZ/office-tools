@@ -18,6 +18,7 @@
     "greeting": "Welcome back, {name}!",
     "subtitle": "Here's your dashboard.",
     "noTools": "No tools are enabled for your account yet. Contact your administrator.",
+    "inactive": "This account is currently inactive. Contact your administrator.",
     "payrollCard": {
       "title": "Payroll",
       "description": "Upload and send payroll emails to employees."
@@ -1151,9 +1152,21 @@
       "reopen": "Reopen",
       "working": "Working…",
       "confirmClose": "Close this fortnight? The current figures will be frozen as what gets paid. Later edits won't change them unless you reopen it.",
-      "confirmReopen": "Reopen this fortnight? The frozen figures are discarded and it goes back to live calculation.",
+      "confirmReopen": "Reopen this fortnight? It goes back to live calculation. The closed figures are kept in the closing history.",
       "errorClosing": "Couldn't update the fortnight.",
-      "changedSinceClose": "Data for this fortnight changed after it was closed. The figures below are still the closed ones; reopen and close again to apply the changes."
+      "changedSinceClose": "Data for this fortnight changed after it was closed. The figures below are still the closed ones; reopen and close again to apply the changes.",
+      "colCarryOver": "Prev. balance",
+      "closedOnVersion": "Closed {date} · v{version}",
+      "supersededVersion": "Superseded v{version} (reopened {date})",
+      "backToCurrent": "Back to current",
+      "footnoteCarryOver": "Prev. balance is what a barber still owed when the previous fortnight was closed.",
+      "historyTitle": "Closing history",
+      "historyClosed": "Closed {date}",
+      "historyReopened": "reopened {date}",
+      "historyCurrent": "current",
+      "historyTransfer": "Total transfer {amount}",
+      "historyShowing": "Showing",
+      "historyView": "View"
     },
     "paymentDetails": {
       "idNumber": "ID number (cédula)",
@@ -1181,6 +1194,7 @@
         "maintenance": "Maintenance",
         "productCredit": "Products on credit",
         "vales": "Vales (advances)",
+        "carryOver": "Balance owed from previous fortnight",
         "net": "Net",
         "iva": "IVA",
         "invoice": "Amount to invoice",

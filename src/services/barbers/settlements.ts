@@ -1,4 +1,4 @@
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, max } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { db } from "@/db";
 import {
@@ -8,6 +8,7 @@ import { businessDateOf, endOfBusinessDay, startOfBusinessDay, todayBusinessDate
 import {
   computeBarberSettlement,
   fortnightKey,
+  shiftFortnight,
   type BarberSettlement,
   type BarberSettlementInput,
   type Fortnight,
@@ -21,7 +22,7 @@ export type BarberSettlementRow = BarberSettlement & {
 
 /** Numeric fields of a settlement that are meaningful to total across barbers. */
 const SUMMABLE = [
-  "grossCharged", "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales",
+  "grossCharged", "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver",
   "totalExpenses", "net", "iva", "ivaPaid", "invoice", "tips", "transfer", "shortfall",
 ] as const;
 export type SettlementTotals = Record<(typeof SUMMABLE)[number], number> & { serviceCount: number };
@@ -43,6 +44,10 @@ export type FortnightSettlements = {
  *
  * A barber is listed if they're active or had anything in the period, so a
  * barber deactivated mid-fortnight still gets paid for the days they worked.
+ *
+ * Carry-over: if the previous fortnight is closed, each barber's shortfall in
+ * that closing is deducted here. An open previous fortnight carries nothing
+ * yet, because its figures aren't final.
  */
 export async function getFortnightSettlements(
   tenantId: string,
@@ -50,8 +55,9 @@ export async function getFortnightSettlements(
 ): Promise<FortnightSettlements> {
   const { from, to } = fortnight;
 
-  const [settings, barberRows, activityRows, valeRows, saleRows, tipRows] = await Promise.all([
+  const [settings, previousClosing, barberRows, activityRows, valeRows, saleRows, tipRows] = await Promise.all([
     getBarberSettings(tenantId),
+    getCurrentClosing(tenantId, shiftFortnight(fortnight, -1)),
     db.select().from(barbers).where(eq(barbers.tenantId, tenantId)).orderBy(barbers.firstName, barbers.lastName),
     db
       .select({
@@ -104,6 +110,11 @@ export async function getFortnightSettlements(
   for (const v of valeRows) inputFor(v.barberId).vales.push(v.amount);
   for (const s of saleRows) inputFor(s.barberId).productCredit.push(s.amount);
   for (const t of tipRows) inputFor(t.barberId).tips.push(t.amount);
+  if (previousClosing) {
+    for (const r of readSnapshot(previousClosing.snapshot).rows) {
+      if (r.shortfall > 0) inputFor(r.barberId).carryOver = r.shortfall;
+    }
+  }
 
   const rows: BarberSettlementRow[] = barberRows
     .filter((b) => b.status === "active" || inputs.has(b.id))
@@ -137,19 +148,60 @@ function sumRows(rows: BarberSettlementRow[]): SettlementTotals {
 
 // ── Closing ("paying") a fortnight ───────────────────────────────────────────
 
-export type FortnightClosingInfo = { closedAt: Date; closedBy: string };
+export type FortnightClosingInfo = {
+  version: number;
+  closedAt: Date;
+  closedBy: string;
+  reopenedAt: Date | null;
+};
+
+export type ClosingVersion = FortnightClosingInfo & { totalTransfer: number };
 
 export type SettlementView = {
-  /** What to show and export: the frozen snapshot if closed, else live. */
+  /** What to show and export: the chosen/current snapshot if closed, else live. */
   effective: FortnightSettlements;
+  /** The closing being shown (current, or an older version when asked for). */
   closing: FortnightClosingInfo | null;
+  /** Whether the fortnight currently has a closing (independent of what's shown). */
+  isClosed: boolean;
   /**
    * Closed, but recomputing from today's data gives different amounts —
    * something in the period (or a rate/setting) was edited after closing.
    * The snapshot still wins; reopen + close again to take the changes.
    */
   changedSinceClose: boolean;
+  /** Every closing ever made for this fortnight, newest first. */
+  versions: ClosingVersion[];
 };
+
+/**
+ * Snapshots are stored JSON; fields added to the engine later are missing
+ * from older ones. Default them so every snapshot has today's shape.
+ */
+function readSnapshot(raw: unknown): FortnightSettlements {
+  const s = raw as FortnightSettlements;
+  return {
+    ...s,
+    rows: s.rows.map((r) => ({ ...r, carryOver: r.carryOver ?? 0 })),
+    totals: { ...s.totals, carryOver: s.totals.carryOver ?? 0 },
+  };
+}
+
+/** The fortnight's current (not reopened) closing row, if any. */
+async function getCurrentClosing(tenantId: string, fortnight: Fortnight) {
+  const [row] = await db
+    .select()
+    .from(barberFortnightClosings)
+    .where(
+      and(
+        eq(barberFortnightClosings.tenantId, tenantId),
+        eq(barberFortnightClosings.period, fortnightKey(fortnight)),
+        isNull(barberFortnightClosings.reopenedAt)
+      )
+    )
+    .limit(1);
+  return row ?? null;
+}
 
 /** The figures that matter for payment, per barber, in a stable order. */
 function paymentFingerprint(s: FortnightSettlements): string {
@@ -160,46 +212,84 @@ function paymentFingerprint(s: FortnightSettlements): string {
   );
 }
 
-export async function getSettlementView(tenantId: string, fortnight: Fortnight): Promise<SettlementView> {
-  const [live, [closing]] = await Promise.all([
+function closingInfo(row: typeof barberFortnightClosings.$inferSelect): FortnightClosingInfo {
+  return { version: row.version, closedAt: row.closedAt, closedBy: row.closedBy, reopenedAt: row.reopenedAt };
+}
+
+/**
+ * The settlements to show for a fortnight. With `version`, shows that
+ * (possibly superseded) closing instead of the current state.
+ */
+export async function getSettlementView(
+  tenantId: string,
+  fortnight: Fortnight,
+  version?: number
+): Promise<SettlementView> {
+  const [live, closingRows] = await Promise.all([
     getFortnightSettlements(tenantId, fortnight),
     db
       .select()
       .from(barberFortnightClosings)
       .where(and(eq(barberFortnightClosings.tenantId, tenantId), eq(barberFortnightClosings.period, fortnightKey(fortnight))))
-      .limit(1),
+      .orderBy(desc(barberFortnightClosings.version)),
   ]);
-  if (!closing) return { effective: live, closing: null, changedSinceClose: false };
 
-  const snapshot = closing.snapshot as FortnightSettlements;
+  const versions = closingRows.map((r) => ({
+    ...closingInfo(r),
+    totalTransfer: readSnapshot(r.snapshot).totals.transfer,
+  }));
+  const current = closingRows.find((r) => r.reopenedAt === null) ?? null;
+  const shown = version !== undefined ? (closingRows.find((r) => r.version === version) ?? current) : current;
+
+  if (!shown) return { effective: live, closing: null, isClosed: false, changedSinceClose: false, versions };
+
+  const snapshot = readSnapshot(shown.snapshot);
   return {
     effective: snapshot,
-    closing: { closedAt: closing.closedAt, closedBy: closing.closedBy },
-    changedSinceClose: paymentFingerprint(snapshot) !== paymentFingerprint(live),
+    closing: closingInfo(shown),
+    isClosed: current !== null,
+    changedSinceClose: shown === current && paymentFingerprint(snapshot) !== paymentFingerprint(live),
+    versions,
   };
 }
 
 /**
- * Freeze the fortnight's current live settlements. A fortnight that hasn't
- * started can't be closed; closing one that's still running is allowed (the
- * shop pays on the 15th / last day itself).
+ * Freeze the fortnight's current live settlements as a new version. A
+ * fortnight that hasn't started can't be closed; closing one that's still
+ * running is allowed (the shop pays on the 15th / last day itself).
  */
 export async function closeFortnight(tenantId: string, closedBy: string, fortnight: Fortnight): Promise<void> {
   if (fortnight.from > todayBusinessDate()) throw new Error("This fortnight hasn't started yet.");
-  const snapshot = await getFortnightSettlements(tenantId, fortnight);
+  const period = fortnightKey(fortnight);
+  const [snapshot, [{ maxVersion }]] = await Promise.all([
+    getFortnightSettlements(tenantId, fortnight),
+    db
+      .select({ maxVersion: max(barberFortnightClosings.version) })
+      .from(barberFortnightClosings)
+      .where(and(eq(barberFortnightClosings.tenantId, tenantId), eq(barberFortnightClosings.period, period))),
+  ]);
+  // Both unique indexes make this safe against a double click or two admins
+  // at once: the loser inserts nothing.
   const inserted = await db
     .insert(barberFortnightClosings)
-    .values({ tenantId, period: fortnightKey(fortnight), snapshot, closedBy })
+    .values({ id: crypto.randomUUID(), tenantId, period, version: (maxVersion ?? 0) + 1, snapshot, closedBy })
     .onConflictDoNothing()
-    .returning({ period: barberFortnightClosings.period });
+    .returning({ id: barberFortnightClosings.id });
   if (inserted.length === 0) throw new Error("This fortnight is already closed.");
 }
 
-/** Discard the snapshot; the fortnight goes back to live figures. */
-export async function reopenFortnight(tenantId: string, fortnight: Fortnight): Promise<void> {
+/** Supersede the current closing; the fortnight goes back to live figures. */
+export async function reopenFortnight(tenantId: string, reopenedBy: string, fortnight: Fortnight): Promise<void> {
   await db
-    .delete(barberFortnightClosings)
-    .where(and(eq(barberFortnightClosings.tenantId, tenantId), eq(barberFortnightClosings.period, fortnightKey(fortnight))));
+    .update(barberFortnightClosings)
+    .set({ reopenedAt: new Date(), reopenedBy })
+    .where(
+      and(
+        eq(barberFortnightClosings.tenantId, tenantId),
+        eq(barberFortnightClosings.period, fortnightKey(fortnight)),
+        isNull(barberFortnightClosings.reopenedAt)
+      )
+    );
 }
 
 // ── Documents (print / Excel) ────────────────────────────────────────────────
@@ -213,10 +303,11 @@ export type SettlementDocumentRow = BarberSettlementRow & { idNumber: string | n
  */
 export async function getSettlementDocuments(
   tenantId: string,
-  fortnight: Fortnight
+  fortnight: Fortnight,
+  version?: number
 ): Promise<SettlementView & { documents: SettlementDocumentRow[] }> {
   const [view, details] = await Promise.all([
-    getSettlementView(tenantId, fortnight),
+    getSettlementView(tenantId, fortnight, version),
     db.select({ id: barbers.id, idNumber: barbers.idNumber, iban: barbers.iban }).from(barbers).where(eq(barbers.tenantId, tenantId)),
   ]);
   const byId = new Map(details.map((d) => [d.id, d]));

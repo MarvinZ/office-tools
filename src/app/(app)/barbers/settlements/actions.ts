@@ -27,7 +27,7 @@ export async function closeFortnightAction(period: string) {
 }
 
 export async function reopenFortnightAction(period: string) {
-  const [, tenant] = await Promise.all([requireAdmin(), requireTenant()]);
-  await reopenFortnight(tenant.id, fortnightFrom(period));
+  const [userId, tenant] = await Promise.all([requireAdmin(), requireTenant()]);
+  await reopenFortnight(tenant.id, userId, fortnightFrom(period));
   revalidatePath("/barbers/settlements");
 }

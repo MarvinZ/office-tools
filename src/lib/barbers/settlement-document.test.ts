@@ -5,7 +5,7 @@ import type { BarberSettlement } from "./settlement";
 
 const ZERO: BarberSettlement = {
   serviceCount: 0, daysWorked: 0, grossCharged: 0, serviceIncome: 0, addition: 0, cardFee: 0, maintenance: 0,
-  productCredit: 0, vales: 0, totalExpenses: 0, net: 0, ivaBase: 0, iva: 0, ivaPaid: 0, ivaInformative: false,
+  productCredit: 0, vales: 0, carryOver: 0, totalExpenses: 0, net: 0, ivaBase: 0, iva: 0, ivaPaid: 0, ivaInformative: false,
   invoice: 0, tips: 0, transfer: 0, shortfall: 0,
 };
 
@@ -44,7 +44,7 @@ describe("settlementDocLines", () => {
 
 describe("buildSettlementWorkbook", () => {
   const totals = { serviceCount: 0, serviceIncome: 0, addition: 0, cardFee: 0, maintenance: 0, productCredit: 0,
-    vales: 0, net: 0, iva: 0, invoice: 0, tips: 0, transfer: 0 };
+    vales: 0, carryOver: 0, net: 0, iva: 0, invoice: 0, tips: 0, transfer: 0 };
 
   it("has summary, transfers and one sheet per barber with safe unique names", () => {
     const wb = buildSettlementWorkbook(

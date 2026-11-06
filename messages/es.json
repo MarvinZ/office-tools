@@ -18,6 +18,7 @@
     "greeting": "¡Bienvenido, {name}!",
     "subtitle": "Tu panel de control.",
     "noTools": "No hay herramientas habilitadas para tu cuenta. Contactá a tu administrador.",
+    "inactive": "Esta cuenta está inactiva en este momento. Contactá a tu administrador.",
     "payrollCard": {
       "title": "Planilla",
       "description": "Cargá y enviá comprobantes de pago a los empleados."
@@ -1151,9 +1152,21 @@
       "reopen": "Reabrir",
       "working": "Procesando…",
       "confirmClose": "¿Cerrar esta quincena? Las cifras actuales quedan fijas como lo que se paga. Los cambios posteriores no las afectan a menos que la reabra.",
-      "confirmReopen": "¿Reabrir esta quincena? Se descartan las cifras guardadas y vuelve al cálculo en vivo.",
+      "confirmReopen": "¿Reabrir esta quincena? Vuelve al cálculo en vivo. Las cifras cerradas quedan en el historial de cierres.",
       "errorClosing": "No se pudo actualizar la quincena.",
-      "changedSinceClose": "Los datos de esta quincena cambiaron después de cerrarla. Las cifras siguen siendo las del cierre; reábrala y ciérrela de nuevo para aplicar los cambios."
+      "changedSinceClose": "Los datos de esta quincena cambiaron después de cerrarla. Las cifras siguen siendo las del cierre; reábrala y ciérrela de nuevo para aplicar los cambios.",
+      "colCarryOver": "Saldo anterior",
+      "closedOnVersion": "Cerrada {date} · v{version}",
+      "supersededVersion": "Versión v{version} reemplazada (reabierta {date})",
+      "backToCurrent": "Volver a la actual",
+      "footnoteCarryOver": "El saldo anterior es lo que el barbero quedó debiendo al cerrar la quincena anterior.",
+      "historyTitle": "Historial de cierres",
+      "historyClosed": "Cerrada {date}",
+      "historyReopened": "reabierta {date}",
+      "historyCurrent": "actual",
+      "historyTransfer": "Total a transferir {amount}",
+      "historyShowing": "Mostrando",
+      "historyView": "Ver"
     },
     "paymentDetails": {
       "idNumber": "Cédula",
@@ -1181,6 +1194,7 @@
         "maintenance": "Mantenimiento",
         "productCredit": "Productos a crédito",
         "vales": "Vales (adelantos)",
+        "carryOver": "Saldo pendiente de la quincena anterior",
         "net": "Neto",
         "iva": "IVA",
         "invoice": "Monto a facturar",

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { tenants } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { adminGetEnabledTools } from "./admin/tenants";
 
 export type TenantRow = typeof tenants.$inferSelect;
 
@@ -25,6 +26,28 @@ export async function getCurrentTenant(): Promise<TenantRow | null> {
 export async function requireTenant(): Promise<TenantRow> {
   const tenant = await getCurrentTenant();
   if (!tenant) redirect("/select-org");
+  return tenant;
+}
+
+// ── Tool access ──────────────────────────────────────────────────────────────
+
+/**
+ * The tool slugs this tenant may use right now: the ones enabled for it in
+ * admin, or none at all while the tenant is marked inactive.
+ */
+export async function getAvailableTools(tenant: TenantRow): Promise<string[]> {
+  if (!tenant.isActive) return [];
+  return adminGetEnabledTools(tenant.id);
+}
+
+/**
+ * Use in each tool's layout.tsx: hiding a nav link isn't access control, so
+ * every page of a tool checks the tool is actually available to the tenant.
+ * Route handlers don't run layouts — they call getAvailableTools themselves.
+ */
+export async function requireTool(slug: string): Promise<TenantRow> {
+  const tenant = await requireTenant();
+  if (!(await getAvailableTools(tenant)).includes(slug)) redirect("/dashboard");
   return tenant;
 }
 

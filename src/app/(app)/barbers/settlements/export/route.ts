@@ -1,11 +1,11 @@
 import * as XLSX from "xlsx";
 import { getTranslations } from "next-intl/server";
-import { getCurrentTenant } from "@/services/tenants";
-import { adminGetEnabledTools } from "@/services/admin/tenants";
+import { getAvailableTools, getCurrentTenant } from "@/services/tenants";
 import { getSettlementDocuments } from "@/services/barbers/settlements";
 import { fortnightKey, parseFortnightKey } from "@/lib/barbers/settlement";
 import { buildSettlementWorkbook } from "@/lib/barbers/settlement-document";
-import { businessDateOf, fmtDay } from "@/lib/barbers/dates";
+import { fmtDay } from "@/lib/barbers/dates";
+import { closingStatus, parseVersion } from "../_lib/closing-status";
 import { fmtColones } from "@/lib/barbers/currency";
 
 export const dynamic = "force-dynamic";
@@ -18,22 +18,22 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const tenant = await getCurrentTenant();
   if (!tenant) return new Response("Unauthorized", { status: 401 });
-  if (!(await adminGetEnabledTools(tenant.id)).includes("barbers")) {
+  if (!(await getAvailableTools(tenant)).includes("barbers")) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const fortnight = parseFortnightKey(new URL(request.url).searchParams.get("period"));
+  const params = new URL(request.url).searchParams;
+  const fortnight = parseFortnightKey(params.get("period"));
   if (!fortnight) return new Response("Invalid period", { status: 400 });
+  const version = parseVersion(params.get("version"));
 
   const [t, { effective, closing, documents }] = await Promise.all([
     getTranslations("barbers"),
-    getSettlementDocuments(tenant.id, fortnight),
+    getSettlementDocuments(tenant.id, fortnight, version),
   ]);
 
   const title = `${t("settlements.title")} · ${t(fortnight.half === 1 ? "settlements.firstHalf" : "settlements.secondHalf")} · ${fmtDay(fortnight.from)} – ${fmtDay(fortnight.to)}`;
-  const status = closing
-    ? t("settlements.closedOn", { date: fmtDay(businessDateOf(closing.closedAt)) })
-    : t("settlements.preliminary");
+  const status = closingStatus(t, closing);
 
   const workbook = buildSettlementWorkbook(documents, effective.totals, {
     summarySheet: t("settlementDoc.summarySheet"),
@@ -44,6 +44,7 @@ export async function GET(request: Request) {
       t("settlements.colBarber"), t("settlements.colServices"), t("settlements.colDays"),
       t("settlements.colIncome"), t("settlements.colAddition"), t("settlements.colCardFee"),
       t("settlements.colMaintenance"), t("settlements.colProductCredit"), t("settlements.colVales"),
+      t("settlements.colCarryOver"),
       t("settlements.colNet"), t("settlements.colIva"), t("settlements.colInvoice"),
       t("settlements.colTips"), t("settlements.colTransfer"),
     ],
