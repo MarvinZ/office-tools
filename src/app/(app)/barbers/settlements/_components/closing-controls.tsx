@@ -14,11 +14,18 @@ export default function ClosingControls({ period, closed }: { period: string; cl
   const [error, setError] = useState<string | null>(null);
 
   function run() {
-    if (!window.confirm(t(closed ? "confirmReopen" : "confirmClose"))) return;
+    // Reopening needs a reason (spec §11.1); closing just a confirmation.
+    let reason = "";
+    if (closed) {
+      reason = window.prompt(t("reopenReasonPrompt"))?.trim() ?? "";
+      if (!reason) return;
+    } else if (!window.confirm(t("confirmClose"))) {
+      return;
+    }
     setError(null);
     startTransition(async () => {
       try {
-        await (closed ? reopenFortnightAction(period) : closeFortnightAction(period));
+        await (closed ? reopenFortnightAction(period, reason) : closeFortnightAction(period));
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : t("errorClosing"));

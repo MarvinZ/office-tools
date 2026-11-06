@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, desc, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { barberActivities, barbers, locations, services, barberServiceRates, locationServices, paymentMethods } from "@/db/schema";
 import { getPaymentMethodFeeRate } from "./payment-methods";
@@ -29,9 +29,14 @@ export type ActivityListItem = {
   commissionRate: number;
   commissionAmount: number;
   performedAt: Date;
+  status: BarberActivityStatus;
+  statusReason: string | null;
+  warrantyOfActivityId: string | null;
   createdBy: string;
   createdAt: Date;
 };
+
+export type BarberActivityStatus = BarberActivityRow["status"];
 
 // ── Commission math ───────────────────────────────────────────────────────────
 
@@ -390,6 +395,9 @@ export async function listActivities(
       commissionRate: barberActivities.commissionRate,
       commissionAmount: barberActivities.commissionAmount,
       performedAt: barberActivities.performedAt,
+      status: barberActivities.status,
+      statusReason: barberActivities.statusReason,
+      warrantyOfActivityId: barberActivities.warrantyOfActivityId,
       createdBy: barberActivities.createdBy,
       createdAt: barberActivities.createdAt,
     })
@@ -418,6 +426,9 @@ export async function listActivities(
     commissionRate: parseFloat(r.commissionRate),
     commissionAmount: parseFloat(r.commissionAmount),
     performedAt: r.performedAt,
+    status: r.status,
+    statusReason: r.statusReason,
+    warrantyOfActivityId: r.warrantyOfActivityId,
     createdBy: r.createdBy,
     createdAt: r.createdAt,
   }));
@@ -514,8 +525,135 @@ export async function updateActivity(
   return row ?? null;
 }
 
-export async function deleteActivity(tenantId: string, id: string): Promise<void> {
-  await db
-    .delete(barberActivities)
-    .where(and(eq(barberActivities.tenantId, tenantId), eq(barberActivities.id, id)));
+// ── Status: void / courtesy / warranty (spec §8.7, §8.8, §8.10) ─────────────
+//
+// Services are never deleted. A mistake is voided (kept, excluded from pay,
+// with who/when/why), so every past payout stays explainable.
+
+async function getActivityRow(tenantId: string, id: string): Promise<BarberActivityRow | null> {
+  const [row] = await db
+    .select()
+    .from(barberActivities)
+    .where(and(eq(barberActivities.tenantId, tenantId), eq(barberActivities.id, id)))
+    .limit(1);
+  return row ?? null;
+}
+
+/** The non-voided warranty redo of a service, if it has one. */
+async function getActiveWarrantyOf(tenantId: string, originalId: string): Promise<BarberActivityRow | null> {
+  const [row] = await db
+    .select()
+    .from(barberActivities)
+    .where(
+      and(
+        eq(barberActivities.tenantId, tenantId),
+        eq(barberActivities.warrantyOfActivityId, originalId),
+        ne(barberActivities.status, "voided")
+      )
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Change a service between normal ("active"), courtesy and voided. Voiding
+ * requires a reason. A warranty redo can only be voided (or restored to
+ * warranty), never turned into a normal or courtesy service.
+ */
+export async function setActivityStatus(
+  tenantId: string,
+  changedBy: string,
+  id: string,
+  status: "active" | "courtesy" | "voided",
+  reason?: string | null
+): Promise<{ before: BarberActivityRow; after: BarberActivityRow }> {
+  const before = await getActivityRow(tenantId, id);
+  if (!before) throw new Error("Service not found.");
+  const trimmed = reason?.trim() || null;
+  if (status === "voided" && !trimmed) throw new Error("A reason is required to void a service.");
+
+  // Restoring a voided warranty redo puts it back as a warranty.
+  const next = before.warrantyOfActivityId ? (status === "voided" ? "voided" : "warranty") : status;
+  if (before.warrantyOfActivityId && next === "warranty" && before.status === "voided") {
+    const other = await getActiveWarrantyOf(tenantId, before.warrantyOfActivityId);
+    if (other) throw new Error("That service already has another warranty redo.");
+  }
+  if (!before.warrantyOfActivityId && status === "voided") {
+    const redo = await getActiveWarrantyOf(tenantId, id);
+    if (redo) throw new Error("Void its warranty redo first.");
+  }
+
+  const [after] = await db
+    .update(barberActivities)
+    .set({ status: next, statusReason: trimmed, statusChangedBy: changedBy, statusChangedAt: new Date() })
+    .where(and(eq(barberActivities.tenantId, tenantId), eq(barberActivities.id, id)))
+    .returning();
+  return { before, after };
+}
+
+/**
+ * Record a warranty redo of a service (§8.8). The customer doesn't pay again.
+ *
+ * - Redone by the same barber: logged for the record and the worked day, but
+ *   paid nothing (rate 0) — they were already paid for it once.
+ * - Redone by a colleague: the colleague gets their normal commission on the
+ *   original price; the settlement takes the original barber's commission
+ *   back (warranty clawback) in the fortnight the redo happens.
+ */
+export async function logWarrantyRedo(
+  tenantId: string,
+  createdBy: string,
+  originalId: string,
+  correctorBarberId: string,
+  reason?: string | null
+): Promise<BarberActivityRow> {
+  const original = await getActivityRow(tenantId, originalId);
+  if (!original) throw new Error("Service not found.");
+  if (original.status === "voided" || original.status === "warranty") {
+    throw new Error("Only a normal or courtesy service can be redone under warranty.");
+  }
+  if (await getActiveWarrantyOf(tenantId, originalId)) throw new Error("This service already has a warranty redo.");
+
+  const sameBarber = correctorBarberId === original.barberId;
+  const [corrector] = await db
+    .select({ id: barbers.id })
+    .from(barbers)
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, correctorBarberId)))
+    .limit(1);
+  if (!corrector) throw new Error("Barber not found for this tenant.");
+
+  let commissionRate = 0;
+  if (!sameBarber) {
+    const effective = await getEffectiveCommissionRate(tenantId, correctorBarberId, original.serviceId);
+    if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
+    commissionRate = effective.rate;
+  }
+  const priceCharged = parseFloat(original.priceCharged);
+  const { ivaRate } = await getBarberSettings(tenantId);
+  const now = new Date();
+
+  const [row] = await db
+    .insert(barberActivities)
+    .values({
+      id: crypto.randomUUID(),
+      tenantId,
+      barberId: correctorBarberId,
+      locationId: original.locationId,
+      serviceId: original.serviceId,
+      paymentMethodId: original.paymentMethodId,
+      customerName: original.customerName,
+      priceCharged: original.priceCharged,
+      commissionRate: String(commissionRate),
+      paymentMethodFeeRate: "0", // the customer doesn't pay again
+      commissionAmount: String(computeCommissionAmount(priceCharged, commissionRate, ivaRate)),
+      performedAt: now,
+      status: "warranty",
+      statusReason: reason?.trim() || null,
+      statusChangedBy: createdBy,
+      statusChangedAt: now,
+      warrantyOfActivityId: original.id,
+      createdBy,
+    })
+    .returning();
+  return row;
 }

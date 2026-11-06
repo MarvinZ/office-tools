@@ -18,6 +18,7 @@ import {
   HandCoins,
   Calculator,
   SlidersHorizontal,
+  History,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -40,6 +41,7 @@ const CATALOG_ITEMS = [
   { href: "/barbers/products", labelKey: "tabProducts", icon: Package },
   { href: "/barbers/payment-methods", labelKey: "tabPaymentMethods", icon: CreditCard },
   { href: "/barbers/settings", labelKey: "tabSettings", icon: SlidersHorizontal },
+  { href: "/barbers/history", labelKey: "tabHistory", icon: History },
 ] as const;
 
 function isActive(pathname: string, href: string, exact: boolean): boolean {

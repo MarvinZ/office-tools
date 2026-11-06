@@ -170,8 +170,11 @@ export async function createProductSale(
  * Deletion is the ONLY correction path — there is no update function, by
  * design. Always scoped by tenantId AND id together, never by id alone.
  */
-export async function deleteProductSale(tenantId: string, id: string): Promise<void> {
-  await db
+/** Returns the deleted row (for the audit trail), or null if none matched. */
+export async function deleteProductSale(tenantId: string, id: string) {
+  const [row] = await db
     .delete(productSales)
-    .where(and(eq(productSales.tenantId, tenantId), eq(productSales.id, id)));
+    .where(and(eq(productSales.tenantId, tenantId), eq(productSales.id, id)))
+    .returning();
+  return row ?? null;
 }

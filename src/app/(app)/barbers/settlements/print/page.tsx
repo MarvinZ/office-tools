@@ -104,7 +104,9 @@ export default async function SettlementPrintPage({
 
           {d.shortfall > 0 && (
             <p className="mt-4 text-sm text-amber-700 dark:text-amber-400 print:text-black">
-              {t("settlements.shortfall", { amount: fmtColones(d.shortfall) })}
+              {t(d.shortfallToSalary ? "settlements.shortfallToSalary" : "settlements.shortfall", {
+                amount: fmtColones(d.shortfall),
+              })}
             </p>
           )}
 

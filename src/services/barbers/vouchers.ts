@@ -114,8 +114,11 @@ export async function createVoucher(
  * Deletion is the ONLY correction path — there is no update function, by
  * design. Always scoped by tenantId AND id together, never by id alone.
  */
-export async function deleteVoucher(tenantId: string, id: string): Promise<void> {
-  await db
+/** Returns the deleted row (for the audit trail), or null if none matched. */
+export async function deleteVoucher(tenantId: string, id: string) {
+  const [row] = await db
     .delete(barberVouchers)
-    .where(and(eq(barberVouchers.tenantId, tenantId), eq(barberVouchers.id, id)));
+    .where(and(eq(barberVouchers.tenantId, tenantId), eq(barberVouchers.id, id)))
+    .returning();
+  return row ?? null;
 }

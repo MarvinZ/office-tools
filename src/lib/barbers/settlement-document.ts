@@ -16,6 +16,7 @@ export type SettlementDocLineKey =
   | "productCredit"
   | "vales"
   | "carryOver"
+  | "warrantyClawback"
   | "net"
   | "iva"
   | "invoice"
@@ -39,6 +40,9 @@ export function settlementDocLines(s: BarberSettlement): SettlementDocLine[] {
     { key: "productCredit", amount: s.productCredit, sign: "−" },
     { key: "vales", amount: s.vales, sign: "−" },
     ...(s.carryOver !== 0 ? [{ key: "carryOver" as const, amount: s.carryOver, sign: "−" as const }] : []),
+    ...(s.warrantyClawback !== 0
+      ? [{ key: "warrantyClawback" as const, amount: s.warrantyClawback, sign: "−" as const }]
+      : []),
     { key: "net", amount: s.net, sign: "=" },
     // Informative IVA is shown but not added — the invoice line makes that visible.
     { key: "iva", amount: s.iva, sign: s.ivaInformative ? "=" : "+" },
@@ -71,12 +75,15 @@ export type WorkbookLabels = {
   idNumberLabel: string;
   ibanLabel: string;
   line: (key: SettlementDocLineKey) => string;
-  shortfall: (amount: number) => string;
+  /** Shortfall note; toSalary = it's a salary deduction, not a balance owed. */
+  shortfall: (amount: number, toSalary: boolean) => string;
+  mixedSheet: string;
+  mixedHeaders: [string, string, string, string, string]; // barber, rate, services, charged, income
 };
 
 const SUMMARY_KEYS = [
   "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver",
-  "net", "iva", "invoice", "tips", "transfer",
+  "warrantyClawback", "net", "iva", "invoice", "tips", "transfer",
 ] as const;
 
 const MONEY = "#,##0.00";
@@ -143,6 +150,24 @@ export function buildSettlementWorkbook(
   transfersWs["!cols"] = [{ wch: 24 }, { wch: 14 }, { wch: 28 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, transfersWs, sheetName(labels.transfersSheet, used));
 
+  // "Mixtos" (spec §10.3): services by commission rate, for barbers paid at
+  // more than one rate.
+  const mixed = rows.filter((r) => r.byRate.length > 1);
+  if (mixed.length > 0) {
+    const aoa: (string | number)[][] = [
+      [labels.title, "", labels.status],
+      [],
+      labels.mixedHeaders,
+      ...mixed.flatMap((r) =>
+        r.byRate.map((b, i) => [i === 0 ? r.barberName : "", `${Math.round(b.rate * 10000) / 100}%`, b.count, b.grossCharged, b.income])
+      ),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    formatMoneyCells(ws, 3, aoa.length - 1, [3, 4]);
+    ws["!cols"] = [{ wch: 24 }, { wch: 8 }, { wch: 9 }, { wch: 14 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(labels.mixedSheet, used));
+  }
+
   // One sheet per barber
   for (const r of rows) {
     const aoa: (string | number)[][] = [
@@ -157,7 +182,7 @@ export function buildSettlementWorkbook(
       [],
       ...settlementDocLines(r).map((l) => [`${l.sign} ${labels.line(l.key)}`, l.amount]),
     ];
-    if (r.shortfall > 0) aoa.push([], [labels.shortfall(r.shortfall)]);
+    if (r.shortfall > 0) aoa.push([], [labels.shortfall(r.shortfall, r.shortfallToSalary)]);
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     formatMoneyCells(ws, 9, aoa.length - 1, [1]);
     ws["!cols"] = [{ wch: 36 }, { wch: 16 }];

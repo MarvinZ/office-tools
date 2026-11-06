@@ -50,7 +50,10 @@ export default async function ReportsPage({
         dateTo={dateTo}
       />
 
-      <ReportTable report={report} />
+      <ReportTable
+        report={report}
+        barbers={barbers.filter((b) => b.status === "active").map((b) => ({ id: b.id, name: `${b.firstName} ${b.lastName}` }))}
+      />
     </div>
   );
 }

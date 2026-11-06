@@ -935,7 +935,9 @@
       "colOverride": "Set override",
       "sourceOverride": "Override",
       "sourceDefault": "Default",
-      "resetToDefault": "Reset to default"
+      "resetToDefault": "Reset to default",
+      "sectionHistory": "Recent changes",
+      "historyViewAll": "View all"
     },
     "locationsPage": {
       "title": "Locations",
@@ -1111,7 +1113,9 @@
       "fortnightlyAdditionHint": "E.g. a cleaning stipend. Added every fortnight and bears IVA. 0 for none.",
       "errorIvaBase": "IVA base must be between 0 and 100.",
       "errorAddition": "Addition must be zero or a positive amount.",
-      "errorSaveFailed": "Could not save. Please try again."
+      "errorSaveFailed": "Could not save. Please try again.",
+      "shortfallToSalary": "Shortfall goes to salary deduction",
+      "shortfallToSalaryHint": "If deductions exceed earnings, the difference is taken from their monthly salary instead of carried as a balance."
     },
     "settlements": {
       "title": "Settlements",
@@ -1159,14 +1163,27 @@
       "closedOnVersion": "Closed {date} · v{version}",
       "supersededVersion": "Superseded v{version} (reopened {date})",
       "backToCurrent": "Back to current",
-      "footnoteCarryOver": "Prev. balance is what a barber still owed when the previous fortnight was closed.",
+      "footnoteCarryOver": "Prev. balance is what an admin carried over from the previous fortnight's shortfall.",
       "historyTitle": "Closing history",
       "historyClosed": "Closed {date}",
       "historyReopened": "reopened {date}",
       "historyCurrent": "current",
       "historyTransfer": "Total transfer {amount}",
       "historyShowing": "Showing",
-      "historyView": "View"
+      "historyView": "View",
+      "colWarrantyClawback": "Warranty",
+      "colRate": "Rate",
+      "colCharged": "Charged",
+      "shortfallToSalary": "{amount} to salary deduction",
+      "footnoteWarranty": "Warranty is the commission taken back for services a colleague had to redo.",
+      "mixedTitle": "By commission rate",
+      "mixedSubtitle": "Barbers whose services were paid at more than one rate this fortnight.",
+      "carryForward": "Carry to next fortnight",
+      "carryPrompt": "Amount to carry to the next fortnight (up to {max}):",
+      "carryInvalid": "Enter an amount above zero and no more than the shortfall.",
+      "carried": "{amount} carried to next fortnight",
+      "carryUndo": "Undo",
+      "reopenReasonPrompt": "Why are you reopening this fortnight? (required)"
     },
     "paymentDetails": {
       "idNumber": "ID number (cédula)",
@@ -1199,8 +1216,10 @@
         "iva": "IVA",
         "invoice": "Amount to invoice",
         "tips": "Tips",
-        "transfer": "Total to transfer"
-      }
+        "transfer": "Total to transfer",
+        "warrantyClawback": "Warranty: commission taken back"
+      },
+      "mixedSheet": "By rate"
     },
     "settingsPage": {
       "title": "Settlement settings",
@@ -1259,6 +1278,103 @@
       "grandTotal": "Grand total",
       "lineItemsTitle": "Line items",
       "empty": "No activity in this date range."
+    },
+    "tabHistory": "History",
+    "activityStatus": {
+      "actions": "Actions",
+      "markCourtesy": "Mark as courtesy",
+      "markNormal": "Mark as normal (not courtesy)",
+      "warrantyRedo": "Warranty redo…",
+      "restore": "Restore",
+      "void": "Void…",
+      "voidReason": "Reason for voiding (required)",
+      "voidConfirm": "Void service",
+      "redoneBy": "Redone by",
+      "sameBarber": "same barber",
+      "redoSameHint": "Same barber: recorded, but not paid again.",
+      "redoOtherHint": "Another barber: they get their normal commission; the original barber's commission is taken back.",
+      "redoReason": "Note (optional)",
+      "redoConfirm": "Record redo",
+      "errorGeneric": "Couldn't update the service.",
+      "status": {
+        "active": "Normal",
+        "voided": "Voided",
+        "courtesy": "Courtesy",
+        "warranty": "Warranty"
+      }
+    },
+    "audit": {
+      "title": "History",
+      "subtitle": "Every change that affects what barbers are paid: who made it, when and why.",
+      "allBarbers": "All",
+      "limitNote": "Showing the latest {count} changes.",
+      "empty": "No changes recorded yet.",
+      "yes": "yes",
+      "no": "no",
+      "reason": "Reason: {reason}",
+      "fields": {
+        "commissionRate": "Commission rate",
+        "defaultCommissionRate": "Default commission rate",
+        "ivaRate": "IVA",
+        "maintenanceDailyFee": "Daily maintenance fee",
+        "feeRate": "Fee",
+        "name": "Name",
+        "status": "Status",
+        "appliesMaintenance": "Pays maintenance",
+        "ivaBaseRate": "IVA base",
+        "ivaInformative": "IVA informative only",
+        "fortnightlyAddition": "Fortnightly addition",
+        "shortfallToSalary": "Shortfall to salary deduction",
+        "idNumber": "ID number",
+        "iban": "IBAN",
+        "aliases": "Aliases",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "actions": {
+        "activity": {
+          "logged": "{count, plural, one {Logged # service} other {Logged # services}} · {total}",
+          "status": "Service status changed · {total}",
+          "warranty": "Warranty redo recorded · {total}"
+        },
+        "vale": {
+          "created": "Vale {amount} · {date}",
+          "deleted": "Vale deleted: {amount} · {date}"
+        },
+        "tip": {
+          "created": "Tip {amount} · {date}",
+          "deleted": "Tip deleted: {amount} · {date}"
+        },
+        "productSale": {
+          "created": "Product on credit {amount} · {date}",
+          "deleted": "Product sale deleted: {amount} · {date}"
+        },
+        "barber": {
+          "updated": "Barber details changed",
+          "settlementProfile": "Settlement settings changed",
+          "paymentDetails": "Payment details changed",
+          "rate": "Commission rate override changed"
+        },
+        "settings": {
+          "updated": "Shop settings changed"
+        },
+        "paymentMethod": {
+          "updated": "Payment method {name} changed"
+        },
+        "service": {
+          "rate": "Default rate of {name} changed"
+        },
+        "fortnight": {
+          "closed": "Fortnight {period} closed (v{version}) · transfers {totalTransfer}",
+          "reopened": "Fortnight {period} reopened"
+        },
+        "carryOver": {
+          "created": "Carried {amount} from {period} to the next fortnight",
+          "deleted": "Carry-over of {amount} from {period} undone"
+        }
+      }
     }
   },
   "webhooks": {

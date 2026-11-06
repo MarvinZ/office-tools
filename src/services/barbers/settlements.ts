@@ -1,8 +1,9 @@
-import { and, desc, eq, gte, isNull, lte, max } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, max, ne } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import Decimal from "decimal.js";
 import { db } from "@/db";
 import {
-  barberActivities, barberFortnightClosings, barbers, barberTips, barberVouchers, productSales,
+  barberActivities, barberCarryOvers, barberFortnightClosings, barbers, barberTips, barberVouchers, productSales,
 } from "@/db/schema";
 import { businessDateOf, endOfBusinessDay, startOfBusinessDay, todayBusinessDate } from "@/lib/barbers/dates";
 import {
@@ -15,6 +16,9 @@ import {
 } from "@/lib/barbers/settlement";
 import { getBarberSettings, type BarberSettings } from "./settings";
 
+/** The service a warranty redo points at (self-join of barber_activities). */
+const originalActivity = alias(barberActivities, "original_activity");
+
 export type BarberSettlementRow = BarberSettlement & {
   barberId: string;
   barberName: string;
@@ -22,7 +26,7 @@ export type BarberSettlementRow = BarberSettlement & {
 
 /** Numeric fields of a settlement that are meaningful to total across barbers. */
 const SUMMABLE = [
-  "grossCharged", "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver",
+  "grossCharged", "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver", "warrantyClawback",
   "totalExpenses", "net", "iva", "ivaPaid", "invoice", "tips", "transfer", "shortfall",
 ] as const;
 export type SettlementTotals = Record<(typeof SUMMABLE)[number], number> & { serviceCount: number };
@@ -45,9 +49,13 @@ export type FortnightSettlements = {
  * A barber is listed if they're active or had anything in the period, so a
  * barber deactivated mid-fortnight still gets paid for the days they worked.
  *
- * Carry-over: if the previous fortnight is closed, each barber's shortfall in
- * that closing is deducted here. An open previous fortnight carries nothing
- * yet, because its figures aren't final.
+ * Voided services are skipped entirely (§8.10). Courtesy and warranty lines
+ * are passed with their kind so the engine applies their rules (§8.7, §8.8);
+ * when a colleague redid a service under warranty in this fortnight, the
+ * original barber's commission on it is taken back here.
+ *
+ * Carry-over: only what an admin explicitly moved into this fortnight from a
+ * closed previous one (barber_carry_overs, spec §8.1/§8.5).
  */
 export async function getFortnightSettlements(
   tenantId: string,
@@ -55,9 +63,36 @@ export async function getFortnightSettlements(
 ): Promise<FortnightSettlements> {
   const { from, to } = fortnight;
 
-  const [settings, previousClosing, barberRows, activityRows, valeRows, saleRows, tipRows] = await Promise.all([
+  const inPeriod = and(
+    eq(barberActivities.tenantId, tenantId),
+    gte(barberActivities.performedAt, startOfBusinessDay(from)),
+    lte(barberActivities.performedAt, endOfBusinessDay(to)),
+    ne(barberActivities.status, "voided")
+  );
+
+  const [settings, carryOverRows, clawbackRows, barberRows, activityRows, valeRows, saleRows, tipRows] = await Promise.all([
     getBarberSettings(tenantId),
-    getCurrentClosing(tenantId, shiftFortnight(fortnight, -1)),
+    db
+      .select({ barberId: barberCarryOvers.barberId, amount: barberCarryOvers.amount })
+      .from(barberCarryOvers)
+      .where(and(eq(barberCarryOvers.tenantId, tenantId), eq(barberCarryOvers.toPeriod, fortnightKey(fortnight)))),
+    // Warranty redos in this period done by someone other than the original
+    // barber → the original barber's line, to take its commission back.
+    db
+      .select({
+        barberId: originalActivity.barberId,
+        priceCharged: originalActivity.priceCharged,
+        commissionRate: originalActivity.commissionRate,
+      })
+      .from(barberActivities)
+      .innerJoin(
+        originalActivity,
+        and(
+          eq(originalActivity.id, barberActivities.warrantyOfActivityId),
+          eq(originalActivity.tenantId, tenantId)
+        )
+      )
+      .where(and(inPeriod, eq(barberActivities.status, "warranty"), ne(originalActivity.barberId, barberActivities.barberId))),
     db.select().from(barbers).where(eq(barbers.tenantId, tenantId)).orderBy(barbers.firstName, barbers.lastName),
     db
       .select({
@@ -66,15 +101,10 @@ export async function getFortnightSettlements(
         commissionRate: barberActivities.commissionRate,
         paymentMethodFeeRate: barberActivities.paymentMethodFeeRate,
         performedAt: barberActivities.performedAt,
+        status: barberActivities.status,
       })
       .from(barberActivities)
-      .where(
-        and(
-          eq(barberActivities.tenantId, tenantId),
-          gte(barberActivities.performedAt, startOfBusinessDay(from)),
-          lte(barberActivities.performedAt, endOfBusinessDay(to))
-        )
-      ),
+      .where(inPeriod),
     db
       .select({ barberId: barberVouchers.barberId, amount: barberVouchers.amount })
       .from(barberVouchers)
@@ -105,16 +135,17 @@ export async function getFortnightSettlements(
       priceCharged: a.priceCharged,
       commissionRate: a.commissionRate,
       paymentMethodFeeRate: a.paymentMethodFeeRate,
+      kind: a.status === "courtesy" ? "courtesy" : a.status === "warranty" ? "warranty" : "service",
     });
+  }
+  for (const c of clawbackRows) {
+    const input = inputFor(c.barberId);
+    (input.warrantyClawbacks ??= []).push({ priceCharged: c.priceCharged, commissionRate: c.commissionRate });
   }
   for (const v of valeRows) inputFor(v.barberId).vales.push(v.amount);
   for (const s of saleRows) inputFor(s.barberId).productCredit.push(s.amount);
   for (const t of tipRows) inputFor(t.barberId).tips.push(t.amount);
-  if (previousClosing) {
-    for (const r of readSnapshot(previousClosing.snapshot).rows) {
-      if (r.shortfall > 0) inputFor(r.barberId).carryOver = r.shortfall;
-    }
-  }
+  for (const c of carryOverRows) inputFor(c.barberId).carryOver = c.amount;
 
   const rows: BarberSettlementRow[] = barberRows
     .filter((b) => b.status === "active" || inputs.has(b.id))
@@ -129,6 +160,7 @@ export async function getFortnightSettlements(
             ivaBaseRate: b.ivaBaseRate,
             ivaInformative: b.ivaInformative,
             fortnightlyAddition: b.fortnightlyAddition,
+            shortfallToSalary: b.shortfallToSalary,
           },
         },
         settings
@@ -153,6 +185,7 @@ export type FortnightClosingInfo = {
   closedAt: Date;
   closedBy: string;
   reopenedAt: Date | null;
+  reopenReason: string | null;
 };
 
 export type ClosingVersion = FortnightClosingInfo & { totalTransfer: number };
@@ -172,6 +205,10 @@ export type SettlementView = {
   changedSinceClose: boolean;
   /** Every closing ever made for this fortnight, newest first. */
   versions: ClosingVersion[];
+  /** barberId → amount an admin moved from this fortnight to the next one. */
+  carriedOut: Record<string, number>;
+  /** The next fortnight is closed, so carry-overs into it can't change. */
+  nextClosed: boolean;
 };
 
 /**
@@ -182,8 +219,14 @@ function readSnapshot(raw: unknown): FortnightSettlements {
   const s = raw as FortnightSettlements;
   return {
     ...s,
-    rows: s.rows.map((r) => ({ ...r, carryOver: r.carryOver ?? 0 })),
-    totals: { ...s.totals, carryOver: s.totals.carryOver ?? 0 },
+    rows: s.rows.map((r) => ({
+      ...r,
+      carryOver: r.carryOver ?? 0,
+      warrantyClawback: r.warrantyClawback ?? 0,
+      shortfallToSalary: r.shortfallToSalary ?? false,
+      byRate: r.byRate ?? [],
+    })),
+    totals: { ...s.totals, carryOver: s.totals.carryOver ?? 0, warrantyClawback: s.totals.warrantyClawback ?? 0 },
   };
 }
 
@@ -213,7 +256,13 @@ function paymentFingerprint(s: FortnightSettlements): string {
 }
 
 function closingInfo(row: typeof barberFortnightClosings.$inferSelect): FortnightClosingInfo {
-  return { version: row.version, closedAt: row.closedAt, closedBy: row.closedBy, reopenedAt: row.reopenedAt };
+  return {
+    version: row.version,
+    closedAt: row.closedAt,
+    closedBy: row.closedBy,
+    reopenedAt: row.reopenedAt,
+    reopenReason: row.reopenReason,
+  };
 }
 
 /**
@@ -225,15 +274,22 @@ export async function getSettlementView(
   fortnight: Fortnight,
   version?: number
 ): Promise<SettlementView> {
-  const [live, closingRows] = await Promise.all([
+  const [live, closingRows, carriedRows, nextClosing] = await Promise.all([
     getFortnightSettlements(tenantId, fortnight),
     db
       .select()
       .from(barberFortnightClosings)
       .where(and(eq(barberFortnightClosings.tenantId, tenantId), eq(barberFortnightClosings.period, fortnightKey(fortnight))))
       .orderBy(desc(barberFortnightClosings.version)),
+    db
+      .select({ barberId: barberCarryOvers.barberId, amount: barberCarryOvers.amount })
+      .from(barberCarryOvers)
+      .where(and(eq(barberCarryOvers.tenantId, tenantId), eq(barberCarryOvers.fromPeriod, fortnightKey(fortnight)))),
+    getCurrentClosing(tenantId, shiftFortnight(fortnight, 1)),
   ]);
 
+  const carriedOut = Object.fromEntries(carriedRows.map((c) => [c.barberId, Number(c.amount)]));
+  const nextClosed = nextClosing !== null;
   const versions = closingRows.map((r) => ({
     ...closingInfo(r),
     totalTransfer: readSnapshot(r.snapshot).totals.transfer,
@@ -241,7 +297,9 @@ export async function getSettlementView(
   const current = closingRows.find((r) => r.reopenedAt === null) ?? null;
   const shown = version !== undefined ? (closingRows.find((r) => r.version === version) ?? current) : current;
 
-  if (!shown) return { effective: live, closing: null, isClosed: false, changedSinceClose: false, versions };
+  if (!shown) {
+    return { effective: live, closing: null, isClosed: false, changedSinceClose: false, versions, carriedOut, nextClosed };
+  }
 
   const snapshot = readSnapshot(shown.snapshot);
   return {
@@ -250,6 +308,8 @@ export async function getSettlementView(
     isClosed: current !== null,
     changedSinceClose: shown === current && paymentFingerprint(snapshot) !== paymentFingerprint(live),
     versions,
+    carriedOut,
+    nextClosed,
   };
 }
 
@@ -258,7 +318,11 @@ export async function getSettlementView(
  * fortnight that hasn't started can't be closed; closing one that's still
  * running is allowed (the shop pays on the 15th / last day itself).
  */
-export async function closeFortnight(tenantId: string, closedBy: string, fortnight: Fortnight): Promise<void> {
+export async function closeFortnight(
+  tenantId: string,
+  closedBy: string,
+  fortnight: Fortnight
+): Promise<{ version: number; totalTransfer: number }> {
   if (fortnight.from > todayBusinessDate()) throw new Error("This fortnight hasn't started yet.");
   const period = fortnightKey(fortnight);
   const [snapshot, [{ maxVersion }]] = await Promise.all([
@@ -276,20 +340,89 @@ export async function closeFortnight(tenantId: string, closedBy: string, fortnig
     .onConflictDoNothing()
     .returning({ id: barberFortnightClosings.id });
   if (inserted.length === 0) throw new Error("This fortnight is already closed.");
+  return { version: (maxVersion ?? 0) + 1, totalTransfer: snapshot.totals.transfer };
 }
 
 /** Supersede the current closing; the fortnight goes back to live figures. */
-export async function reopenFortnight(tenantId: string, reopenedBy: string, fortnight: Fortnight): Promise<void> {
-  await db
+export async function reopenFortnight(
+  tenantId: string,
+  reopenedBy: string,
+  fortnight: Fortnight,
+  reason: string
+): Promise<number | null> {
+  const trimmed = reason.trim();
+  if (!trimmed) throw new Error("A reason is required to reopen a fortnight.");
+  const [row] = await db
     .update(barberFortnightClosings)
-    .set({ reopenedAt: new Date(), reopenedBy })
+    .set({ reopenedAt: new Date(), reopenedBy, reopenReason: trimmed })
     .where(
       and(
         eq(barberFortnightClosings.tenantId, tenantId),
         eq(barberFortnightClosings.period, fortnightKey(fortnight)),
         isNull(barberFortnightClosings.reopenedAt)
       )
-    );
+    )
+    .returning({ version: barberFortnightClosings.version });
+  return row?.version ?? null;
+}
+
+// ── Carry-over (spec §8.1, §8.5) ─────────────────────────────────────────────
+
+/**
+ * An admin moves (part of) a barber's shortfall in a closed fortnight to the
+ * next one, where it's deducted as "previous balance". Not allowed for a
+ * barber whose shortfall goes to salary deduction, or once the next fortnight
+ * is closed. One carry-over per barber per fortnight; replace = delete + add.
+ */
+export async function createCarryOver(
+  tenantId: string,
+  createdBy: string,
+  fortnight: Fortnight,
+  barberId: string,
+  amount: number
+): Promise<void> {
+  const current = await getCurrentClosing(tenantId, fortnight);
+  if (!current) throw new Error("Close the fortnight before carrying a balance forward.");
+  const row = readSnapshot(current.snapshot).rows.find((r) => r.barberId === barberId);
+  if (!row || row.shortfall <= 0) throw new Error("This barber has no shortfall in this fortnight.");
+  if (row.shortfallToSalary) throw new Error("This barber's shortfall goes to salary deduction.");
+  if (!Number.isFinite(amount) || amount <= 0 || amount > row.shortfall) {
+    throw new Error("Amount must be more than zero and no more than the shortfall.");
+  }
+  const next = shiftFortnight(fortnight, 1);
+  if (await getCurrentClosing(tenantId, next)) throw new Error("The next fortnight is already closed.");
+
+  const inserted = await db
+    .insert(barberCarryOvers)
+    .values({
+      id: crypto.randomUUID(),
+      tenantId,
+      barberId,
+      fromPeriod: fortnightKey(fortnight),
+      toPeriod: fortnightKey(next),
+      amount: String(amount),
+      createdBy,
+    })
+    .onConflictDoNothing()
+    .returning({ id: barberCarryOvers.id });
+  if (inserted.length === 0) throw new Error("A balance was already carried forward for this barber.");
+}
+
+export async function deleteCarryOver(tenantId: string, fortnight: Fortnight, barberId: string): Promise<number | null> {
+  if (await getCurrentClosing(tenantId, shiftFortnight(fortnight, 1))) {
+    throw new Error("The next fortnight is already closed.");
+  }
+  const [row] = await db
+    .delete(barberCarryOvers)
+    .where(
+      and(
+        eq(barberCarryOvers.tenantId, tenantId),
+        eq(barberCarryOvers.barberId, barberId),
+        eq(barberCarryOvers.fromPeriod, fortnightKey(fortnight))
+      )
+    )
+    .returning({ amount: barberCarryOvers.amount });
+  return row ? Number(row.amount) : null;
 }
 
 // ── Documents (print / Excel) ────────────────────────────────────────────────

@@ -112,8 +112,11 @@ export async function createTip(
  * Deletion is the ONLY correction path — there is no update function, by
  * design. Always scoped by tenantId AND id together, never by id alone.
  */
-export async function deleteTip(tenantId: string, id: string): Promise<void> {
-  await db
+/** Returns the deleted row (for the audit trail), or null if none matched. */
+export async function deleteTip(tenantId: string, id: string) {
+  const [row] = await db
     .delete(barberTips)
-    .where(and(eq(barberTips.tenantId, tenantId), eq(barberTips.id, id)));
+    .where(and(eq(barberTips.tenantId, tenantId), eq(barberTips.id, id)))
+    .returning();
+  return row ?? null;
 }

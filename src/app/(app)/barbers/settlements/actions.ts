@@ -3,14 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { requireTenant } from "@/services/tenants";
-import { closeFortnight, reopenFortnight } from "@/services/barbers/settlements";
+import { closeFortnight, createCarryOver, deleteCarryOver, reopenFortnight } from "@/services/barbers/settlements";
+import { auditBarbers } from "@/services/barbers/audit";
 import { parseFortnightKey } from "@/lib/barbers/settlement";
 
-/** Closing and reopening lock/unlock what gets paid, so org admins only. */
+/** Closing, reopening and carry-overs change what gets paid: org admins only. */
 async function requireAdmin() {
   const { userId, orgRole } = await auth();
   if (!userId) throw new Error("Not authenticated.");
-  if (orgRole !== "org:admin") throw new Error("Only an admin can close or reopen a fortnight.");
+  if (orgRole !== "org:admin") throw new Error("Only an admin can do this.");
   return userId;
 }
 
@@ -22,12 +23,30 @@ function fortnightFrom(period: string) {
 
 export async function closeFortnightAction(period: string) {
   const [userId, tenant] = await Promise.all([requireAdmin(), requireTenant()]);
-  await closeFortnight(tenant.id, userId, fortnightFrom(period));
+  const { version, totalTransfer } = await closeFortnight(tenant.id, userId, fortnightFrom(period));
+  await auditBarbers(tenant.id, userId, "fortnight.closed", { entityId: period, summary: { period, version, totalTransfer } });
   revalidatePath("/barbers/settlements");
 }
 
-export async function reopenFortnightAction(period: string) {
+export async function reopenFortnightAction(period: string, reason: string) {
   const [userId, tenant] = await Promise.all([requireAdmin(), requireTenant()]);
-  await reopenFortnight(tenant.id, userId, fortnightFrom(period));
+  const version = await reopenFortnight(tenant.id, userId, fortnightFrom(period), reason);
+  await auditBarbers(tenant.id, userId, "fortnight.reopened", { entityId: period, summary: { period, version }, reason });
+  revalidatePath("/barbers/settlements");
+}
+
+export async function carryOverAction(period: string, barberId: string, amount: number) {
+  const [userId, tenant] = await Promise.all([requireAdmin(), requireTenant()]);
+  await createCarryOver(tenant.id, userId, fortnightFrom(period), barberId, amount);
+  await auditBarbers(tenant.id, userId, "carryOver.created", { barberId, entityId: period, summary: { period, amount } });
+  revalidatePath("/barbers/settlements");
+}
+
+export async function undoCarryOverAction(period: string, barberId: string) {
+  const [userId, tenant] = await Promise.all([requireAdmin(), requireTenant()]);
+  const amount = await deleteCarryOver(tenant.id, fortnightFrom(period), barberId);
+  if (amount != null) {
+    await auditBarbers(tenant.id, userId, "carryOver.deleted", { barberId, entityId: period, summary: { period, amount } });
+  }
   revalidatePath("/barbers/settlements");
 }

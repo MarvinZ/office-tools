@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { fmtColones } from "@/lib/barbers/currency";
 import { businessDateOf } from "@/lib/barbers/dates";
 import type { PayoutReport } from "@/services/barbers/payout-report";
+import ActivityRowActions, { ActivityStatusBadge } from "../../_components/activity-row-actions";
 
 /**
  * Render the stored timestamp as its Costa Rica business day — the same frame
@@ -12,7 +13,13 @@ import type { PayoutReport } from "@/services/barbers/payout-report";
  */
 const fmtDate = businessDateOf;
 
-export default function ReportTable({ report }: { report: PayoutReport }) {
+export default function ReportTable({
+  report,
+  barbers,
+}: {
+  report: PayoutReport;
+  barbers: { id: string; name: string }[];
+}) {
   const t = useTranslations("barbers");
 
   return (
@@ -64,7 +71,7 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-                {[t("reportsPage.colDate"), t("reportsPage.colBarber"), t("reportsPage.colLocation"), t("reportsPage.colService"), t("reportsPage.colPaymentMethod"), t("reportsPage.colPrice"), t("reportsPage.colCommission")].map((h, i) => (
+                {[t("reportsPage.colDate"), t("reportsPage.colBarber"), t("reportsPage.colLocation"), t("reportsPage.colService"), t("reportsPage.colPaymentMethod"), t("reportsPage.colPrice"), t("reportsPage.colCommission"), ""].map((h, i) => (
                   <th key={i} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">{h}</th>
                 ))}
               </tr>
@@ -72,17 +79,26 @@ export default function ReportTable({ report }: { report: PayoutReport }) {
             <tbody>
               {report.lineItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-zinc-400">{t("reportsPage.empty")}</td>
+                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-400">{t("reportsPage.empty")}</td>
                 </tr>
               ) : report.lineItems.map((item) => (
-                <tr key={item.id} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+                <tr
+                  key={item.id}
+                  className={`border-b border-zinc-100 last:border-0 dark:border-zinc-800 ${item.status === "voided" ? "text-zinc-400 line-through decoration-zinc-300" : ""}`}
+                >
                   <td className="px-4 py-3 text-zinc-500">{fmtDate(item.performedAt)}</td>
                   <td className="px-4 py-3 text-black dark:text-white">{item.barberName}</td>
                   <td className="px-4 py-3 text-zinc-500">{item.locationName}</td>
-                  <td className="px-4 py-3 text-zinc-500">{item.serviceName}</td>
+                  <td className="px-4 py-3 text-zinc-500">
+                    {item.serviceName}
+                    <ActivityStatusBadge status={item.status} reason={item.statusReason} />
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-500">{item.paymentMethodName}</td>
                   <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(item.priceCharged)}</td>
                   <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{fmtColones(item.commissionAmount)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <ActivityRowActions activity={item} barbers={barbers} />
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -56,6 +56,16 @@ export async function listBarbersAtLocation(tenantId: string, locationId: string
     .orderBy(barbers.firstName, barbers.lastName);
 }
 
+/** Just the barbers row (no relations) — for before/after comparisons. */
+export async function getBarberRow(tenantId: string, id: string): Promise<BarberRow | null> {
+  const [row] = await db
+    .select()
+    .from(barbers)
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, id)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getBarber(tenantId: string, id: string): Promise<BarberWithRelations | null> {
   const [row] = await db
     .select()
@@ -162,6 +172,7 @@ export type BarberSettlementProfileInput = {
   ivaBaseRate: number; // 0–1
   ivaInformative: boolean;
   fortnightlyAddition: number; // ≥ 0
+  shortfallToSalary: boolean;
 };
 
 export async function updateBarberSettlementProfile(
@@ -183,6 +194,7 @@ export async function updateBarberSettlementProfile(
       ivaBaseRate: String(data.ivaBaseRate),
       ivaInformative: data.ivaInformative,
       fortnightlyAddition: String(data.fortnightlyAddition),
+      shortfallToSalary: data.shortfallToSalary,
       updatedAt: new Date(),
     })
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, id)))
@@ -306,8 +318,9 @@ export async function setBarberServiceRate(
   barberId: string,
   serviceId: string,
   commissionRate: number
-): Promise<void> {
+): Promise<number | null> {
   await assertBarberAndServiceBelongToTenant(tenantId, barberId, serviceId);
+  const previous = await getRateOverride(tenantId, barberId, serviceId);
 
   await db
     .insert(barberServiceRates)
@@ -322,14 +335,32 @@ export async function setBarberServiceRate(
       target: [barberServiceRates.tenantId, barberServiceRates.barberId, barberServiceRates.serviceId],
       set: { commissionRate: String(commissionRate), updatedAt: new Date() },
     });
+  return previous;
+}
+
+/** The barber's override rate for a service, or null if they use the default. */
+async function getRateOverride(tenantId: string, barberId: string, serviceId: string): Promise<number | null> {
+  const [row] = await db
+    .select({ rate: barberServiceRates.commissionRate })
+    .from(barberServiceRates)
+    .where(
+      and(
+        eq(barberServiceRates.tenantId, tenantId),
+        eq(barberServiceRates.barberId, barberId),
+        eq(barberServiceRates.serviceId, serviceId)
+      )
+    )
+    .limit(1);
+  return row ? Number(row.rate) : null;
 }
 
 export async function removeBarberServiceRate(
   tenantId: string,
   barberId: string,
   serviceId: string
-): Promise<void> {
+): Promise<number | null> {
   await assertBarberAndServiceBelongToTenant(tenantId, barberId, serviceId);
+  const previous = await getRateOverride(tenantId, barberId, serviceId);
 
   await db
     .delete(barberServiceRates)
@@ -340,4 +371,5 @@ export async function removeBarberServiceRate(
         eq(barberServiceRates.serviceId, serviceId)
       )
     );
+  return previous;
 }

@@ -20,6 +20,7 @@ export default function BarberSettlementEditor({
     ivaBaseRate: string;
     ivaInformative: boolean;
     fortnightlyAddition: string;
+    shortfallToSalary: boolean;
   };
 }) {
   const t = useTranslations("barbers");
@@ -33,6 +34,7 @@ export default function BarberSettlementEditor({
   const [ivaBasePct, setIvaBasePct] = useState(String(Math.round(parseFloat(initial.ivaBaseRate) * 10000) / 100));
   const [ivaInformative, setIvaInformative] = useState(initial.ivaInformative);
   const [addition, setAddition] = useState(String(parseFloat(initial.fortnightlyAddition)));
+  const [shortfallToSalary, setShortfallToSalary] = useState(initial.shortfallToSalary);
 
   function change<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -60,6 +62,7 @@ export default function BarberSettlementEditor({
           ivaBaseRate: pct / 100,
           ivaInformative,
           fortnightlyAddition: amount,
+          shortfallToSalary,
         });
         setDirty(false);
         router.refresh();
@@ -97,6 +100,19 @@ export default function BarberSettlementEditor({
         <span>
           {t("settlementProfile.ivaInformative")}
           <span className="block text-xs text-zinc-400">{t("settlementProfile.ivaInformativeHint")}</span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+        <input
+          type="checkbox"
+          checked={shortfallToSalary}
+          onChange={(e) => change(setShortfallToSalary)(e.target.checked)}
+          className="mt-0.5 rounded border-zinc-300 dark:border-zinc-600"
+        />
+        <span>
+          {t("settlementProfile.shortfallToSalary")}
+          <span className="block text-xs text-zinc-400">{t("settlementProfile.shortfallToSalaryHint")}</span>
         </span>
       </label>
 

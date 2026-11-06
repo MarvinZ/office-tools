@@ -43,6 +43,8 @@ export type BarberSettlementProfile = {
   ivaBaseRate: DecimalLike; // 1 normally; 0.5 for Maicol
   ivaInformative: boolean; // true for Jorge: IVA shown but not paid
   fortnightlyAddition: DecimalLike; // e.g. Imara's ₡20,000 cleaning; IVA-bearing
+  /** Shortfall goes to a salary deduction, not a carried balance (Brayan, CA 10). */
+  shortfallToSalary?: boolean;
 };
 
 export type SettlementLine = {
@@ -51,6 +53,21 @@ export type SettlementLine = {
   priceCharged: DecimalLike; // IVA-inclusive amount actually collected
   commissionRate: DecimalLike; // 0.5 = 50%
   paymentMethodFeeRate: DecimalLike; // 0.065 for card, 0 otherwise
+  /**
+   * "service" (default): a normal paid service.
+   * "courtesy" (§8.7): customer didn't pay, the salon covers it; normal
+   *   commission, no card fee, counts as a worked day.
+   * "warranty" (§8.8): a redo of another service, customer doesn't pay again;
+   *   commission at this barber's rate on the original price, no card fee.
+   * Voided services (§8.10) are simply not passed in.
+   */
+  kind?: "service" | "courtesy" | "warranty";
+};
+
+/** The original service of a warranty redo done by someone else (§8.8). */
+export type WarrantyClawback = {
+  priceCharged: DecimalLike;
+  commissionRate: DecimalLike; // the original barber's snapshotted rate
 };
 
 export type BarberSettlementInput = {
@@ -64,6 +81,19 @@ export type BarberSettlementInput = {
    * shortfall. Deducted like a vale. Omitted/0 when there's nothing owed.
    */
   carryOver?: DecimalLike;
+  /**
+   * Services of this barber that a colleague redid under warranty in this
+   * period: the commission they earned on each is taken back (§8.8, CA 16).
+   */
+  warrantyClawbacks?: WarrantyClawback[];
+};
+
+/** Services grouped by commission rate — the "mixtos" report (§10.3). */
+export type RateBreakdown = {
+  rate: number; // 0.5, 0.6, 0.65…
+  count: number;
+  grossCharged: number; // IVA included
+  income: number; // commission on the IVA-free base
 };
 
 export type BarberSettlement = {
@@ -77,6 +107,7 @@ export type BarberSettlement = {
   productCredit: number;
   vales: number;
   carryOver: number; // previous fortnight's shortfall, deducted now
+  warrantyClawback: number; // commission taken back for services a colleague redid
   totalExpenses: number;
   net: number;
   ivaBase: number;
@@ -87,6 +118,8 @@ export type BarberSettlement = {
   tips: number;
   transfer: number;
   shortfall: number;
+  shortfallToSalary: boolean;
+  byRate: RateBreakdown[];
 };
 
 const ZERO = new Decimal(0);
@@ -130,14 +163,33 @@ export function computeBarberSettlement(
   let serviceIncome = ZERO;
   let cardFee = ZERO;
   const days = new Set<string>();
+  const rates = new Map<string, { rate: Decimal; count: number; gross: Decimal; income: Decimal }>();
 
   for (const line of input.lines) {
     const base = baseWithoutIva(line.priceCharged, ivaRate);
+    const income = base.times(line.commissionRate);
     grossCharged = grossCharged.plus(line.priceCharged);
-    serviceIncome = serviceIncome.plus(base.times(line.commissionRate));
-    cardFee = cardFee.plus(base.times(line.paymentMethodFeeRate));
+    serviceIncome = serviceIncome.plus(income);
+    // Only a service the customer actually paid by card carries the card fee.
+    if ((line.kind ?? "service") === "service") {
+      cardFee = cardFee.plus(base.times(line.paymentMethodFeeRate));
+    }
+    // Courtesies and redos count too: a day with any registered service (§6.6).
     days.add(line.date);
+
+    const rate = new Decimal(line.commissionRate);
+    const key = rate.toString();
+    const bucket = rates.get(key) ?? { rate, count: 0, gross: ZERO, income: ZERO };
+    bucket.count += 1;
+    bucket.gross = bucket.gross.plus(line.priceCharged);
+    bucket.income = bucket.income.plus(income);
+    rates.set(key, bucket);
   }
+
+  const warrantyClawback = (input.warrantyClawbacks ?? []).reduce<Decimal>(
+    (acc, w) => acc.plus(lineCommission(w.priceCharged, w.commissionRate, ivaRate)),
+    ZERO
+  );
 
   // A day counts once no matter how many services were done that day, and only
   // days with at least one registered service count (spec §6.6, CA 04/05).
@@ -153,7 +205,12 @@ export function computeBarberSettlement(
 
   const carryOver = new Decimal(input.carryOver ?? 0);
 
-  const totalExpenses = cardFee.plus(maintenance).plus(productCredit).plus(vales).plus(carryOver);
+  const totalExpenses = cardFee
+    .plus(maintenance)
+    .plus(productCredit)
+    .plus(vales)
+    .plus(carryOver)
+    .plus(warrantyClawback);
   const net = serviceIncome.plus(addition).minus(totalExpenses);
   const ivaBase = serviceIncome.times(profile.ivaBaseRate).plus(addition).minus(totalExpenses);
   const iva = Decimal.max(ZERO, ivaBase).times(ivaRate);
@@ -173,6 +230,7 @@ export function computeBarberSettlement(
     productCredit: cents(productCredit),
     vales: cents(vales),
     carryOver: cents(carryOver),
+    warrantyClawback: cents(warrantyClawback),
     totalExpenses: cents(totalExpenses),
     net: cents(net),
     ivaBase: cents(ivaBase),
@@ -183,6 +241,10 @@ export function computeBarberSettlement(
     tips: cents(tips),
     transfer: cents(transfer),
     shortfall: cents(shortfall),
+    shortfallToSalary: profile.shortfallToSalary ?? false,
+    byRate: [...rates.values()]
+      .sort((a, b) => a.rate.comparedTo(b.rate))
+      .map((b) => ({ rate: b.rate.toNumber(), count: b.count, grossCharged: cents(b.gross), income: cents(b.income) })),
   };
 }
 
