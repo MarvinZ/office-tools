@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType, date } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, jsonb, pgEnum, primaryKey, customType, date, unique, index, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ── PostGIS custom column type ─────────────────────────────────────────────────
 
@@ -841,3 +842,76 @@ export const webhookEvents = pgTable("webhook_events", {
   signatureValid: boolean("signature_valid").notNull(),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
 });
+
+// ── Cards (TwinsCards collections) ────────────────────────────────────────────
+// Consumed by the TwinsCards mobile app through /api/cards/v1 — see docs/specs/cards-module.md.
+// Unlike other modules, these tables need composite unique constraints: the API's upserts
+// ("add the same card again = +1 quantity", "one price point per card/printing/day") rely on them.
+
+export const cardLanguageEnum = pgEnum("card_language", ["en", "ja"]);
+export const cardConditionEnum = pgEnum("card_condition", ["NM", "LP", "MP", "HP", "DMG"]);
+
+/** Global reference data (no tenant_id): one row per card printed in a language, shared by every family. */
+export const cardCatalog = pgTable("card_catalog", {
+  id: text("id").primaryKey(),
+  tcgdexId: text("tcgdex_id").notNull(),
+  language: cardLanguageEnum("language").notNull(),
+  name: text("name").notNull(),
+  setId: text("set_id").notNull(),
+  setName: text("set_name").notNull(),
+  localId: text("local_id").notNull(),
+  setOfficialCount: integer("set_official_count"),
+  rarity: text("rarity"),
+  imageUrl: text("image_url"), // TCGdex base URL, no extension
+  marketImageUrl: text("market_image_url"),
+  tcgplayerGroupId: integer("tcgplayer_group_id"), // null = not linked → no automatic price refresh
+  tcgplayerProductId: integer("tcgplayer_product_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [unique("card_catalog_tcgdex_language_uq").on(t.tcgdexId, t.language)]);
+
+/** Global, append-only price history: one row per card · printing · source · day. */
+export const cardPricePoints = pgTable("card_price_points", {
+  id: text("id").primaryKey(),
+  catalogCardId: text("catalog_card_id").notNull().references(() => cardCatalog.id, { onDelete: "cascade" }),
+  variant: text("variant").notNull(), // normal, holofoil, reverse-holofoil, … ; "default" when the source doesn't split
+  source: text("source").notNull(), // TCGplayer / Cardmarket
+  currency: text("currency").notNull(), // USD / EUR
+  marketPrice: numeric("market_price", { precision: 12, scale: 2 }).notNull(),
+  observedOn: date("observed_on").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique("card_price_points_card_variant_source_day_uq").on(t.catalogCardId, t.variant, t.source, t.observedOn),
+  index("card_price_points_card_day_idx").on(t.catalogCardId, t.observedOn.desc()),
+]);
+
+/** A family member who collects. Created on their first API call. */
+export const cardCollectors = pgTable("card_collectors", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  clerkUserId: text("clerk_user_id").notNull(),
+  displayName: text("display_name").notNull(),
+  isPrivate: boolean("is_private").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [unique("card_collectors_tenant_user_uq").on(t.tenantId, t.clerkUserId)]);
+
+export const collectionItems = pgTable("collection_items", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  collectorId: text("collector_id").notNull().references(() => cardCollectors.id, { onDelete: "cascade" }),
+  catalogCardId: text("catalog_card_id").notNull().references(() => cardCatalog.id),
+  variant: text("variant").notNull(),
+  condition: cardConditionEnum("condition").notNull().default("NM"),
+  quantity: integer("quantity").notNull().default(1),
+  isFavorite: boolean("is_favorite").notNull().default(false),
+  notes: text("notes"),
+  acquiredAt: date("acquired_at"),
+  createdBy: text("created_by").notNull(), // Clerk user id — a parent may add for a kid
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique("collection_items_collector_card_variant_condition_uq").on(t.collectorId, t.catalogCardId, t.variant, t.condition),
+  index("collection_items_tenant_collector_idx").on(t.tenantId, t.collectorId),
+  check("collection_items_quantity_positive", sql`${t.quantity} > 0`),
+]);

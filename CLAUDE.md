@@ -47,7 +47,7 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 
 ### Tools System
 - `tools` table + `tenant_tools` join table (see `src/db/schema.ts`). Enabled tools per tenant are read via `adminGetEnabledTools` (`src/services/admin/tenants.ts`).
-- Current tools (seeded in `src/db/seed-tools.ts`): **payroll, assets, employees, quotes, clients, providers, invoices, coverage**.
+- Current tools (seeded in `src/db/seed-tools.ts`): **payroll, assets, employees, quotes, clients, providers, invoices, coverage, barbers, webhooks, cards**.
 - Adding a new tool = new row in `TOOLS` seed array + a new route under `(app)/` + nav entry in `(app)/layout.tsx`'s `NAV_LINKS`. No schema changes needed for the gating mechanism itself.
 
 ### Payroll Tool Flow (the original flagship flow, now one of many)
@@ -69,6 +69,15 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 - Assets and employees both support document/photo uploads to Vercel Blob and have their own history/audit tables (`asset_history`, activity logs).
 - Coverage is different: maps trade-based service areas as PostGIS polygons (`coverage_areas.geom`), rendered via `@react-google-maps/api` in `coverage-map-client.tsx`.
 - **Note:** several modules import shared constants/enums/types from a folder literally named `_mock/data.ts` (e.g. `clients/_mock/data.ts`, `assets/_mock/data.ts`). Despite the name, this is **not fake data** — it's real constants (status configs, industry lists, category enums) that got left in a mock-data folder from early scaffolding. Real data comes from the DB via `services/*`. This naming is misleading and worth renaming (e.g. to `_constants/` or `_lib/`) but is not a functional bug.
+
+### Cards module (TwinsCards mobile backend)
+- Spec: `docs/specs/cards-module.md`. First module consumed by a **native app**: JSON REST under `/api/cards/v1/*`, not server actions. Tenant = family, Clerk user = collector, `org:admin` = parent.
+- Auth: `Authorization: Bearer <Clerk session JWT>`. `/api/cards/(.*)` is public in `proxy.ts`; `requireCardsApiContext` (`src/lib/cards/api-auth.ts`) authenticates and returns JSON 401/403/409. Every handler is wrapped in `withCardsApi` so errors are always JSON.
+- Diverges from the blueprint on purpose: zod validation (`src/lib/cards/validation.ts`), composite unique constraints + indexes (the upserts depend on them), money as integer cents (`src/lib/cards/money.ts`), and it writes `audit_logs` (`src/services/audit.ts`).
+- `card_catalog` / `card_price_points` are **global** (no tenant_id); `card_collectors` / `collection_items` are tenant data.
+- Pure logic lives in `src/lib/cards/*` and is unit-tested with Vitest (`npm test`).
+- DB has **no transactions** (neon-http): use `db.batch([...])` when two writes must be atomic.
+- Not built yet (milestone B2): `/summary` endpoint, daily TCGCSV price-refresh worker + QStash schedule.
 
 ### File Storage
 - Vercel Blob, already configured and in use (asset photos/documents, employee documents, payroll uploads).
