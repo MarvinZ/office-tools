@@ -19,6 +19,7 @@ const TOOLS = [
   { id: "tool_coverage",   name: "Coverage",   slug: "coverage",   description: "Map service coverage areas by trade." },
   { id: "tool_barbers",    name: "Barbers",    slug: "barbers",    description: "Log barber services and track commission payouts by location." },
   { id: "tool_webhooks",   name: "Webhooks",   slug: "webhooks",   description: "Receive and inspect inbound webhook payloads from other systems." },
+  { id: "tool_cards",      name: "Cards",      slug: "cards",      description: "Pokémon card collections (TwinsCards app)." },
 ];
 
 async function seed() {

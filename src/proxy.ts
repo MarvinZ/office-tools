@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/workers/(.*)", // QStash workers — auth handled via signature verification
   "/api/webhooks/ingest/(.*)", // inbound webhook receiver — auth handled via per-endpoint HMAC signature
+  "/api/cards/(.*)", // TwinsCards mobile API — bearer-token auth in requireCardsApiContext, so failures are JSON 401s, not redirects
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

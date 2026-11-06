@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { tenants } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { tenants, tenantTools, tools } from "@/db/schema";
+import { and, eq, inArray } from "drizzle-orm";
 import { adminGetEnabledTools } from "./admin/tenants";
 
 export type TenantRow = typeof tenants.$inferSelect;
@@ -61,6 +61,29 @@ export async function getTenant(id: string): Promise<TenantRow | null> {
     .limit(1);
 
   return tenant ?? null;
+}
+
+export async function getTenantByClerkOrgId(clerkOrgId: string): Promise<TenantRow | null> {
+  const [tenant] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.clerkOrgId, clerkOrgId))
+    .limit(1);
+
+  return tenant ?? null;
+}
+
+/** Of the given Clerk orgs, the active tenants that have `toolSlug` enabled. */
+export async function listActiveTenantsWithTool(clerkOrgIds: string[], toolSlug: string): Promise<TenantRow[]> {
+  if (clerkOrgIds.length === 0) return [];
+  const rows = await db
+    .select({ tenant: tenants })
+    .from(tenants)
+    .innerJoin(tenantTools, eq(tenantTools.tenantId, tenants.id))
+    .innerJoin(tools, eq(tools.id, tenantTools.toolId))
+    .where(and(inArray(tenants.clerkOrgId, clerkOrgIds), eq(tenants.isActive, true), eq(tools.slug, toolSlug)));
+
+  return rows.map((r) => r.tenant);
 }
 
 export async function listTenants(): Promise<TenantRow[]> {
