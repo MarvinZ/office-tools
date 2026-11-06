@@ -1,46 +1,15 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
+import { AlertTriangle, ChevronLeft, ChevronRight, FileSpreadsheet, Lock, Printer, Settings } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireTenant } from "@/services/tenants";
-import { getFortnightSettlements, type BarberSettlementRow, type SettlementTotals } from "@/services/barbers/settlements";
-import { fortnightOf, fortnightRange, type Fortnight } from "@/lib/barbers/settlement";
-import { todayBusinessDate } from "@/lib/barbers/dates";
+import { getSettlementView, type BarberSettlementRow, type SettlementTotals } from "@/services/barbers/settlements";
+import { fortnightKey, fortnightOf, parseFortnightKey, shiftFortnight } from "@/lib/barbers/settlement";
+import { businessDateOf, fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { fmtColones } from "@/lib/barbers/currency";
+import ClosingControls from "./_components/closing-controls";
 
 export const dynamic = "force-dynamic";
-
-// ?period=YYYY-MM-H, H = 1 (days 1–15) or 2 (16–end of month).
-const PERIOD_RE = /^(\d{4})-(\d{2})-([12])$/;
-
-function parsePeriod(value: string | undefined): Fortnight {
-  const m = value ? PERIOD_RE.exec(value) : null;
-  if (m) {
-    const month = Number(m[2]);
-    if (month >= 1 && month <= 12) return fortnightRange(Number(m[1]), month, Number(m[3]) as 1 | 2);
-  }
-  return fortnightOf(todayBusinessDate());
-}
-
-function periodParam(f: Fortnight): string {
-  return `${f.year}-${String(f.month).padStart(2, "0")}-${f.half}`;
-}
-
-function shift(f: Fortnight, step: 1 | -1): Fortnight {
-  if (step === 1) {
-    return f.half === 1
-      ? fortnightRange(f.year, f.month, 2)
-      : f.month === 12 ? fortnightRange(f.year + 1, 1, 1) : fortnightRange(f.year, f.month + 1, 1);
-  }
-  return f.half === 2
-    ? fortnightRange(f.year, f.month, 1)
-    : f.month === 1 ? fortnightRange(f.year - 1, 12, 2) : fortnightRange(f.year, f.month - 1, 2);
-}
-
-/** dd/mm/aaaa, per the spec's localization requirement. */
-function fmtDay(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-");
-  return `${d}/${m}/${y}`;
-}
 
 export default async function SettlementsPage({
   searchParams,
@@ -48,10 +17,17 @@ export default async function SettlementsPage({
   searchParams: Promise<{ period?: string }>;
 }) {
   const { period } = await searchParams;
-  const [tenant, t] = await Promise.all([requireTenant(), getTranslations("barbers")]);
-  const fortnight = parsePeriod(period);
-  const { rows, totals, settings } = await getFortnightSettlements(tenant.id, fortnight);
+  const [tenant, t, { orgRole }] = await Promise.all([requireTenant(), getTranslations("barbers"), auth()]);
+  // ?period=YYYY-MM-H, H = 1 (days 1–15) or 2 (16–end of month).
+  const fortnight = parseFortnightKey(period) ?? fortnightOf(todayBusinessDate());
+  const key = fortnightKey(fortnight);
+  const { effective, closing, changedSinceClose } = await getSettlementView(tenant.id, fortnight);
+  const { rows, totals, settings } = effective;
+  const isAdmin = orgRole === "org:admin";
+  const canClose = fortnight.from <= todayBusinessDate();
 
+  const btnCls =
+    "inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:text-black dark:border-zinc-700 dark:text-zinc-300 dark:hover:text-white";
   const navCls =
     "inline-flex items-center rounded-lg border border-zinc-200 p-2 text-zinc-500 hover:text-black dark:border-zinc-700 dark:hover:text-white";
 
@@ -106,16 +82,48 @@ export default async function SettlementsPage({
       </div>
 
       <div className="flex items-center gap-3">
-        <Link href={`/barbers/settlements?period=${periodParam(shift(fortnight, -1))}`} className={navCls} aria-label={t("settlements.prev")}>
+        <Link href={`/barbers/settlements?period=${fortnightKey(shiftFortnight(fortnight, -1))}`} className={navCls} aria-label={t("settlements.prev")}>
           <ChevronLeft size={16} />
         </Link>
         <div className="text-sm font-medium text-black dark:text-white">
           {t(fortnight.half === 1 ? "settlements.firstHalf" : "settlements.secondHalf")} · {fmtDay(fortnight.from)} – {fmtDay(fortnight.to)}
         </div>
-        <Link href={`/barbers/settlements?period=${periodParam(shift(fortnight, 1))}`} className={navCls} aria-label={t("settlements.next")}>
+        <Link href={`/barbers/settlements?period=${fortnightKey(shiftFortnight(fortnight, 1))}`} className={navCls} aria-label={t("settlements.next")}>
           <ChevronRight size={16} />
         </Link>
+        {closing ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+            <Lock size={12} />
+            {t("settlements.closedOn", { date: fmtDay(businessDateOf(closing.closedAt)) })}
+          </span>
+        ) : (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            {t("settlements.preliminary")}
+          </span>
+        )}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {rows.length > 0 && (
+            <>
+              <a href={`/barbers/settlements/export?period=${key}`} className={btnCls}>
+                <FileSpreadsheet size={14} />
+                {t("settlements.exportExcel")}
+              </a>
+              <Link href={`/barbers/settlements/print?period=${key}`} target="_blank" className={btnCls}>
+                <Printer size={14} />
+                {t("settlements.printAll")}
+              </Link>
+            </>
+          )}
+          {isAdmin && (closing || canClose) && <ClosingControls period={key} closed={!!closing} />}
+        </div>
       </div>
+
+      {changedSinceClose && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          {t("settlements.changedSinceClose")}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
         <div className="overflow-x-auto">
@@ -143,7 +151,18 @@ export default async function SettlementsPage({
                 rows.map((r) => (
                   <tr key={r.barberId} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                     <td className="sticky left-0 whitespace-nowrap bg-white px-4 py-3 font-medium text-black dark:bg-black dark:text-white">
-                      <Link href={`/barbers/barbers/${r.barberId}`} className="hover:underline">{r.barberName}</Link>
+                      <span className="inline-flex items-center gap-2">
+                        <Link href={`/barbers/barbers/${r.barberId}`} className="hover:underline">{r.barberName}</Link>
+                        <Link
+                          href={`/barbers/settlements/print?period=${key}&barber=${r.barberId}`}
+                          target="_blank"
+                          aria-label={t("settlements.printOne", { name: r.barberName })}
+                          title={t("settlements.printOne", { name: r.barberName })}
+                          className="text-zinc-400 hover:text-black dark:hover:text-white"
+                        >
+                          <Printer size={13} />
+                        </Link>
+                      </span>
                       {r.shortfall > 0 && (
                         <span className="mt-0.5 block text-xs font-normal text-amber-600 dark:text-amber-400">
                           {t("settlements.shortfall", { amount: fmtColones(r.shortfall) })}
@@ -180,7 +199,9 @@ export default async function SettlementsPage({
         </div>
       </div>
 
-      <p className="text-xs text-zinc-400">{t("settlements.footnote")}</p>
+      <p className="text-xs text-zinc-400">
+        {t("settlements.footnote")} {t(closing ? "settlements.footnoteClosed" : "settlements.footnoteLive")}
+      </p>
     </div>
   );
 }

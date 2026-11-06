@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
+      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black print:hidden">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
           <div className="flex min-w-0 items-center gap-6">
             <Link href="/dashboard" className="shrink-0 text-sm font-semibold text-black dark:text-white">

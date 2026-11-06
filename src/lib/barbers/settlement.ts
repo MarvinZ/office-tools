@@ -205,3 +205,26 @@ export function fortnightOf(dateStr: string): Fortnight {
   const [y, m, d] = dateStr.split("-").map(Number);
   return fortnightRange(y, m, d <= 15 ? 1 : 2);
 }
+
+/** URL/DB key for a fortnight: "YYYY-MM-H", e.g. "2026-10-2". */
+export function fortnightKey(f: Fortnight): string {
+  return `${f.year}-${pad2(f.month)}-${f.half}`;
+}
+
+/** Inverse of fortnightKey; null for anything malformed. */
+export function parseFortnightKey(key: string | null | undefined): Fortnight | null {
+  const m = key ? /^(\d{4})-(\d{2})-([12])$/.exec(key) : null;
+  if (!m) return null;
+  const month = Number(m[2]);
+  return month >= 1 && month <= 12 ? fortnightRange(Number(m[1]), month, Number(m[3]) as 1 | 2) : null;
+}
+
+/** The next (step 1) or previous (step -1) fortnight. */
+export function shiftFortnight(f: Fortnight, step: 1 | -1): Fortnight {
+  if (step === 1) {
+    if (f.half === 1) return fortnightRange(f.year, f.month, 2);
+    return f.month === 12 ? fortnightRange(f.year + 1, 1, 1) : fortnightRange(f.year, f.month + 1, 1);
+  }
+  if (f.half === 2) return fortnightRange(f.year, f.month, 1);
+  return f.month === 1 ? fortnightRange(f.year - 1, 12, 2) : fortnightRange(f.year, f.month - 1, 2);
+}

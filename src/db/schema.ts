@@ -673,6 +673,12 @@ export const barbers = pgTable("barbers", {
   status: barberStatusEnum("status").notNull().default("active"),
   notes: text("notes"),
   tags: text("tags").array().notNull().default([]),
+  // ── Payment details. Personal data: only ever shown to this tenant.
+  idNumber: text("id_number"), // cédula
+  iban: text("iban"), // bank account the settlement transfer goes to
+  // Other spellings of the name as cashiers write it in the daily closing
+  // file ("Bryan", "Lesli"), matched exactly by the importer.
+  aliases: text("aliases").array().notNull().default([]),
   // ── Settlement ("liquidación") profile — see src/lib/barbers/settlement.ts.
   // Plain per-barber fields rather than a rules engine: each covers one real
   // variation in how a barber is paid. No effective dating on purpose (small
@@ -702,6 +708,19 @@ export const barberSettings = pgTable("barber_settings", {
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// A closed ("paid") fortnight. Settlements are computed live from the raw
+// data; closing freezes that result here so later edits to rates, settings or
+// movements never change what was already paid. Reopening deletes the row.
+// snapshot holds the full FortnightSettlements result (services/barbers/
+// settlements.ts) — read-only, never recomputed.
+export const barberFortnightClosings = pgTable("barber_fortnight_closings", {
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  period: text("period").notNull(), // "YYYY-MM-H", H = 1 (1–15) or 2 (16–end)
+  snapshot: jsonb("snapshot").notNull(),
+  closedBy: text("closed_by").notNull(),
+  closedAt: timestamp("closed_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.period] })]);
 
 export const barberLocations = pgTable("barber_locations", {
   barberId: text("barber_id").notNull().references(() => barbers.id, { onDelete: "cascade" }),

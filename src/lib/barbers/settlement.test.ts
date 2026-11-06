@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   computeBarberSettlement,
+  fortnightKey,
   fortnightOf,
   fortnightRange,
+  parseFortnightKey,
+  shiftFortnight,
   lineCommission,
   type BarberSettlementInput,
   type BarberSettlementProfile,
@@ -189,5 +192,16 @@ describe("fortnights", () => {
   it("finds the fortnight of a date", () => {
     expect(fortnightOf("2026-10-15").half).toBe(1);
     expect(fortnightOf("2026-10-16").half).toBe(2);
+  });
+
+  it("keys round-trip and shift across month and year boundaries", () => {
+    const f = fortnightRange(2026, 12, 2);
+    expect(fortnightKey(f)).toBe("2026-12-2");
+    expect(parseFortnightKey("2026-12-2")).toEqual(f);
+    expect(parseFortnightKey("2026-13-1")).toBeNull();
+    expect(parseFortnightKey("2026-12-3")).toBeNull();
+    expect(fortnightKey(shiftFortnight(f, 1))).toBe("2027-01-1");
+    expect(fortnightKey(shiftFortnight(fortnightRange(2027, 1, 1), -1))).toBe("2026-12-2");
+    expect(fortnightKey(shiftFortnight(fortnightRange(2026, 5, 1), 1))).toBe("2026-05-2");
   });
 });

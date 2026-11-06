@@ -56,3 +56,9 @@ export function businessDateOf(instant: Date | string): string {
 export function todayBusinessDate(): string {
   return businessDateOf(new Date());
 }
+
+/** "2026-10-29" → "29/10/2026" (dd/mm/aaaa, per the spec's localization rules). */
+export function fmtDay(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-");
+  return `${d}/${m}/${y}`;
+}

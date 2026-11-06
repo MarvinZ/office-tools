@@ -1,10 +1,13 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { db } from "@/db";
-import { barberActivities, barbers, barberTips, barberVouchers, productSales } from "@/db/schema";
-import { businessDateOf, endOfBusinessDay, startOfBusinessDay } from "@/lib/barbers/dates";
+import {
+  barberActivities, barberFortnightClosings, barbers, barberTips, barberVouchers, productSales,
+} from "@/db/schema";
+import { businessDateOf, endOfBusinessDay, startOfBusinessDay, todayBusinessDate } from "@/lib/barbers/dates";
 import {
   computeBarberSettlement,
+  fortnightKey,
   type BarberSettlement,
   type BarberSettlementInput,
   type Fortnight,
@@ -130,4 +133,99 @@ function sumRows(rows: BarberSettlementRow[]): SettlementTotals {
     totals[key] = rows.reduce((acc, r) => acc.plus(r[key]), new Decimal(0)).toNumber();
   }
   return totals;
+}
+
+// ── Closing ("paying") a fortnight ───────────────────────────────────────────
+
+export type FortnightClosingInfo = { closedAt: Date; closedBy: string };
+
+export type SettlementView = {
+  /** What to show and export: the frozen snapshot if closed, else live. */
+  effective: FortnightSettlements;
+  closing: FortnightClosingInfo | null;
+  /**
+   * Closed, but recomputing from today's data gives different amounts —
+   * something in the period (or a rate/setting) was edited after closing.
+   * The snapshot still wins; reopen + close again to take the changes.
+   */
+  changedSinceClose: boolean;
+};
+
+/** The figures that matter for payment, per barber, in a stable order. */
+function paymentFingerprint(s: FortnightSettlements): string {
+  return JSON.stringify(
+    s.rows
+      .map((r) => [r.barberId, r.net, r.iva, r.invoice, r.tips, r.transfer])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+  );
+}
+
+export async function getSettlementView(tenantId: string, fortnight: Fortnight): Promise<SettlementView> {
+  const [live, [closing]] = await Promise.all([
+    getFortnightSettlements(tenantId, fortnight),
+    db
+      .select()
+      .from(barberFortnightClosings)
+      .where(and(eq(barberFortnightClosings.tenantId, tenantId), eq(barberFortnightClosings.period, fortnightKey(fortnight))))
+      .limit(1),
+  ]);
+  if (!closing) return { effective: live, closing: null, changedSinceClose: false };
+
+  const snapshot = closing.snapshot as FortnightSettlements;
+  return {
+    effective: snapshot,
+    closing: { closedAt: closing.closedAt, closedBy: closing.closedBy },
+    changedSinceClose: paymentFingerprint(snapshot) !== paymentFingerprint(live),
+  };
+}
+
+/**
+ * Freeze the fortnight's current live settlements. A fortnight that hasn't
+ * started can't be closed; closing one that's still running is allowed (the
+ * shop pays on the 15th / last day itself).
+ */
+export async function closeFortnight(tenantId: string, closedBy: string, fortnight: Fortnight): Promise<void> {
+  if (fortnight.from > todayBusinessDate()) throw new Error("This fortnight hasn't started yet.");
+  const snapshot = await getFortnightSettlements(tenantId, fortnight);
+  const inserted = await db
+    .insert(barberFortnightClosings)
+    .values({ tenantId, period: fortnightKey(fortnight), snapshot, closedBy })
+    .onConflictDoNothing()
+    .returning({ period: barberFortnightClosings.period });
+  if (inserted.length === 0) throw new Error("This fortnight is already closed.");
+}
+
+/** Discard the snapshot; the fortnight goes back to live figures. */
+export async function reopenFortnight(tenantId: string, fortnight: Fortnight): Promise<void> {
+  await db
+    .delete(barberFortnightClosings)
+    .where(and(eq(barberFortnightClosings.tenantId, tenantId), eq(barberFortnightClosings.period, fortnightKey(fortnight))));
+}
+
+// ── Documents (print / Excel) ────────────────────────────────────────────────
+
+export type SettlementDocumentRow = BarberSettlementRow & { idNumber: string | null; iban: string | null };
+
+/**
+ * The settlement view plus each barber's current payment details. Payment
+ * details are deliberately read live, not from the snapshot: the transfer
+ * goes to wherever the barber's account is now.
+ */
+export async function getSettlementDocuments(
+  tenantId: string,
+  fortnight: Fortnight
+): Promise<SettlementView & { documents: SettlementDocumentRow[] }> {
+  const [view, details] = await Promise.all([
+    getSettlementView(tenantId, fortnight),
+    db.select({ id: barbers.id, idNumber: barbers.idNumber, iban: barbers.iban }).from(barbers).where(eq(barbers.tenantId, tenantId)),
+  ]);
+  const byId = new Map(details.map((d) => [d.id, d]));
+  return {
+    ...view,
+    documents: view.effective.rows.map((r) => ({
+      ...r,
+      idNumber: byId.get(r.barberId)?.idNumber ?? null,
+      iban: byId.get(r.barberId)?.iban ?? null,
+    })),
+  };
 }

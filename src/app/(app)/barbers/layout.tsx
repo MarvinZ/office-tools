@@ -74,7 +74,7 @@ export default function BarbersLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
+      <div className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black print:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-1 px-4">
           {/*
             Only the tab links scroll horizontally on narrow screens. The

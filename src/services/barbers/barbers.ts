@@ -190,6 +190,42 @@ export async function updateBarberSettlementProfile(
   return row ?? null;
 }
 
+// ── Payment details ──────────────────────────────────────────────────────────
+
+export type BarberPaymentDetailsInput = {
+  idNumber: string;
+  iban: string;
+  aliases: string[];
+};
+
+/** "cr05 0152 0200 1026 2840 66" → "CR05015202001026284066". */
+export function normalizeIban(value: string): string {
+  return value.replace(/[\s-]/g, "").toUpperCase();
+}
+
+export async function updateBarberPaymentDetails(
+  tenantId: string,
+  id: string,
+  data: BarberPaymentDetailsInput
+): Promise<BarberRow | null> {
+  const iban = normalizeIban(data.iban);
+  // Generic IBAN shape; a Costa Rican one is CR + 20 digits.
+  if (iban && !/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) {
+    throw new Error("IBAN doesn't look valid (e.g. CR05015202001026284066).");
+  }
+  const seen = new Set<string>();
+  const aliases = data.aliases
+    .map((a) => a.trim())
+    .filter((a) => a && !seen.has(a.toLowerCase()) && seen.add(a.toLowerCase()));
+
+  const [row] = await db
+    .update(barbers)
+    .set({ idNumber: data.idNumber.trim() || null, iban: iban || null, aliases, updatedAt: new Date() })
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, id)))
+    .returning();
+  return row ?? null;
+}
+
 // ── Barber <-> Location assignment (replace-all semantics) ──────────────────
 
 export async function setBarberLocations(
