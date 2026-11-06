@@ -90,7 +90,13 @@ export async function updatePaymentMethod(
   tenantId: string,
   id: string,
   data: Partial<PaymentMethodInput>
-): Promise<PaymentMethodRow | null> {
+): Promise<{ before: PaymentMethodRow; after: PaymentMethodRow } | null> {
+  const [before] = await db
+    .select()
+    .from(paymentMethods)
+    .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, id)))
+    .limit(1);
+  if (!before) return null;
   const [row] = await db
     .update(paymentMethods)
     .set({
@@ -100,7 +106,7 @@ export async function updatePaymentMethod(
     })
     .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, id)))
     .returning();
-  return row ?? null;
+  return row ? { before, after: row } : null;
 }
 
 // ── Defaults ──────────────────────────────────────────────────────────────────

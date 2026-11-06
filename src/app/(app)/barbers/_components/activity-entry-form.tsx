@@ -68,6 +68,13 @@ export default function ActivityEntryForm({
   const tc = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [activities, setActivities] = useState(initialActivities);
+  // Take the server's list whenever it changes (after a void/courtesy/warranty
+  // refresh). The optimistic rows added below are replaced by real ones then.
+  const [syncedFrom, setSyncedFrom] = useState(initialActivities);
+  if (initialActivities !== syncedFrom) {
+    setSyncedFrom(initialActivities);
+    setActivities(initialActivities);
+  }
   const [error, setError] = useState<string | null>(null);
 
   // Header fields — picked once per submission, shared by every cart line.
@@ -195,6 +202,9 @@ export default function ActivityEntryForm({
             commissionRate: parseFloat(row.commissionRate),
             commissionAmount: parseFloat(row.commissionAmount),
             performedAt: row.performedAt,
+            status: row.status,
+            statusReason: row.statusReason,
+            warrantyOfActivityId: row.warrantyOfActivityId,
             createdBy: row.createdBy,
             createdAt: row.createdAt,
           })),
@@ -341,7 +351,10 @@ export default function ActivityEntryForm({
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-black dark:text-white">{t("log.todaySectionTitle")}</h2>
-        <RecentActivityList activities={activities} />
+        <RecentActivityList
+          activities={activities}
+          barbers={barbers.map((b) => ({ id: b.id, name: `${b.firstName} ${b.lastName}` }))}
+        />
       </div>
     </div>
   );

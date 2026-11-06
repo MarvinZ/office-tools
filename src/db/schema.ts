@@ -611,6 +611,16 @@ export const barberStatusEnum = pgEnum("barber_status", [
   "inactive",
 ]);
 
+// Spec §5.1 movement states. A service is never deleted: it's voided (kept,
+// excluded from pay), marked a courtesy (paid normally, salon covers it) or is
+// a warranty redo of another service. Returns ("devolución") come later.
+export const barberActivityStatusEnum = pgEnum("barber_activity_status", [
+  "active",
+  "voided",
+  "courtesy",
+  "warranty",
+]);
+
 export const services = pgTable("services", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
@@ -694,6 +704,9 @@ export const barbers = pgTable("barbers", {
   ivaInformative: boolean("iva_informative").notNull().default(false),
   // Fixed IVA-bearing amount added every fortnight (e.g. a cleaning stipend).
   fortnightlyAddition: numeric("fortnightly_addition", { precision: 12, scale: 2 }).notNull().default("0"),
+  // When deductions exceed earnings, the shortfall is taken from this person's
+  // monthly salary instead of being carried as a balance (spec §7, CA 10).
+  shortfallToSalary: boolean("shortfall_to_salary").notNull().default(false),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -729,6 +742,7 @@ export const barberFortnightClosings = pgTable("barber_fortnight_closings", {
   closedAt: timestamp("closed_at").defaultNow().notNull(),
   reopenedBy: text("reopened_by"),
   reopenedAt: timestamp("reopened_at"),
+  reopenReason: text("reopen_reason"), // required when reopening (spec §11.1)
 }, (t) => [
   uniqueIndex("barber_fortnight_closings_version_uq").on(t.tenantId, t.period, t.version),
   uniqueIndex("barber_fortnight_closings_current_uq").on(t.tenantId, t.period).where(sql`${t.reopenedAt} is null`),
@@ -792,6 +806,14 @@ export const barberActivities = pgTable("barber_activities", {
   // Rows logged before the settlement engine hold the old fee-reduced figure.
   commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull(),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
+  // ── Status (spec §8.7–8.10). See barberActivityStatusEnum.
+  status: barberActivityStatusEnum("status").notNull().default("active"),
+  statusReason: text("status_reason"), // why it was voided / redone
+  statusChangedBy: text("status_changed_by"),
+  statusChangedAt: timestamp("status_changed_at"),
+  // A warranty redo points at the service it redoes. The barber on this row is
+  // the one who redid it; the original row's barber is the one responsible.
+  warrantyOfActivityId: text("warranty_of_activity_id"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -821,6 +843,20 @@ export const barberVouchers = pgTable("barber_vouchers", {
 // A tip ("propina") owed to a barber. Tips are paid out in full on top of the
 // settlement transfer: no IVA, not part of the electronic invoice. Same shape
 // and same delete-and-re-enter correction policy as barberVouchers.
+// A shortfall moved by an admin from a closed fortnight to the next one
+// (spec §8.1/§8.5: a manual, audited action, possibly only part of it). The
+// next fortnight deducts `amount` as "previous balance".
+export const barberCarryOvers = pgTable("barber_carry_overs", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  barberId: text("barber_id").notNull().references(() => barbers.id),
+  fromPeriod: text("from_period").notNull(), // fortnight key, "YYYY-MM-H"
+  toPeriod: text("to_period").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("barber_carry_overs_uq").on(t.tenantId, t.barberId, t.fromPeriod)]);
+
 export const barberTips = pgTable("barber_tips", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),

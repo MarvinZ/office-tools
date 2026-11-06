@@ -49,6 +49,8 @@ export async function getPayoutReport(
 
   const summaryByBarber = new Map<string, PayoutBarberSummary>();
   for (const item of lineItems) {
+    // Voided services stay listed (for the record) but count for nothing.
+    if (item.status === "voided") continue;
     const existing = summaryByBarber.get(item.barberId);
     if (existing) {
       existing.count += 1;

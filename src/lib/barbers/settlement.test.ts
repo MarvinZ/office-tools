@@ -36,6 +36,7 @@ function settle(partial: Omit<Partial<BarberSettlementInput>, "profile"> & { pro
       productCredit: partial.productCredit ?? [],
       tips: partial.tips ?? [],
       carryOver: partial.carryOver,
+      warrantyClawbacks: partial.warrantyClawbacks,
       profile: { ...STANDARD, ...partial.profile },
     },
     SETTINGS
@@ -132,6 +133,48 @@ describe("computeBarberSettlement", () => {
     expect(r.invoice).toBe(0);
     expect(r.transfer).toBe(0);
     expect(r.shortfall).toBe(10000);
+  });
+
+  it("CA 10: Brayan's shortfall is flagged for salary deduction", () => {
+    const r = settle({ lines: [line(22600, 1)], vales: [30000], profile: { appliesMaintenance: false, shortfallToSalary: true } });
+    expect(r.shortfall).toBe(10000);
+    expect(r.shortfallToSalary).toBe(true);
+    expect(r.transfer).toBe(0);
+  });
+
+  it("CA 15: courtesy pays normal commission, no card fee, counts as a worked day", () => {
+    const r = settle({ lines: [{ ...line(11300, 0.5, CARD), kind: "courtesy" }] });
+    expect(r.serviceIncome).toBe(5000);
+    expect(r.cardFee).toBe(0);
+    expect(r.daysWorked).toBe(1);
+    expect(r.maintenance).toBe(1000);
+  });
+
+  it("CA 16: warranty by a colleague — corrector paid, original's commission taken back", () => {
+    // Corrector: redoes an ₡11,300 service at their 60% → base ₡10,000 × 60%.
+    const corrector = settle({ lines: [{ ...line(11300, 0.6, CARD), kind: "warranty" }], profile: { appliesMaintenance: false } });
+    expect(corrector.serviceIncome).toBe(6000);
+    expect(corrector.cardFee).toBe(0);
+    // Original barber: loses exactly the ₡5,000 they earned on it at 50%.
+    const original = settle({
+      lines: [line(22600, 0.5)],
+      warrantyClawbacks: [{ priceCharged: 11300, commissionRate: 0.5 }],
+      profile: { appliesMaintenance: false },
+    });
+    expect(original.warrantyClawback).toBe(5000);
+    expect(original.net).toBe(5000);
+  });
+
+  it("CA 17: a voided service isn't passed in, so it affects nothing", () => {
+    expect(settle({ lines: [] })).toMatchObject({ serviceIncome: 0, daysWorked: 0, maintenance: 0 });
+  });
+
+  it("groups services by commission rate (mixtos report)", () => {
+    const r = settle({ lines: [line(11300, 0.5), line(11300, 0.65), line(22600, 0.5)] });
+    expect(r.byRate).toEqual([
+      { rate: 0.5, count: 2, grossCharged: 33900, income: 15000 },
+      { rate: 0.65, count: 1, grossCharged: 11300, income: 6500 },
+    ]);
   });
 
   it("carries a previous shortfall into the next fortnight as a deduction", () => {

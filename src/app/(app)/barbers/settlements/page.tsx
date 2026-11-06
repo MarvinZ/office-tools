@@ -8,6 +8,7 @@ import { fortnightKey, fortnightOf, parseFortnightKey, shiftFortnight } from "@/
 import { businessDateOf, fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { fmtColones } from "@/lib/barbers/currency";
 import ClosingControls from "./_components/closing-controls";
+import CarryOverControl from "./_components/carry-over-control";
 import { closingStatus, parseVersion } from "./_lib/closing-status";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function SettlementsPage({
   // ?period=YYYY-MM-H, H = 1 (days 1–15) or 2 (16–end of month).
   const fortnight = parseFortnightKey(period) ?? fortnightOf(todayBusinessDate());
   const key = fortnightKey(fortnight);
-  const { effective, closing, isClosed, changedSinceClose, versions } = await getSettlementView(
+  const { effective, closing, isClosed, changedSinceClose, versions, carriedOut, nextClosed } = await getSettlementView(
     tenant.id,
     fortnight,
     parseVersion(version)
@@ -33,6 +34,8 @@ export default async function SettlementsPage({
   // Print/export show exactly what's on screen.
   const docQuery = viewingOld ? `period=${key}&version=${closing!.version}` : `period=${key}`;
   const isAdmin = orgRole === "org:admin";
+  // "Mixtos" (spec §10.3): barbers whose services were paid at more than one rate.
+  const mixed = rows.filter((r) => r.byRate.length > 1);
   const canClose = fortnight.from <= todayBusinessDate();
 
   const btnCls =
@@ -52,6 +55,9 @@ export default async function SettlementsPage({
     { key: "vales", label: t("settlements.colVales"), deduction: true },
     // Only when someone actually carries a balance in — keeps the table narrow.
     ...(totals.carryOver > 0 ? [{ key: "carryOver" as const, label: t("settlements.colCarryOver"), deduction: true }] : []),
+    ...(totals.warrantyClawback > 0
+      ? [{ key: "warrantyClawback" as const, label: t("settlements.colWarrantyClawback"), deduction: true }]
+      : []),
     { key: "net", label: t("settlements.colNet") },
     { key: "iva", label: t("settlements.colIva") },
     { key: "invoice", label: t("settlements.colInvoice") },
@@ -187,8 +193,19 @@ export default async function SettlementsPage({
                       </span>
                       {r.shortfall > 0 && (
                         <span className="mt-0.5 block text-xs font-normal text-amber-600 dark:text-amber-400">
-                          {t("settlements.shortfall", { amount: fmtColones(r.shortfall) })}
+                          {t(r.shortfallToSalary ? "settlements.shortfallToSalary" : "settlements.shortfall", {
+                            amount: fmtColones(r.shortfall),
+                          })}
                         </span>
+                      )}
+                      {r.shortfall > 0 && !r.shortfallToSalary && isAdmin && isClosed && !viewingOld && (
+                        <CarryOverControl
+                          period={key}
+                          barberId={r.barberId}
+                          shortfall={r.shortfall}
+                          carried={carriedOut[r.barberId]}
+                          nextClosed={nextClosed}
+                        />
                       )}
                     </td>
                     {columns.map((c) => (
@@ -224,7 +241,46 @@ export default async function SettlementsPage({
       <p className="text-xs text-zinc-400">
         {t("settlements.footnote")} {t(closing ? "settlements.footnoteClosed" : "settlements.footnoteLive")}
         {totals.carryOver > 0 && ` ${t("settlements.footnoteCarryOver")}`}
+        {totals.warrantyClawback > 0 && ` ${t("settlements.footnoteWarranty")}`}
       </p>
+
+      {mixed.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-black dark:text-white">{t("settlements.mixedTitle")}</h2>
+          <p className="text-xs text-zinc-500">{t("settlements.mixedSubtitle")}</p>
+          <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+                    <th className="px-4 py-2.5 text-left">{t("settlements.colBarber")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("settlements.colRate")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("settlements.colServices")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("settlements.colCharged")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("settlements.colIncome")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mixed.map((r) =>
+                    r.byRate.map((b, i) => (
+                      <tr
+                        key={`${r.barberId}-${b.rate}`}
+                        className={`${i === 0 ? "border-t border-zinc-200 dark:border-zinc-800" : ""} text-zinc-600 dark:text-zinc-300`}
+                      >
+                        <td className="px-4 py-2 font-medium text-black dark:text-white">{i === 0 ? r.barberName : ""}</td>
+                        <td className="px-4 py-2 text-right">{Math.round(b.rate * 10000) / 100}%</td>
+                        <td className="px-4 py-2 text-right">{b.count}</td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right">{fmtColones(b.grossCharged)}</td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right">{fmtColones(b.income)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {versions.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -241,7 +297,9 @@ export default async function SettlementsPage({
                   <span className="text-zinc-500">
                     {t("settlements.historyClosed", { date: fmtDay(businessDateOf(v.closedAt)) })}
                     {v.reopenedAt
-                      ? ` · ${t("settlements.historyReopened", { date: fmtDay(businessDateOf(v.reopenedAt)) })}`
+                      ? ` · ${t("settlements.historyReopened", { date: fmtDay(businessDateOf(v.reopenedAt)) })}${
+                          v.reopenReason ? ` — “${v.reopenReason}”` : ""
+                        }`
                       : ` · ${t("settlements.historyCurrent")}`}
                   </span>
                   <span className="text-zinc-600 dark:text-zinc-300">

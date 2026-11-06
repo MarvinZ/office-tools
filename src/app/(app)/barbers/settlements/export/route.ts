@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       t("settlements.colBarber"), t("settlements.colServices"), t("settlements.colDays"),
       t("settlements.colIncome"), t("settlements.colAddition"), t("settlements.colCardFee"),
       t("settlements.colMaintenance"), t("settlements.colProductCredit"), t("settlements.colVales"),
-      t("settlements.colCarryOver"),
+      t("settlements.colCarryOver"), t("settlements.colWarrantyClawback"),
       t("settlements.colNet"), t("settlements.colIva"), t("settlements.colInvoice"),
       t("settlements.colTips"), t("settlements.colTransfer"),
     ],
@@ -57,7 +57,13 @@ export async function GET(request: Request) {
     idNumberLabel: t("paymentDetails.idNumber"),
     ibanLabel: t("paymentDetails.iban"),
     line: (key) => t(`settlementDoc.line.${key}`),
-    shortfall: (amount) => t("settlements.shortfall", { amount: fmtColones(amount) }),
+    shortfall: (amount, toSalary) =>
+      t(toSalary ? "settlements.shortfallToSalary" : "settlements.shortfall", { amount: fmtColones(amount) }),
+    mixedSheet: t("settlementDoc.mixedSheet"),
+    mixedHeaders: [
+      t("settlements.colBarber"), t("settlements.colRate"), t("settlements.colServices"),
+      t("settlements.colCharged"), t("settlements.colIncome"),
+    ],
   });
 
   const body = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;

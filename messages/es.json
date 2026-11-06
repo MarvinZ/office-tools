@@ -935,7 +935,9 @@
       "colOverride": "Definir excepción",
       "sourceOverride": "Excepción",
       "sourceDefault": "Predeterminado",
-      "resetToDefault": "Restablecer al predeterminado"
+      "resetToDefault": "Restablecer al predeterminado",
+      "sectionHistory": "Cambios recientes",
+      "historyViewAll": "Ver todo"
     },
     "locationsPage": {
       "title": "Sucursales",
@@ -1111,7 +1113,9 @@
       "fortnightlyAdditionHint": "Por ejemplo, limpieza. Se suma cada quincena y genera IVA. 0 si no aplica.",
       "errorIvaBase": "La base de IVA debe estar entre 0 y 100.",
       "errorAddition": "El adicional debe ser cero o un monto positivo.",
-      "errorSaveFailed": "No se pudo guardar. Inténtalo de nuevo."
+      "errorSaveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+      "shortfallToSalary": "El faltante va a descuento salarial",
+      "shortfallToSalaryHint": "Si los rebajos superan lo ganado, la diferencia se descuenta del salario mensual en lugar de quedar como saldo."
     },
     "settlements": {
       "title": "Liquidaciones",
@@ -1159,14 +1163,27 @@
       "closedOnVersion": "Cerrada {date} · v{version}",
       "supersededVersion": "Versión v{version} reemplazada (reabierta {date})",
       "backToCurrent": "Volver a la actual",
-      "footnoteCarryOver": "El saldo anterior es lo que el barbero quedó debiendo al cerrar la quincena anterior.",
+      "footnoteCarryOver": "El saldo anterior es lo que un administrador trasladó del faltante de la quincena anterior.",
       "historyTitle": "Historial de cierres",
       "historyClosed": "Cerrada {date}",
       "historyReopened": "reabierta {date}",
       "historyCurrent": "actual",
       "historyTransfer": "Total a transferir {amount}",
       "historyShowing": "Mostrando",
-      "historyView": "Ver"
+      "historyView": "Ver",
+      "colWarrantyClawback": "Garantía",
+      "colRate": "Porcentaje",
+      "colCharged": "Cobrado",
+      "shortfallToSalary": "{amount} a descuento salarial",
+      "footnoteWarranty": "Garantía es la comisión que se rebaja por servicios que un compañero tuvo que repetir.",
+      "mixedTitle": "Por porcentaje de comisión",
+      "mixedSubtitle": "Profesionales con servicios pagados a más de un porcentaje en esta quincena.",
+      "carryForward": "Trasladar a la siguiente quincena",
+      "carryPrompt": "Monto a trasladar a la siguiente quincena (hasta {max}):",
+      "carryInvalid": "Ingrese un monto mayor a cero y no mayor al faltante.",
+      "carried": "{amount} trasladado a la siguiente quincena",
+      "carryUndo": "Deshacer",
+      "reopenReasonPrompt": "¿Por qué reabre esta quincena? (obligatorio)"
     },
     "paymentDetails": {
       "idNumber": "Cédula",
@@ -1199,8 +1216,10 @@
         "iva": "IVA",
         "invoice": "Monto a facturar",
         "tips": "Propinas",
-        "transfer": "Total a transferir"
-      }
+        "transfer": "Total a transferir",
+        "warrantyClawback": "Garantía: comisión rebajada"
+      },
+      "mixedSheet": "Por porcentaje"
     },
     "settingsPage": {
       "title": "Configuración de liquidaciones",
@@ -1259,6 +1278,103 @@
       "grandTotal": "Total general",
       "lineItemsTitle": "Detalle de servicios",
       "empty": "No hay actividad en este rango de fechas."
+    },
+    "tabHistory": "Historial",
+    "activityStatus": {
+      "actions": "Acciones",
+      "markCourtesy": "Marcar como cortesía",
+      "markNormal": "Marcar como normal (no cortesía)",
+      "warrantyRedo": "Garantía…",
+      "restore": "Restaurar",
+      "void": "Anular…",
+      "voidReason": "Motivo de la anulación (obligatorio)",
+      "voidConfirm": "Anular servicio",
+      "redoneBy": "Realizada por",
+      "sameBarber": "mismo profesional",
+      "redoSameHint": "Mismo profesional: queda registrada, pero no se paga de nuevo.",
+      "redoOtherHint": "Otro profesional: recibe su comisión normal y al profesional original se le rebaja la suya.",
+      "redoReason": "Nota (opcional)",
+      "redoConfirm": "Registrar garantía",
+      "errorGeneric": "No se pudo actualizar el servicio.",
+      "status": {
+        "active": "Normal",
+        "voided": "Anulado",
+        "courtesy": "Cortesía",
+        "warranty": "Garantía"
+      }
+    },
+    "audit": {
+      "title": "Historial",
+      "subtitle": "Cada cambio que afecta el pago de los profesionales: quién lo hizo, cuándo y por qué.",
+      "allBarbers": "Todos",
+      "limitNote": "Mostrando los últimos {count} cambios.",
+      "empty": "Aún no hay cambios registrados.",
+      "yes": "sí",
+      "no": "no",
+      "reason": "Motivo: {reason}",
+      "fields": {
+        "commissionRate": "Porcentaje de comisión",
+        "defaultCommissionRate": "Porcentaje predeterminado",
+        "ivaRate": "IVA",
+        "maintenanceDailyFee": "Cuota diaria de mantenimiento",
+        "feeRate": "Cargo",
+        "name": "Nombre",
+        "status": "Estado",
+        "appliesMaintenance": "Aplica mantenimiento",
+        "ivaBaseRate": "Base de IVA",
+        "ivaInformative": "IVA solo informativo",
+        "fortnightlyAddition": "Adicional quincenal",
+        "shortfallToSalary": "Faltante a descuento salarial",
+        "idNumber": "Cédula",
+        "iban": "IBAN",
+        "aliases": "Alias",
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "phone": "Teléfono",
+        "email": "Correo"
+      },
+      "actions": {
+        "activity": {
+          "logged": "{count, plural, one {Se registró # servicio} other {Se registraron # servicios}} · {total}",
+          "status": "Cambio de estado de servicio · {total}",
+          "warranty": "Garantía registrada · {total}"
+        },
+        "vale": {
+          "created": "Vale {amount} · {date}",
+          "deleted": "Vale eliminado: {amount} · {date}"
+        },
+        "tip": {
+          "created": "Propina {amount} · {date}",
+          "deleted": "Propina eliminada: {amount} · {date}"
+        },
+        "productSale": {
+          "created": "Producto a crédito {amount} · {date}",
+          "deleted": "Venta de producto eliminada: {amount} · {date}"
+        },
+        "barber": {
+          "updated": "Datos del profesional modificados",
+          "settlementProfile": "Configuración de liquidación modificada",
+          "paymentDetails": "Datos de pago modificados",
+          "rate": "Porcentaje especial modificado"
+        },
+        "settings": {
+          "updated": "Configuración general modificada"
+        },
+        "paymentMethod": {
+          "updated": "Método de pago {name} modificado"
+        },
+        "service": {
+          "rate": "Porcentaje predeterminado de {name} modificado"
+        },
+        "fortnight": {
+          "closed": "Quincena {period} cerrada (v{version}) · transferencias {totalTransfer}",
+          "reopened": "Quincena {period} reabierta"
+        },
+        "carryOver": {
+          "created": "Se trasladaron {amount} de {period} a la siguiente quincena",
+          "deleted": "Se deshizo el traslado de {amount} de {period}"
+        }
+      }
     }
   },
   "webhooks": {

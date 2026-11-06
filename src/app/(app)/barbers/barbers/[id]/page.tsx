@@ -9,6 +9,8 @@ import BarberLocationsEditor from "./_components/barber-locations-editor";
 import BarberRatesEditor from "./_components/barber-rates-editor";
 import BarberSettlementEditor from "./_components/barber-settlement-editor";
 import BarberPaymentEditor from "./_components/barber-payment-editor";
+import AuditList from "../../_components/audit-list";
+import { listBarberAudit } from "@/services/barbers/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,11 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const [tenant, t, tc] = await Promise.all([requireTenant(), getTranslations("barbers"), getTranslations("common")]);
 
-  const [barber, allLocations] = await Promise.all([getBarber(tenant.id, id), listLocations(tenant.id)]);
+  const [barber, allLocations, history] = await Promise.all([
+    getBarber(tenant.id, id),
+    listLocations(tenant.id),
+    listBarberAudit(tenant.id, { barberId: id, limit: 15 }),
+  ]);
   if (!barber) notFound();
 
   return (
@@ -76,6 +82,7 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
             ivaBaseRate: barber.ivaBaseRate,
             ivaInformative: barber.ivaInformative,
             fortnightlyAddition: barber.fortnightlyAddition,
+            shortfallToSalary: barber.shortfallToSalary,
           }}
         />
       </div>
@@ -86,6 +93,16 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
           barberId={barber.id}
           initial={{ idNumber: barber.idNumber, iban: barber.iban, aliases: barber.aliases }}
         />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold text-black dark:text-white">{t("barberDetail.sectionHistory")}</h2>
+          <Link href={`/barbers/history?barber=${barber.id}`} className="text-xs text-zinc-500 underline hover:text-black dark:hover:text-white">
+            {t("barberDetail.historyViewAll")}
+          </Link>
+        </div>
+        <AuditList entries={history} names={{}} showBarber={false} />
       </div>
     </div>
   );

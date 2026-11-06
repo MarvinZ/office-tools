@@ -173,7 +173,13 @@ export async function updateService(
   tenantId: string,
   id: string,
   data: Partial<ServiceInput>
-): Promise<ServiceRow | null> {
+): Promise<{ before: ServiceRow; after: ServiceRow } | null> {
+  const [before] = await db
+    .select()
+    .from(services)
+    .where(and(eq(services.tenantId, tenantId), eq(services.id, id)))
+    .limit(1);
+  if (!before) return null;
   const [row] = await db
     .update(services)
     .set({
@@ -184,5 +190,5 @@ export async function updateService(
     })
     .where(and(eq(services.tenantId, tenantId), eq(services.id, id)))
     .returning();
-  return row ?? null;
+  return row ? { before, after: row } : null;
 }
