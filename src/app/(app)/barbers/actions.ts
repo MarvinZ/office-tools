@@ -8,6 +8,7 @@ import { checkInBarber, checkOutBarber } from "@/services/barbers/roster";
 import { auditBarbers } from "@/services/barbers/audit";
 import { businessDateOf } from "@/lib/barbers/dates";
 import type { LogActivityInput, LogActivityBatchInput } from "@/services/barbers/activities";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 
 async function requireUserAndTenant() {
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
@@ -23,6 +24,7 @@ function revalidateActivityViews() {
 }
 
 export async function logActivityAction(data: LogActivityInput) {
+  await requireBarbersAccess(["operate"]);
   const { userId, tenant } = await requireUserAndTenant();
   const row = await logActivity(tenant.id, userId, data);
   await auditBarbers(tenant.id, userId, "activity.logged", {
@@ -35,6 +37,7 @@ export async function logActivityAction(data: LogActivityInput) {
 }
 
 export async function logActivityBatchAction(data: LogActivityBatchInput) {
+  await requireBarbersAccess(["operate"]);
   const { userId, tenant } = await requireUserAndTenant();
   const rows = await logActivityBatch(tenant.id, userId, data);
   if (rows.length > 0) {
@@ -58,6 +61,7 @@ export async function setActivityStatusAction(
   status: "active" | "courtesy" | "voided",
   reason?: string
 ) {
+  await requireBarbersAccess(["operate"]);
   const { userId, tenant } = await requireUserAndTenant();
   const { before, after } = await setActivityStatus(tenant.id, userId, id, status, reason);
   await auditBarbers(tenant.id, userId, "activity.status", {
@@ -71,6 +75,7 @@ export async function setActivityStatusAction(
 }
 
 export async function logWarrantyRedoAction(originalId: string, correctorBarberId: string, reason?: string) {
+  await requireBarbersAccess(["operate"]);
   const { userId, tenant } = await requireUserAndTenant();
   const row = await logWarrantyRedo(tenant.id, userId, originalId, correctorBarberId, reason);
   await auditBarbers(tenant.id, userId, "activity.warranty", {
@@ -83,12 +88,14 @@ export async function logWarrantyRedoAction(originalId: string, correctorBarberI
 }
 
 export async function checkInBarberAction(locationId: string, barberId: string, workDate: string) {
+  await requireBarbersAccess(["operate"]);
   const tenant = await requireTenant();
   await checkInBarber(tenant.id, locationId, barberId, workDate);
   revalidatePath("/barbers");
 }
 
 export async function checkOutBarberAction(locationId: string, barberId: string, workDate: string) {
+  await requireBarbersAccess(["operate"]);
   const tenant = await requireTenant();
   await checkOutBarber(tenant.id, locationId, barberId, workDate);
   revalidatePath("/barbers");

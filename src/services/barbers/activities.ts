@@ -1,9 +1,12 @@
 import { eq, and, gte, lte, desc, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { barberActivities, barbers, locations, services, barberServiceRates, locationServices, paymentMethods } from "@/db/schema";
+import { barberActivities, barbers, locations, services, locationServices, paymentMethods } from "@/db/schema";
 import { getPaymentMethodFeeRate } from "./payment-methods";
 import { getBarberSettings } from "./settings";
 import { lineCommission } from "@/lib/barbers/settlement";
+import { commissionRateOn } from "@/lib/barbers/rate-schedule";
+import { businessDateOf, todayBusinessDate } from "@/lib/barbers/dates";
+import { loadRateContext } from "./rate-changes";
 import type { InferSelectModel } from "drizzle-orm";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
@@ -68,16 +71,6 @@ export function computeCommissionAmount(
 
 export type EffectiveCommissionRate = { rate: number; source: "override" | "barber" | "default" };
 
-/** The barber's fixed rate (barbers.fixedCommissionRate), or null. */
-async function getBarberFixedRate(tenantId: string, barberId: string): Promise<number | null> {
-  const [row] = await db
-    .select({ fixed: barbers.fixedCommissionRate })
-    .from(barbers)
-    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, barberId)))
-    .limit(1);
-  return row?.fixed != null ? parseFloat(row.fixed) : null;
-}
-
 /**
  * CANONICAL resolver for the effective commission rate of a barber+service:
  * the barber's per-service override if one exists, else the barber's fixed
@@ -94,35 +87,26 @@ async function getBarberFixedRate(tenantId: string, barberId: string): Promise<n
 export async function getEffectiveCommissionRate(
   tenantId: string,
   barberId: string,
-  serviceId: string
+  serviceId: string,
+  date: string = todayBusinessDate()
 ): Promise<EffectiveCommissionRate | null> {
-  const [overrideRow] = await db
-    .select({ commissionRate: barberServiceRates.commissionRate })
-    .from(barberServiceRates)
-    .where(
-      and(
-        eq(barberServiceRates.tenantId, tenantId),
-        eq(barberServiceRates.barberId, barberId),
-        eq(barberServiceRates.serviceId, serviceId)
-      )
-    )
-    .limit(1);
-
-  if (overrideRow) {
-    return { rate: parseFloat(overrideRow.commissionRate), source: "override" };
-  }
-
-  const fixed = await getBarberFixedRate(tenantId, barberId);
-
-  const [serviceRow] = await db
-    .select({ defaultCommissionRate: services.defaultCommissionRate })
-    .from(services)
-    .where(and(eq(services.tenantId, tenantId), eq(services.id, serviceId)))
-    .limit(1);
-
+  const [[serviceRow], ctx] = await Promise.all([
+    db
+      .select({ defaultCommissionRate: services.defaultCommissionRate })
+      .from(services)
+      .where(and(eq(services.tenantId, tenantId), eq(services.id, serviceId)))
+      .limit(1),
+    loadRateContext(tenantId, barberId),
+  ]);
   if (!serviceRow) return null;
-  if (fixed != null) return { rate: fixed, source: "barber" };
-  return { rate: parseFloat(serviceRow.defaultCommissionRate), source: "default" };
+  const { rate, source } = commissionRateOn(
+    ctx.changes,
+    ctx.baselines,
+    serviceId,
+    date,
+    parseFloat(serviceRow.defaultCommissionRate)
+  );
+  return rate == null ? null : { rate, source };
 }
 
 export type EffectiveRateForService = EffectiveCommissionRate & {
@@ -143,28 +127,15 @@ export type EffectiveRateForService = EffectiveCommissionRate & {
 export async function resolveEffectiveCommissionRates(
   tenantId: string,
   barberId: string,
-  serviceRows: { id: string; defaultCommissionRate: string }[]
+  serviceRows: { id: string; defaultCommissionRate: string }[],
+  date: string = todayBusinessDate()
 ): Promise<Map<string, EffectiveRateForService>> {
-  const [overrideRows, fixed] = await Promise.all([
-    db
-      .select({ serviceId: barberServiceRates.serviceId, commissionRate: barberServiceRates.commissionRate })
-      .from(barberServiceRates)
-      .where(and(eq(barberServiceRates.tenantId, tenantId), eq(barberServiceRates.barberId, barberId))),
-    getBarberFixedRate(tenantId, barberId),
-  ]);
-
-  const overrideByService = new Map(overrideRows.map((o) => [o.serviceId, parseFloat(o.commissionRate)]));
-
+  const ctx = await loadRateContext(tenantId, barberId);
   const result = new Map<string, EffectiveRateForService>();
   for (const s of serviceRows) {
-    const override = overrideByService.get(s.id);
     const defaultRate = parseFloat(s.defaultCommissionRate);
-    result.set(s.id, {
-      serviceId: s.id,
-      defaultCommissionRate: defaultRate,
-      rate: override ?? fixed ?? defaultRate,
-      source: override != null ? "override" : fixed != null ? "barber" : "default",
-    });
+    const { rate, source } = commissionRateOn(ctx.changes, ctx.baselines, s.id, date, defaultRate);
+    result.set(s.id, { serviceId: s.id, defaultCommissionRate: defaultRate, rate: rate ?? defaultRate, source });
   }
   return result;
 }
@@ -254,7 +225,12 @@ export async function logActivity(
   );
 
   const [effective, feeRate, settings] = await Promise.all([
-    getEffectiveCommissionRate(tenantId, data.barberId, data.serviceId),
+    getEffectiveCommissionRate(
+      tenantId,
+      data.barberId,
+      data.serviceId,
+      businessDateOf(data.performedAt ? new Date(data.performedAt) : new Date())
+    ),
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
     getBarberSettings(tenantId),
   ]);
@@ -343,7 +319,12 @@ export async function logActivityBatch(
   // Resolve every rate up front: effective commission rates for all services in
   // one batch query, and the payment method's fee rate once for the whole cart.
   const [rateByService, feeRate, settings] = await Promise.all([
-    resolveEffectiveCommissionRates(tenantId, data.barberId, serviceRows),
+    resolveEffectiveCommissionRates(
+      tenantId,
+      data.barberId,
+      serviceRows,
+      businessDateOf(data.performedAt ? new Date(data.performedAt) : new Date())
+    ),
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
     getBarberSettings(tenantId),
   ]);

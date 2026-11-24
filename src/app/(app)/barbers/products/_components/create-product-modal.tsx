@@ -14,6 +14,8 @@ export default function CreateProductModal() {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [commission, setCommission] = useState("");
+  const [chargesIva, setChargesIva] = useState(false);
 
   function resetAndClose() {
     setName("");
@@ -24,9 +26,11 @@ export default function CreateProductModal() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsedPrice = parseFloat(price);
+    const parsedCommission = commission.trim() === "" ? 0 : parseFloat(commission);
+    if (!Number.isFinite(parsedCommission) || parsedCommission < 0 || parsedCommission > parsedPrice) return;
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) return;
     startTransition(async () => {
-      await createProductAction({ name, price: parsedPrice, status: "active" });
+      await createProductAction({ name, price: parsedPrice, commissionAmount: parsedCommission, chargesIva, status: "active" });
       router.refresh();
       resetAndClose();
     });
@@ -57,6 +61,18 @@ export default function CreateProductModal() {
                 <input required type="number" min="0" step="0.01" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className={inputCls} />
                 <p className="mt-1 text-xs text-zinc-400">{t("productForm.priceHint")}</p>
               </div>
+              <div>
+                <label className={labelCls} htmlFor="productCommission">{t("productForm.fieldCommission")}</label>
+                <input id="productCommission" type="number" min="0" step="0.01" inputMode="decimal" value={commission} onChange={(e) => setCommission(e.target.value)} placeholder="0.00" className={inputCls} />
+                <p className="mt-1 text-xs text-zinc-400">{t("productForm.commissionHint")}</p>
+              </div>
+              <label className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                <input type="checkbox" checked={chargesIva} onChange={(e) => setChargesIva(e.target.checked)} className="mt-1" />
+                <span>
+                  {t("productForm.fieldChargesIva")}
+                  <span className="block text-xs text-zinc-400">{t("productForm.chargesIvaHint")}</span>
+                </span>
+              </label>
               <div className="flex justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                 <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-zinc-200 px-4 py-2 text-sm text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400">
                   {tc("cancel")}

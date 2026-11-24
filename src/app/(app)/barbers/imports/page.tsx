@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
+import { getMyBarbersRole } from "@/services/barbers/roles";
+import { can } from "@/lib/barbers/permissions";
 import { getTranslations } from "next-intl/server";
-import { requireTenant } from "@/services/tenants";
 import { listBarberChoices, listClosingFiles } from "@/services/barbers/closing-imports";
 import { listLocations } from "@/services/barbers/locations";
 import { BUSINESS_TIME_ZONE, fmtDay } from "@/lib/barbers/dates";
@@ -20,7 +20,7 @@ const whenFmt = new Intl.DateTimeFormat("en-GB", {
 
 /** Import the daily closing workbooks (CIERRE DD-MM-AAAA.xlsx, spec §4). */
 export default async function ClosingImportsPage() {
-  const [tenant, t, { orgRole }] = await Promise.all([requireTenant(), getTranslations("barbers.imports"), auth()]);
+  const [{ tenant, role }, t] = await Promise.all([getMyBarbersRole(), getTranslations("barbers.imports")]);
   const [files, locations, barbers] = await Promise.all([
     listClosingFiles(tenant.id),
     listLocations(tenant.id),
@@ -38,7 +38,7 @@ export default async function ClosingImportsPage() {
       {activeLocations.length === 0 ? (
         <p className="rounded-xl border border-zinc-200 p-4 text-sm text-zinc-500 dark:border-zinc-800">{t("noLocations")}</p>
       ) : (
-        <ImportClosingsClient locations={activeLocations} barbers={barbers} canImport={orgRole === "org:admin"} />
+        <ImportClosingsClient locations={activeLocations} barbers={barbers} canImport={can(role, "configure")} />
       )}
 
       <div className="flex flex-col gap-3">

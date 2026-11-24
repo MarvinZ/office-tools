@@ -10,6 +10,9 @@ import BarberRatesEditor from "./_components/barber-rates-editor";
 import BarberSettlementEditor from "./_components/barber-settlement-editor";
 import BarberPaymentEditor from "./_components/barber-payment-editor";
 import AuditList from "../../_components/audit-list";
+import RateChangesEditor from "./_components/rate-changes-editor";
+import { listRateChanges } from "@/services/barbers/rate-changes";
+import { todayBusinessDate } from "@/lib/barbers/dates";
 import { listBarberAudit } from "@/services/barbers/audit";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +26,11 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const [tenant, t, tc] = await Promise.all([requireTenant(), getTranslations("barbers"), getTranslations("common")]);
 
-  const [barber, allLocations, history] = await Promise.all([
+  const [barber, allLocations, history, rateChanges] = await Promise.all([
     getBarber(tenant.id, id),
     listLocations(tenant.id),
     listBarberAudit(tenant.id, { barberId: id, limit: 15 }),
+    listRateChanges(tenant.id, id),
   ]);
   if (!barber) notFound();
 
@@ -71,6 +75,16 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-black dark:text-white">{t("barberDetail.sectionRates")}</h2>
         <BarberRatesEditor barberId={barber.id} rates={barber.effectiveRates} />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-black dark:text-white">{t("barberDetail.sectionRateChanges")}</h2>
+        <RateChangesEditor
+          barberId={barber.id}
+          services={barber.effectiveRates.map((r) => ({ id: r.serviceId, name: r.serviceName }))}
+          changes={rateChanges}
+          today={todayBusinessDate()}
+        />
       </div>
 
       <div className="flex flex-col gap-3">

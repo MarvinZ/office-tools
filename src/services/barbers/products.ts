@@ -35,16 +35,28 @@ export async function getProduct(tenantId: string, id: string): Promise<ProductR
 
 export type ProductInput = {
   name: string;
-  price: number;
+  price: number; // before IVA
+  commissionAmount?: number; // ₡ per unit sold to a customer
+  chargesIva?: boolean;
   status: ProductRow["status"];
   tags?: string[];
 };
+
+function validate(data: Partial<ProductInput>) {
+  if (data.commissionAmount != null && (!Number.isFinite(data.commissionAmount) || data.commissionAmount < 0)) {
+    throw new Error("Commission must be zero or a positive amount.");
+  }
+  if (data.commissionAmount != null && data.price != null && data.commissionAmount > data.price) {
+    throw new Error("Commission can't be more than the product's price.");
+  }
+}
 
 export async function createProduct(
   tenantId: string,
   createdBy: string,
   data: ProductInput
 ): Promise<ProductRow> {
+  validate(data);
   const [row] = await db
     .insert(products)
     .values({
@@ -53,6 +65,8 @@ export async function createProduct(
       createdBy,
       name: data.name,
       price: String(data.price),
+      commissionAmount: String(data.commissionAmount ?? 0),
+      chargesIva: data.chargesIva ?? false,
       status: data.status,
       tags: data.tags ?? [],
     })
@@ -65,11 +79,13 @@ export async function updateProduct(
   id: string,
   data: Partial<ProductInput>
 ): Promise<ProductRow | null> {
+  validate(data);
   const [row] = await db
     .update(products)
     .set({
       ...data,
       price: data.price != null ? String(data.price) : undefined,
+      commissionAmount: data.commissionAmount != null ? String(data.commissionAmount) : undefined,
       updatedAt: new Date(),
     })
     .where(and(eq(products.tenantId, tenantId), eq(products.id, id)))

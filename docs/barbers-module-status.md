@@ -264,7 +264,7 @@ Brayan wasn't available, so these were decided to reproduce what the accountant 
 4. **Items the accountant adds that aren't in the closings** (like Maicol's 6 Nov vale) are entered by hand in the app.
 5. **Unknown names are never guessed**: the import asks. "Luis Hernández" (₡0 in November) and Brayan's administrative services are outside the settlement for now.
 
-From Brayan's earlier answers (Nov 2026): dated rules (option B) are preferred; product commissions as a separate closing with fixed amounts per product, IVA added on top when marked; cashiers close shifts with downloadable reports; shortfalls charged to the shift's cashier; Jorge, Raquel and Zoe paid without IVA, which doesn't appear on their receipt; receipts say "send the electronic invoice to estilistascreativos@gmail.com". Of these, the receipt changes and the invoice email are built; the rest are next.
+From Brayan's earlier answers (Nov 2026): dated rules (option B) are preferred; product commissions as a separate closing with fixed amounts per product, IVA added on top when marked; cashiers close shifts with downloadable reports; shortfalls charged to the shift's cashier; Jorge, Raquel and Zoe paid without IVA, which doesn't appear on their receipt; receipts say "send the electronic invoice to estilistascreativos@gmail.com". All of these are now built (Nov 2026): dated commission changes, the product closing, roles (admin / cashier / accountant) and the cashier-shortfall report from the imported closings. Still to do: an in-app cashier shift close (only needed if NOURA stops using the Excel closing) and inviting the real users (Lesly, Karen, the accountant).
 
 ### 2.11 Glossary
 

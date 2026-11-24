@@ -18,12 +18,12 @@ export async function createClientOrg(name: string, adminUserId: string) {
  * Sends a Clerk organization invitation to the specified email.
  * The invitee gets org:admin role so they can invite their own team.
  */
-export async function inviteClientAdmin(orgId: string, email: string) {
+export async function inviteClientAdmin(orgId: string, email: string, role: "org:admin" | "org:member" = "org:admin") {
   const clerk = await clerkClient();
   const invitation = await clerk.organizations.createOrganizationInvitation({
     organizationId: orgId,
     emailAddress: email,
-    role: "org:admin",
+    role,
     redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard`,
   });
   return invitation;

@@ -20,6 +20,8 @@ import {
   SlidersHorizontal,
   History,
   FileUp,
+  ShoppingBag,
+  Wallet,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -29,8 +31,10 @@ const OPERATION_TABS = [
   { href: "/barbers/vales", labelKey: "tabVales", icon: Banknote, exact: false },
   { href: "/barbers/product-sales", labelKey: "tabProductSales", icon: ShoppingCart, exact: false },
   { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins, exact: false },
+  { href: "/barbers/product-closing", labelKey: "tabProductClosing", icon: ShoppingBag, exact: false },
   { href: "/barbers/settlements", labelKey: "tabSettlements", icon: Calculator, exact: false },
   { href: "/barbers/imports", labelKey: "tabImports", icon: FileUp, exact: false },
+  { href: "/barbers/cash", labelKey: "tabCash", icon: Wallet, exact: false },
   { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3, exact: false },
 ] as const;
 
@@ -50,13 +54,16 @@ function isActive(pathname: string, href: string, exact: boolean): boolean {
   return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function BarbersShell({ children }: { children: React.ReactNode }) {
+export default function BarbersShell({ children, visible }: { children: React.ReactNode; visible: string[] }) {
+  const allowed = new Set(visible);
+  const operationTabs = OPERATION_TABS.filter((tab) => allowed.has(tab.href));
+  const catalogItems = CATALOG_ITEMS.filter((item) => allowed.has(item.href));
   const pathname = usePathname();
   const t = useTranslations("barbers");
   const [catalogOpen, setCatalogOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const inCatalogSection = CATALOG_ITEMS.some((item) => isActive(pathname, item.href, false));
+  const inCatalogSection = catalogItems.some((item) => isActive(pathname, item.href, false));
 
   useEffect(() => {
     if (!catalogOpen) return;
@@ -88,7 +95,7 @@ export default function BarbersShell({ children }: { children: React.ReactNode }
             moment it extends past the row's bottom edge.
           */}
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-            {OPERATION_TABS.map(({ href, labelKey, icon: Icon, exact }) => (
+            {operationTabs.map(({ href, labelKey, icon: Icon, exact }) => (
               <Link key={href} href={href} className={tabCls(isActive(pathname, href, exact))}>
                 <Icon size={14} />
                 {t(labelKey)}
@@ -96,6 +103,7 @@ export default function BarbersShell({ children }: { children: React.ReactNode }
             ))}
           </div>
 
+          {catalogItems.length > 0 && (
           <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
@@ -114,7 +122,7 @@ export default function BarbersShell({ children }: { children: React.ReactNode }
                 role="menu"
                 className="absolute left-0 top-full z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
               >
-                {CATALOG_ITEMS.map(({ href, labelKey, icon: Icon }) => {
+                {catalogItems.map(({ href, labelKey, icon: Icon }) => {
                   const active = isActive(pathname, href, false);
                   return (
                     <Link
@@ -136,6 +144,7 @@ export default function BarbersShell({ children }: { children: React.ReactNode }
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
       <div className="flex flex-1 flex-col">{children}</div>

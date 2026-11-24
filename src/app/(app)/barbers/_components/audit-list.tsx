@@ -5,7 +5,7 @@ import type { BarberAuditEntry } from "@/services/barbers/audit";
 
 const RATE_FIELDS = new Set(["commissionRate", "defaultCommissionRate", "ivaBaseRate", "ivaRate", "feeRate", "fixedCommissionRate"]);
 const MONEY_FIELDS = new Set(["fortnightlyAddition", "maintenanceDailyFee"]);
-const SUMMARY_MONEY = new Set(["amount", "total", "totalTransfer"]);
+const SUMMARY_MONEY = new Set(["amount", "total", "totalTransfer", "commission"]);
 
 const whenFmt = new Intl.DateTimeFormat("en-GB", {
   timeZone: BUSINESS_TIME_ZONE,

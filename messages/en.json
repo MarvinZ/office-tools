@@ -840,7 +840,7 @@
     "tabProducts": "Products",
     "tabPaymentMethods": "Payment Methods",
     "tabVales": "Vales",
-    "tabProductSales": "Product sales",
+    "tabProductSales": "Products on credit",
     "tabReports": "Reports",
     "tabTips": "Tips",
     "tabSettlements": "Settlements",
@@ -938,7 +938,8 @@
       "resetToDefault": "Reset to default",
       "sectionHistory": "Recent changes",
       "historyViewAll": "View all",
-      "sourceBarber": "Barber's fixed rate"
+      "sourceBarber": "Barber's fixed rate",
+      "sectionRateChanges": "Commission changes"
     },
     "locationsPage": {
       "title": "Locations",
@@ -1021,7 +1022,11 @@
       "priceHint": "What the shop charges a barber for one unit.",
       "editPriceHint": "Changing the price only affects future sales. Sales already recorded keep the price they were sold at.",
       "fieldStatus": "Status",
-      "createProduct": "Create product"
+      "createProduct": "Create product",
+      "fieldCommission": "Sale commission (₡ per unit)",
+      "commissionHint": "Fixed amount paid to the collaborator who sells it to a customer, set from the product's margin. Paid in the product closing, not in the settlement.",
+      "fieldChargesIva": "Charge with IVA",
+      "chargesIvaHint": "Adds the shop's IVA on top of the price: ₡8,000 → the customer pays ₡9,040."
     },
     "paymentMethodsPage": {
       "title": "Payment Methods",
@@ -1350,7 +1355,8 @@
         "email": "Email",
         "fixedCommissionRate": "Fixed commission rate",
         "cardFeeOnGross": "Card fee on price with IVA",
-        "invoiceEmail": "Invoice email"
+        "invoiceEmail": "Invoice email",
+        "role": "Role"
       },
       "actions": {
         "activity": {
@@ -1395,6 +1401,17 @@
         },
         "closing": {
           "imported": "Daily closing {date} imported (v{version}, {services} services)"
+        },
+        "productCustomerSale": {
+          "created": "Product sale: {product} · {amount} (commission {commission})",
+          "deleted": "Product sale deleted: {product} · {amount}"
+        },
+        "productCommission": {
+          "paid": "{count, plural, one {# product commission paid} other {# product commissions paid}} · {amount}",
+          "unpaid": "Product commission payment undone: {product} · {amount}"
+        },
+        "member": {
+          "role": "A person's Barbers role was changed"
         }
       }
     },
@@ -1463,12 +1480,118 @@
         "missing_rate": "{name}: {count, plural, one {# line has} other {# lines have}} no % and no fixed rate; paid at 0% (rows {rows}).",
         "pending_method": "{name}: {count, plural, one {# line has} other {# lines have}} no recognized payment method (rows {rows}).",
         "missing_amount": "{count, plural, one {# line has} other {# lines have}} no amount and {count, plural, one {was} other {were}} skipped (rows {rows}).",
-        "service_received_by_non_professional": "Service on credit for {client} ({amount}) isn't a professional's, so it isn't deducted (row {rows})."
+        "service_received_by_non_professional": "Service on credit for {client} ({amount}) isn't a professional's, so it isn't deducted (row {rows}).",
+        "cash_difference": "Shift {shift} ({cashier}) doesn't balance: {amount} difference."
       },
       "new": "new",
       "createProfessional": "Create “{name}” as a new professional",
       "reimport": "Import again files already imported",
       "reimportHint": "Use after changing rates or settings: the days are replaced with the new values."
+    },
+    "rateChanges": {
+      "scope": "Applies to",
+      "allServices": "All services (fixed rate)",
+      "newRate": "New rate",
+      "noRate": "none",
+      "from": "Starting on",
+      "note": "Note (optional)",
+      "save": "Save change",
+      "hint": "A change can start mid-fortnight: services before that date keep the old rate. A start date in the past re-rates services already logged from that date, except in closed fortnights. Leave the rate empty to remove a fixed rate or override from that date.",
+      "scheduled": "Scheduled from {date}.",
+      "applied": "{count, plural, =0 {Saved. No logged services needed re-rating.} one {Saved. # logged service was re-rated.} other {Saved. # logged services were re-rated.}}",
+      "upcoming": "upcoming",
+      "delete": "Delete this scheduled change",
+      "errorRate": "Rate must be above 0% and at most 100%.",
+      "errorGeneric": "Couldn't save the change."
+    },
+    "tabProductClosing": "Product sales",
+    "productClosing": {
+      "title": "Product sales",
+      "subtitle": "Products sold to customers and the commission each one earns a collaborator. Commissions are paid in this closing, apart from the service settlement.",
+      "noProducts": "Add products (with their commission) in Catalogs → Products first.",
+      "product": "Product",
+      "quantity": "Qty",
+      "collaborator": "Collaborator",
+      "noCommission": "No commission",
+      "paymentMethod": "Payment",
+      "date": "Date",
+      "price": "Price",
+      "iva": "IVA",
+      "customerPays": "Customer pays",
+      "commission": "Commission",
+      "record": "Record sale",
+      "saved": "Sale recorded.",
+      "errorQuantity": "Choose a product and a quantity of at least 1.",
+      "errorGeneric": "Couldn't save.",
+      "closingTitle": "Product closing",
+      "thisWeek": "This week",
+      "thisFortnight": "This fortnight",
+      "lastFortnight": "Last fortnight",
+      "from": "From",
+      "to": "To",
+      "show": "Show",
+      "sold": "Sold (without IVA)",
+      "charged": "Charged",
+      "commissions": "Commissions",
+      "paid": "Paid",
+      "pending": "Pending",
+      "salesCount": "Sales",
+      "status": "Commission",
+      "markPaid": "Mark as paid",
+      "paidOn": "Paid on",
+      "asCashOutflow": "as cash outflow",
+      "confirmPaid": "Confirm",
+      "cancel": "Cancel",
+      "undoPaid": "Undo payment",
+      "deleteSale": "Delete sale",
+      "paidOnDate": "Paid {date}",
+      "cashOutflow": "cash outflow",
+      "inclIva": "incl. IVA {iva}",
+      "empty": "No product sales in this period.",
+      "sheetSummary": "Summary",
+      "sheetSales": "Sales",
+      "fileName": "Cierre_Productos"
+    },
+    "tabCash": "Cash",
+    "roles": {
+      "title": "People and roles",
+      "subtitle": "What each person can do in Barbers. The role here decides, whatever their role in the organization.",
+      "role": {
+        "admin": "Admin",
+        "cashier": "Cashier",
+        "accountant": "Accountant"
+      },
+      "describe": {
+        "admin": "Everything: settlements, closing, rates, catalogs, settings and roles.",
+        "cashier": "Front desk: services, vales, tips, products on credit, product sales, check-in.",
+        "accountant": "Read-only: settlements, reports, history, cash and product closings, exports."
+      },
+      "you": "you",
+      "roleFor": "Role for {name}",
+      "inviteHint": "To add someone, invite them in",
+      "teamLink": "Team",
+      "errorGeneric": "Couldn't change the role."
+    },
+    "cash": {
+      "title": "Cash shortfalls",
+      "subtitle": "Differences per cash shift, from the imported daily closings. A shortfall is charged to the shift's cashier in the same fortnight's payment.",
+      "prev": "Previous fortnight",
+      "next": "Next fortnight",
+      "daysImported": "{count, plural, =0 {no days imported} one {# day imported} other {# days imported}}",
+      "noImports": "No closings imported for this fortnight yet. Import them in Cierres.",
+      "balanced": "Every imported shift balanced: no shortfalls.",
+      "cashier": "Cashier",
+      "shortfall": "Shortfall",
+      "surplus": "Surplus",
+      "applyNote": "Shortfalls are deducted from each cashier's payment for the fortnight ending {date}.",
+      "date": "Date",
+      "shift": "Shift",
+      "shiftN": "Shift {n}",
+      "system": "System",
+      "counted": "Counted",
+      "difference": "Difference",
+      "missing": "{amount} missing",
+      "extra": "{amount} over"
     }
   },
   "webhooks": {
@@ -1537,7 +1660,10 @@
     "invite": {
       "title": "Invite a team member",
       "placeholder": "user@example.com",
-      "button": "Invite"
+      "button": "Invite",
+      "role": "Role",
+      "roleMember": "Member (cashier, accountant…)",
+      "roleAdmin": "Admin"
     }
   }
 }

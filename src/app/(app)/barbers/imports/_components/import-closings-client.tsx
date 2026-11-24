@@ -425,7 +425,7 @@ function groupWarnings(warnings: ImportWarning[]): GroupedWarning[] {
       values.parsed = fmtColones(Number(values.parsed));
       values.sheet = fmtColones(Number(values.sheet));
     }
-    if (w.code === "service_received_by_non_professional") values.amount = fmtColones(Number(values.amount));
+    if (w.code === "service_received_by_non_professional" || w.code === "cash_difference") values.amount = fmtColones(Number(values.amount));
     const groupable = ["rate_differs", "missing_rate", "pending_method", "missing_amount"].includes(w.code);
     const key = groupable ? `${w.code}|${w.barberId ?? ""}|${values.written ?? ""}|${values.applied ?? ""}` : `${w.code}|${w.sourceRow ?? ""}`;
     const g = map.get(key) ?? { key, code: w.code, barberId: w.barberId, count: 0, rows: "", values };

@@ -6,8 +6,10 @@ import { requireTenant } from "@/services/tenants";
 import { createPaymentMethod, updatePaymentMethod } from "@/services/barbers/payment-methods";
 import type { PaymentMethodInput } from "@/services/barbers/payment-methods";
 import { auditBarbers, diffFields } from "@/services/barbers/audit";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 
 export async function createPaymentMethodAction(data: PaymentMethodInput) {
+  await requireBarbersAccess(["configure"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   await createPaymentMethod(tenant.id, user.id, data);
@@ -15,6 +17,7 @@ export async function createPaymentMethodAction(data: PaymentMethodInput) {
 }
 
 export async function updatePaymentMethodAction(id: string, data: Partial<PaymentMethodInput>) {
+  await requireBarbersAccess(["configure"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   const result = await updatePaymentMethod(tenant.id, id, data);

@@ -18,11 +18,15 @@ import ActivityEntryForm from "./_components/activity-entry-form";
 
 export const dynamic = "force-dynamic";
 
+import { requireBarbersPage } from "@/services/barbers/roles";
+import { PAGE_AREAS } from "@/lib/barbers/permissions";
+
 export default async function BarbersLogPage({
   searchParams,
 }: {
   searchParams: Promise<{ locationId?: string }>;
 }) {
+  await requireBarbersPage(PAGE_AREAS["/barbers"]);
   const [{ locationId }, tenant, t, user] = await Promise.all([
     searchParams,
     requireTenant(),
