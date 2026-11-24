@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { LocationServicePriceItem } from "@/services/barbers/locations";
 import { setLocationServicePriceAction } from "../actions";
 import { fmtColones } from "@/lib/barbers/currency";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function LocationPricingEditor({
   locationId,
@@ -25,7 +26,7 @@ export default function LocationPricingEditor({
     const value = parseFloat(raw);
     if (Number.isNaN(value)) return;
     startTransition(async () => {
-      await setLocationServicePriceAction(locationId, serviceId, value);
+      await unwrap(setLocationServicePriceAction(locationId, serviceId, value));
       router.refresh();
       setDrafts((prev) => ({ ...prev, [serviceId]: "" }));
     });

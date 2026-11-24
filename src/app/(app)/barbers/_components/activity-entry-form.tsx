@@ -14,6 +14,7 @@ import type { PaymentMethodRow } from "@/services/barbers/payment-methods";
 import type { ActivityListItem } from "@/services/barbers/activities";
 import Decimal from "decimal.js";
 import { lineCommission } from "@/lib/barbers/settlement";
+import { unwrap } from "@/lib/barbers/errors";
 
 type PriceEntry = { serviceId: string; price: number };
 /**
@@ -171,7 +172,7 @@ export default function ActivityEntryForm({
 
     startTransition(async () => {
       try {
-        const rows = await logActivityBatchAction({
+        const rows = await unwrap(logActivityBatchAction({
           barberId,
           locationId,
           paymentMethodId,
@@ -179,7 +180,7 @@ export default function ActivityEntryForm({
           // No commissionRate / feeRate: the server resolves both itself.
           performedAt: performedAt ? new Date(performedAt).toISOString() : undefined,
           lines: parsed,
-        });
+        }));
 
         const barber = barbers.find((b) => b.id === barberId);
         const paymentMethod = paymentMethods.find((m) => m.id === paymentMethodId);

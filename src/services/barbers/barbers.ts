@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { barbers, barberLocations, locations, services, barberServiceRates } from "@/db/schema";
 import { resolveEffectiveCommissionRates } from "./activities";
 import type { InferSelectModel } from "drizzle-orm";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
 
@@ -182,13 +183,13 @@ export async function updateBarberSettlementProfile(
   data: BarberSettlementProfileInput
 ): Promise<BarberRow | null> {
   if (!Number.isFinite(data.ivaBaseRate) || data.ivaBaseRate < 0 || data.ivaBaseRate > 1) {
-    throw new Error("IVA base must be a decimal between 0 and 1 (e.g. 0.5 for 50%).");
+    throw new BarbersError("ivaBaseRange");
   }
   if (!Number.isFinite(data.fortnightlyAddition) || data.fortnightlyAddition < 0) {
-    throw new Error("Fortnightly addition must be zero or a positive amount.");
+    throw new BarbersError("additionNegative");
   }
   if (data.fixedCommissionRate != null && (!Number.isFinite(data.fixedCommissionRate) || data.fixedCommissionRate <= 0 || data.fixedCommissionRate > 1)) {
-    throw new Error("Fixed commission rate must be above 0% and at most 100%.");
+    throw new BarbersError("rateOutOfRange");
   }
 
   const [row] = await db
@@ -228,7 +229,7 @@ export async function updateBarberPaymentDetails(
   const iban = normalizeIban(data.iban);
   // Generic IBAN shape; a Costa Rican one is CR + 20 digits.
   if (iban && !/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) {
-    throw new Error("IBAN doesn't look valid (e.g. CR05015202001026284066).");
+    throw new BarbersError("invalidIban");
   }
   const seen = new Set<string>();
   const aliases = data.aliases
@@ -256,7 +257,7 @@ export async function setBarberLocations(
     .from(barbers)
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, barberId)))
     .limit(1);
-  if (!barber) throw new Error("Barber not found for this tenant.");
+  if (!barber) throw new BarbersError("notFound");
 
   // Validate every location id actually belongs to this tenant.
   const uniqueIds = Array.from(new Set(locationIds));
@@ -266,7 +267,7 @@ export async function setBarberLocations(
       .from(locations)
       .where(and(eq(locations.tenantId, tenantId), inArray(locations.id, uniqueIds)));
     if (validLocations.length !== uniqueIds.length) {
-      throw new Error("One or more locations do not belong to this tenant.");
+      throw new BarbersError("notFound");
     }
   }
 
@@ -314,8 +315,8 @@ async function assertBarberAndServiceBelongToTenant(
     db.select({ id: barbers.id }).from(barbers).where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, barberId))).limit(1),
     db.select({ id: services.id }).from(services).where(and(eq(services.tenantId, tenantId), eq(services.id, serviceId))).limit(1),
   ]);
-  if (!barber) throw new Error("Barber not found for this tenant.");
-  if (!service) throw new Error("Service not found for this tenant.");
+  if (!barber) throw new BarbersError("notFound");
+  if (!service) throw new BarbersError("notFound");
 }
 
 export async function setBarberServiceRate(

@@ -15,6 +15,7 @@ import {
   type Fortnight,
 } from "@/lib/barbers/settlement";
 import { getBarberSettings, type BarberSettings } from "./settings";
+import { BarbersError } from "@/lib/barbers/errors";
 
 /** The service a warranty redo points at (self-join of barber_activities). */
 const originalActivity = alias(barberActivities, "original_activity");
@@ -345,7 +346,7 @@ export async function closeFortnight(
   closedBy: string,
   fortnight: Fortnight
 ): Promise<{ version: number; totalTransfer: number }> {
-  if (fortnight.from > todayBusinessDate()) throw new Error("This fortnight hasn't started yet.");
+  if (fortnight.from > todayBusinessDate()) throw new BarbersError("fortnightNotStarted");
   const period = fortnightKey(fortnight);
   const [snapshot, [{ maxVersion }]] = await Promise.all([
     getFortnightSettlements(tenantId, fortnight),
@@ -361,7 +362,7 @@ export async function closeFortnight(
     .values({ id: crypto.randomUUID(), tenantId, period, version: (maxVersion ?? 0) + 1, snapshot, closedBy })
     .onConflictDoNothing()
     .returning({ id: barberFortnightClosings.id });
-  if (inserted.length === 0) throw new Error("This fortnight is already closed.");
+  if (inserted.length === 0) throw new BarbersError("fortnightClosed");
   return { version: (maxVersion ?? 0) + 1, totalTransfer: snapshot.totals.transfer };
 }
 
@@ -373,7 +374,7 @@ export async function reopenFortnight(
   reason: string
 ): Promise<number | null> {
   const trimmed = reason.trim();
-  if (!trimmed) throw new Error("A reason is required to reopen a fortnight.");
+  if (!trimmed) throw new BarbersError("reopenReasonRequired");
   const [row] = await db
     .update(barberFortnightClosings)
     .set({ reopenedAt: new Date(), reopenedBy, reopenReason: trimmed })
@@ -404,15 +405,15 @@ export async function createCarryOver(
   amount: number
 ): Promise<void> {
   const current = await getCurrentClosing(tenantId, fortnight);
-  if (!current) throw new Error("Close the fortnight before carrying a balance forward.");
+  if (!current) throw new BarbersError("closeBeforeCarry");
   const row = readSnapshot(current.snapshot).rows.find((r) => r.barberId === barberId);
-  if (!row || row.shortfall <= 0) throw new Error("This barber has no shortfall in this fortnight.");
-  if (row.shortfallToSalary) throw new Error("This barber's shortfall goes to salary deduction.");
+  if (!row || row.shortfall <= 0) throw new BarbersError("noShortfall");
+  if (row.shortfallToSalary) throw new BarbersError("shortfallToSalary");
   if (!Number.isFinite(amount) || amount <= 0 || amount > row.shortfall) {
-    throw new Error("Amount must be more than zero and no more than the shortfall.");
+    throw new BarbersError("carryAmount");
   }
   const next = shiftFortnight(fortnight, 1);
-  if (await getCurrentClosing(tenantId, next)) throw new Error("The next fortnight is already closed.");
+  if (await getCurrentClosing(tenantId, next)) throw new BarbersError("nextFortnightClosed");
 
   const inserted = await db
     .insert(barberCarryOvers)
@@ -427,12 +428,12 @@ export async function createCarryOver(
     })
     .onConflictDoNothing()
     .returning({ id: barberCarryOvers.id });
-  if (inserted.length === 0) throw new Error("A balance was already carried forward for this barber.");
+  if (inserted.length === 0) throw new BarbersError("carryExists");
 }
 
 export async function deleteCarryOver(tenantId: string, fortnight: Fortnight, barberId: string): Promise<number | null> {
   if (await getCurrentClosing(tenantId, shiftFortnight(fortnight, 1))) {
-    throw new Error("The next fortnight is already closed.");
+    throw new BarbersError("nextFortnightClosed");
   }
   const [row] = await db
     .delete(barberCarryOvers)

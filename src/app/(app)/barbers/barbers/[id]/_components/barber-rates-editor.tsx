@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { RotateCcw } from "lucide-react";
 import type { BarberEffectiveRate } from "@/services/barbers/barbers";
 import { setBarberServiceRateAction, removeBarberServiceRateAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 function fmtPct(n: number): string {
   return `${(n * 100).toFixed(2)}%`;
@@ -23,7 +24,7 @@ export default function BarberRatesEditor({ barberId, rates }: { barberId: strin
     const value = parseFloat(raw);
     if (Number.isNaN(value)) return;
     startTransition(async () => {
-      await setBarberServiceRateAction(barberId, serviceId, value);
+      await unwrap(setBarberServiceRateAction(barberId, serviceId, value));
       router.refresh();
       setDrafts((prev) => ({ ...prev, [serviceId]: "" }));
     });
@@ -31,7 +32,7 @@ export default function BarberRatesEditor({ barberId, rates }: { barberId: strin
 
   function handleReset(serviceId: string) {
     startTransition(async () => {
-      await removeBarberServiceRateAction(barberId, serviceId);
+      await unwrap(removeBarberServiceRateAction(barberId, serviceId));
       router.refresh();
     });
   }

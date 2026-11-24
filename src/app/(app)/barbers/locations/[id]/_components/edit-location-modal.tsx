@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Pencil } from "lucide-react";
 import type { LocationWithRelations } from "@/services/barbers/locations";
 import { updateLocationAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function EditLocationModal({ location }: { location: LocationWithRelations }) {
   const t = useTranslations("barbers");
@@ -26,7 +27,7 @@ export default function EditLocationModal({ location }: { location: LocationWith
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      await updateLocationAction(location.id, {
+      await unwrap(updateLocationAction(location.id, {
         name,
         addressStreet: addressStreet || undefined,
         addressCity: addressCity || undefined,
@@ -35,7 +36,7 @@ export default function EditLocationModal({ location }: { location: LocationWith
         addressCountry: addressCountry || undefined,
         phone: phone || undefined,
         status,
-      });
+      }));
       router.refresh();
       setOpen(false);
     });

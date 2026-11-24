@@ -9,10 +9,12 @@ import { auditBarbers } from "@/services/barbers/audit";
 import { businessDateOf } from "@/lib/barbers/dates";
 import type { LogActivityInput, LogActivityBatchInput } from "@/services/barbers/activities";
 import { requireBarbersAccess } from "@/services/barbers/roles";
+import { BarbersError } from "@/lib/barbers/errors";
+import { barbersAction } from "@/services/barbers/action";
 
 async function requireUserAndTenant() {
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
-  if (!user) throw new Error("Not authenticated.");
+  if (!user) throw new BarbersError("notAuthenticated");
   return { userId: user.id, tenant };
 }
 
@@ -24,35 +26,39 @@ function revalidateActivityViews() {
 }
 
 export async function logActivityAction(data: LogActivityInput) {
-  await requireBarbersAccess(["operate"]);
-  const { userId, tenant } = await requireUserAndTenant();
-  const row = await logActivity(tenant.id, userId, data);
-  await auditBarbers(tenant.id, userId, "activity.logged", {
-    barberId: row.barberId,
-    entityId: row.id,
-    summary: { count: 1, total: Number(row.priceCharged), date: businessDateOf(row.performedAt) },
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const { userId, tenant } = await requireUserAndTenant();
+    const row = await logActivity(tenant.id, userId, data);
+    await auditBarbers(tenant.id, userId, "activity.logged", {
+      barberId: row.barberId,
+      entityId: row.id,
+      summary: { count: 1, total: Number(row.priceCharged), date: businessDateOf(row.performedAt) },
+    });
+    revalidatePath("/barbers");
+    return row;
   });
-  revalidatePath("/barbers");
-  return row;
 }
 
 export async function logActivityBatchAction(data: LogActivityBatchInput) {
-  await requireBarbersAccess(["operate"]);
-  const { userId, tenant } = await requireUserAndTenant();
-  const rows = await logActivityBatch(tenant.id, userId, data);
-  if (rows.length > 0) {
-    await auditBarbers(tenant.id, userId, "activity.logged", {
-      barberId: rows[0].barberId,
-      entityId: rows[0].id,
-      summary: {
-        count: rows.length,
-        total: rows.reduce((n, r) => n + Number(r.priceCharged), 0),
-        date: businessDateOf(rows[0].performedAt),
-      },
-    });
-  }
-  revalidatePath("/barbers");
-  return rows;
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const { userId, tenant } = await requireUserAndTenant();
+    const rows = await logActivityBatch(tenant.id, userId, data);
+    if (rows.length > 0) {
+      await auditBarbers(tenant.id, userId, "activity.logged", {
+        barberId: rows[0].barberId,
+        entityId: rows[0].id,
+        summary: {
+          count: rows.length,
+          total: rows.reduce((n, r) => n + Number(r.priceCharged), 0),
+          date: businessDateOf(rows[0].performedAt),
+        },
+      });
+    }
+    revalidatePath("/barbers");
+    return rows;
+  });
 }
 
 /** Normal ↔ courtesy, or void (reason required). Services are never deleted. */
@@ -61,42 +67,50 @@ export async function setActivityStatusAction(
   status: "active" | "courtesy" | "voided",
   reason?: string
 ) {
-  await requireBarbersAccess(["operate"]);
-  const { userId, tenant } = await requireUserAndTenant();
-  const { before, after } = await setActivityStatus(tenant.id, userId, id, status, reason);
-  await auditBarbers(tenant.id, userId, "activity.status", {
-    barberId: after.barberId,
-    entityId: id,
-    summary: { total: Number(after.priceCharged), date: businessDateOf(after.performedAt) },
-    changes: { status: [before.status, after.status] },
-    reason: after.statusReason,
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const { userId, tenant } = await requireUserAndTenant();
+    const { before, after } = await setActivityStatus(tenant.id, userId, id, status, reason);
+    await auditBarbers(tenant.id, userId, "activity.status", {
+      barberId: after.barberId,
+      entityId: id,
+      summary: { total: Number(after.priceCharged), date: businessDateOf(after.performedAt) },
+      changes: { status: [before.status, after.status] },
+      reason: after.statusReason,
+    });
+    revalidateActivityViews();
   });
-  revalidateActivityViews();
 }
 
 export async function logWarrantyRedoAction(originalId: string, correctorBarberId: string, reason?: string) {
-  await requireBarbersAccess(["operate"]);
-  const { userId, tenant } = await requireUserAndTenant();
-  const row = await logWarrantyRedo(tenant.id, userId, originalId, correctorBarberId, reason);
-  await auditBarbers(tenant.id, userId, "activity.warranty", {
-    barberId: row.barberId,
-    entityId: row.id,
-    summary: { total: Number(row.priceCharged), originalActivityId: originalId },
-    reason: row.statusReason,
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const { userId, tenant } = await requireUserAndTenant();
+    const row = await logWarrantyRedo(tenant.id, userId, originalId, correctorBarberId, reason);
+    await auditBarbers(tenant.id, userId, "activity.warranty", {
+      barberId: row.barberId,
+      entityId: row.id,
+      summary: { total: Number(row.priceCharged), originalActivityId: originalId },
+      reason: row.statusReason,
+    });
+    revalidateActivityViews();
   });
-  revalidateActivityViews();
 }
 
 export async function checkInBarberAction(locationId: string, barberId: string, workDate: string) {
-  await requireBarbersAccess(["operate"]);
-  const tenant = await requireTenant();
-  await checkInBarber(tenant.id, locationId, barberId, workDate);
-  revalidatePath("/barbers");
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const tenant = await requireTenant();
+    await checkInBarber(tenant.id, locationId, barberId, workDate);
+    revalidatePath("/barbers");
+  });
 }
 
 export async function checkOutBarberAction(locationId: string, barberId: string, workDate: string) {
-  await requireBarbersAccess(["operate"]);
-  const tenant = await requireTenant();
-  await checkOutBarber(tenant.id, locationId, barberId, workDate);
-  revalidatePath("/barbers");
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const tenant = await requireTenant();
+    await checkOutBarber(tenant.id, locationId, barberId, workDate);
+    revalidatePath("/barbers");
+  });
 }

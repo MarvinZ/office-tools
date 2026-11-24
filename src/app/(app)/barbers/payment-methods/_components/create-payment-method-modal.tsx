@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createPaymentMethodAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function CreatePaymentMethodModal() {
   const t = useTranslations("barbers");
@@ -26,11 +27,11 @@ export default function CreatePaymentMethodModal() {
     const rate = parseFloat(feeRate);
     if (Number.isNaN(rate)) return;
     startTransition(async () => {
-      await createPaymentMethodAction({
+      await unwrap(createPaymentMethodAction({
         name,
         feeRate: rate,
         status: "active",
-      });
+      }));
       router.refresh();
       resetAndClose();
     });

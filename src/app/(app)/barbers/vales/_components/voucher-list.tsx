@@ -7,6 +7,7 @@ import { deleteVoucherAction } from "../actions";
 import { fmtColones } from "@/lib/barbers/currency";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { VoucherWithBarberName } from "@/services/barbers/vouchers";
+import { unwrap } from "@/lib/barbers/errors";
 
 const ALL = "all";
 
@@ -42,7 +43,7 @@ export default function VoucherList({
 
   function handleDelete(id: string) {
     startTransition(async () => {
-      await deleteVoucherAction(id);
+      await unwrap(deleteVoucherAction(id));
       onDeleted(id);
     });
   }

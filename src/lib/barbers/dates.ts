@@ -1,3 +1,4 @@
+import { BarbersError } from "@/lib/barbers/errors";
 /**
  * Business-day helpers for the Barbers module.
  *
@@ -24,7 +25,7 @@ export function isDateString(value: string | undefined | null): value is string 
 }
 
 function assertDateString(dateStr: string): void {
-  if (!DATE_ONLY_RE.test(dateStr)) throw new Error(`Expected a YYYY-MM-DD date, got: ${dateStr}`);
+  if (!DATE_ONLY_RE.test(dateStr)) throw new BarbersError("invalidDate");
 }
 
 /** First instant of the given Costa Rica calendar day. */

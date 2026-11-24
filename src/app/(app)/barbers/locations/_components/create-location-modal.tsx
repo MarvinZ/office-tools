@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createLocationAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function CreateLocationModal() {
   const t = useTranslations("barbers");
@@ -34,7 +35,7 @@ export default function CreateLocationModal() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      await createLocationAction({
+      await unwrap(createLocationAction({
         name,
         addressStreet: addressStreet || undefined,
         addressCity: addressCity || undefined,
@@ -43,7 +44,7 @@ export default function CreateLocationModal() {
         addressCountry: addressCountry || undefined,
         phone: phone || undefined,
         status: "active",
-      });
+      }));
       router.refresh();
       resetAndClose();
     });

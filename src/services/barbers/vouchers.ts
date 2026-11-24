@@ -2,6 +2,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { barberVouchers, barbers } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ async function assertBarberBelongsToTenant(tenantId: string, barberId: string): 
     .from(barbers)
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, barberId)))
     .limit(1);
-  if (!barber) throw new Error("Barber not found for this tenant.");
+  if (!barber) throw new BarbersError("notFound");
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -92,10 +93,10 @@ export async function createVoucher(
   await assertBarberBelongsToTenant(tenantId, data.barberId);
 
   if (!DATE_ONLY_RE.test(data.issuedDate)) {
-    throw new Error(`Expected a YYYY-MM-DD date, got: ${data.issuedDate}`);
+    throw new BarbersError("invalidDate");
   }
   if (!Number.isFinite(data.amount) || data.amount <= 0) {
-    throw new Error("Vale amount must be a positive number.");
+    throw new BarbersError("amountPositive");
   }
 
   const [row] = await db

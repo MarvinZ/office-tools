@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { setMemberRoleAction } from "../actions";
 import type { BarbersMember } from "@/services/barbers/roles";
 import type { BarbersRole } from "@/lib/barbers/permissions";
+import { unwrap } from "@/lib/barbers/errors";
 
 const ROLES: BarbersRole[] = ["admin", "cashier", "accountant"];
 
@@ -20,7 +21,7 @@ export default function MemberRoles({ members, me }: { members: BarbersMember[];
     setError(null);
     startTransition(async () => {
       try {
-        await setMemberRoleAction(userId, role);
+        await unwrap(setMemberRoleAction(userId, role));
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : t("errorGeneric"));

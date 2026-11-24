@@ -49,7 +49,7 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 - `tools` table + `tenant_tools` join table (see `src/db/schema.ts`). Enabled tools per tenant are read via `adminGetEnabledTools` (`src/services/admin/tenants.ts`).
 - Current tools (seeded in `src/db/seed-tools.ts`): **payroll, assets, employees, quotes, clients, providers, invoices, coverage, barbers, webhooks, cards**.
 - Adding a new tool = new row in `TOOLS` seed array + a new route under `(app)/` with a `layout.tsx` that calls `requireTool(slug)` + nav entry in `(app)/layout.tsx`'s `NAV_LINKS`. No schema changes needed for the gating mechanism itself.
-- **Gating is enforced, not just hidden:** every tool folder's `layout.tsx` calls `requireTool(slug)` (`src/services/tenants.ts`), which redirects to /dashboard unless the tool is enabled AND the tenant `isActive`. Route handlers skip layouts, so they call `getAvailableTools(tenant)` themselves. Server actions are not individually gated (only reachable from gated pages).
+- **Gating is enforced, not just hidden:** every tool folder's `layout.tsx` calls `requireTool(slug)` (`src/services/tenants.ts`), which redirects to /dashboard unless the tool is enabled AND the tenant `isActive`. Route handlers skip layouts, so they call `getAvailableTools(tenant)` themselves. Server actions are not individually gated (only reachable from gated pages), except in Barbers, where every action checks the person's role.
 
 ### Payroll Tool Flow (the original flagship flow, now one of many)
 1. Upload `.xlsx` (`(app)/payroll/_components/upload-zone.tsx`) → parsed via `src/lib/payroll/parser.ts`.
@@ -75,7 +75,7 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 - Front-desk logging of services per barber/location/payment method, daily check-in roster, vales (cash advances), product sales on credit, tips, payout report, and **fortnightly settlements** ("liquidaciones").
 - Source spec: `NOURA_Especificacion_Funcional_Tecnica_Sistema_Liquidaciones.pdf` (v1.3, not in repo — contains personal/bank data). **Keep it simple**: small shop, plain per-barber fields over rule engines.
 - **Settlement engine** is a pure function in `src/lib/barbers/settlement.ts` (decimal.js, no intermediate rounding, unit-tested against the spec's CA cases in `settlement.test.ts`). `services/barbers/settlements.ts` only loads data and calls it. Per line: commission = price ÷ (1+IVA) × rate. Card fee = base × payment method `feeRate`, a settlement deduction (not a commission reduction). Maintenance = days with ≥1 service × daily fee. Then net → IVA → invoice → + tips = transfer.
-- Per-barber settlement fields live on `barbers` (`appliesMaintenance`, `ivaBaseRate`, `ivaInformative`, `fortnightlyAddition`); shop-wide IVA % and maintenance fee in `barber_settings` (one row per tenant). No effective dating on purpose: settlements are computed live while a fortnight is open; **closing** it (org admins, `barber_fortnight_closings`) stores the full result as a jsonb snapshot, which is what the page/exports show from then on (with a warning if live data drifts). Closings are versioned: reopen stamps `reopenedAt` on the current row (kept as history, viewable with `?version=N`), closing again adds version+1; a partial unique index allows one current closing per fortnight. Carry-over is **manual** (spec §8.1/§8.5): on a closed fortnight an admin moves all or part of a barber's shortfall to the next one (`barber_carry_overs`), deducted there as `carryOver`. Barbers with `shortfallToSalary` (Brayan) never carry; their shortfall is shown as a salary deduction. Reopening requires a reason.
+- Per-barber settlement fields live on `barbers` (`appliesMaintenance`, `ivaBaseRate`, `ivaInformative`, `fortnightlyAddition`); shop-wide IVA % and maintenance fee in `barber_settings` (one row per tenant). No effective dating on purpose: settlements are computed live while a fortnight is open; **closing** it (Barbers admins, `barber_fortnight_closings`) stores the full result as a jsonb snapshot, which is what the page/exports show from then on (with a warning if live data drifts). Closings are versioned: reopen stamps `reopenedAt` on the current row (kept as history, viewable with `?version=N`), closing again adds version+1; a partial unique index allows one current closing per fortnight. Carry-over is **manual** (spec §8.1/§8.5): on a closed fortnight an admin moves all or part of a barber's shortfall to the next one (`barber_carry_overs`), deducted there as `carryOver`. Barbers with `shortfallToSalary` (Brayan) never carry; their shortfall is shown as a salary deduction. Reopening requires a reason.
 - Barbers also hold `idNumber` (cédula), `iban` and `aliases` (spellings used in CIERRE files, for the importer). Personal data — tenant-only.
 - Exports: `settlements/export` route → .xlsx (summary, bank transfers, one sheet per barber; route checks tenant + tool itself since route handlers skip layouts). `settlements/print` → printable per-barber pages; "Save as PDF" in the browser is the PDF export (no PDF lib). Both share `src/lib/barbers/settlement-document.ts`.
 - **Dates are Costa Rica business days** (`src/lib/barbers/dates.ts`, fixed UTC−6). Never bucket `performedAt` by UTC day.
@@ -89,6 +89,7 @@ A multi-tenant SaaS platform: an internal admin creates client companies ("tenan
 - **Product sales to customers + product closing** (`/barbers/product-closing`): products have a fixed `commissionAmount` per unit and `chargesIva` (IVA added on top of the price). `product_customer_sales` snapshots price/IVA/commission; commissions are paid there (pending → paid, date, optional cash outflow), never in the service settlement. Math in `lib/barbers/product-commissions.ts`. (`product_sales` = products sold to barbers on credit, a different thing.)
 - **Roles** (`lib/barbers/permissions.ts`, `services/barbers/roles.ts`): admin / cashier / accountant over areas operate / view / settle / configure. `barber_member_roles` is authoritative inside Barbers (Team invites used to make everyone org:admin); no row → org:admin = admin, else cashier. Every Barbers server action starts with `requireBarbersAccess([...])`, every section folder has a layout calling `requireBarbersPage(PAGE_AREAS[...])`, export routes check `can(role, "view")`, and tabs are filtered by role. Add all three for any new Barbers page/action.
 - **Cash shortfalls** (`/barbers/cash`): per-shift differences (CIERRE GENERAL row 25) stored in each imported closing's summary; a positive difference is charged to that shift's cashier in the same fortnight (report only; cashier pay is outside the system).
+- **Errors shown to people** (all Barbers actions): services throw `BarbersError(code, values)` (`lib/barbers/errors.ts`); every action body is wrapped in `barbersAction()` (`services/barbers/action.ts`), which returns `{ ok, data | error }` with the message translated from `barbers.errors.<code>`. Next.js hides thrown messages in production, so never rely on `throw new Error("…")` reaching the screen. Client code calls actions through `unwrap(...)`, which throws the translated message for the usual `catch (e) { setError(e.message) }`. New error → add a code + EN/ES text.
 - Tests: `npm test` (Vitest).
 
 ### Cards module (TwinsCards mobile backend)
@@ -124,7 +125,9 @@ Schema lives entirely in `src/db/schema.ts` (Drizzle). No separate migrations-as
 - **Invoices**: `invoices`, `invoice_line_items`, `invoice_activity`
 - **Coverage**: `trades`, `coverage_areas` (PostGIS geometry column)
 - **Webhooks**: `webhook_endpoints` (one per tenant, HMAC-SHA256 signing secret), `webhook_events` (logged payloads, verified or not)
-- **Audit**: `audit_logs` (table exists; not yet consistently written to or surfaced in UI)
+- **Barbers**: `barbers`, `locations`, `services`, `products`, `payment_methods`, `barber_settings`, `barber_activities`, `barber_vouchers`, `barber_tips`, `product_sales` (to barbers, on credit), `product_customer_sales`, `barber_rate_changes`, `barber_fortnight_closings`, `barber_carry_overs`, `barber_closing_files`, `barber_member_roles`, plus roster/location/rate join tables
+- **Cards**: `card_catalog`, `card_price_points` (global), `card_collectors`, `collection_items`
+- **Audit**: `audit_logs` — written by Barbers (`barbers.*`, shown in its History) and Cards; the other modules don't write it yet
 
 Run `npm run db:push` (or `db:generate`/`db:migrate`) after schema changes. Seed scripts: `db:seed`, `db:seed-tools`, `db:seed-trades`. PostGIS setup: `npm run db:setup-postgis`.
 
@@ -139,13 +142,15 @@ Run `npm run db:push` (or `db:generate`/`db:migrate`) after schema changes. Seed
 - Payroll: upload → parse → draft → review → queue → QStash → Resend send, with per-email status tracking
 - Employees, Assets, Clients, Providers, Quotes, Invoices — full CRUD + detail pages, documents/notes/activity where applicable
 - Coverage: trade-based service area mapping with PostGIS + Google Maps
+- Barbers (NOURA): front desk, daily-closing import, fortnightly settlements with closing/versions, exports, dated commissions, product closing, roles, audit trail — validated against the accountant's November 2026 slips
 - Webhooks: tenant-configured single inbound endpoint (`/api/webhooks/ingest/[endpointId]`), HMAC-SHA256 verified (`X-Signature` header, raw body), logs every delivery (verified or not) for inspection in the portal
 - i18n (EN/ES), dark mode
 
 ### Known gaps / cleanup needed
 - [ ] Payroll dev hardcodes: `DEV_ROW_LIMIT` (20-row cap) and `DEV_EMAIL_OVERRIDE` (all emails go to one address) — need the Excel schema to include a real recipient email column, then remove both
 - [ ] Payroll retry/resend/cancel flows for batches — not built yet
-- [ ] `audit_logs` table exists but isn't consistently written or surfaced in any UI
+- [ ] `audit_logs` is written by Barbers and Cards only; other modules don't record changes yet
+- [ ] Server actions outside Barbers throw `Error` for user-facing problems; Next.js hides those messages in production, so people see a generic error (Barbers solved this with `barbersAction` + `unwrap`)
 - [ ] `_mock/data.ts` folders (clients, providers, assets, quotes, invoices) hold real constants/enums, not mock data — misleading name, should be renamed
 - [ ] Subdomain routing — deferred until a domain is purchased; tenant resolution is Clerk-org-based for now
 

@@ -7,29 +7,35 @@ import { createPaymentMethod, updatePaymentMethod } from "@/services/barbers/pay
 import type { PaymentMethodInput } from "@/services/barbers/payment-methods";
 import { auditBarbers, diffFields } from "@/services/barbers/audit";
 import { requireBarbersAccess } from "@/services/barbers/roles";
+import { BarbersError } from "@/lib/barbers/errors";
+import { barbersAction } from "@/services/barbers/action";
 
 export async function createPaymentMethodAction(data: PaymentMethodInput) {
-  await requireBarbersAccess(["configure"]);
-  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
-  if (!user) throw new Error("Not authenticated.");
-  await createPaymentMethod(tenant.id, user.id, data);
-  revalidatePath("/barbers/payment-methods");
+  return barbersAction(async () => {
+    await requireBarbersAccess(["configure"]);
+    const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
+    if (!user) throw new BarbersError("notAuthenticated");
+    await createPaymentMethod(tenant.id, user.id, data);
+    revalidatePath("/barbers/payment-methods");
+  });
 }
 
 export async function updatePaymentMethodAction(id: string, data: Partial<PaymentMethodInput>) {
-  await requireBarbersAccess(["configure"]);
-  const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
-  if (!user) throw new Error("Not authenticated.");
-  const result = await updatePaymentMethod(tenant.id, id, data);
-  if (result) {
-    const changes = diffFields(result.before, result.after, ["name", "feeRate", "status"]);
-    if (Object.keys(changes).length > 0) {
-      await auditBarbers(tenant.id, user.id, "paymentMethod.updated", {
-        entityId: id,
-        summary: { name: result.after.name },
-        changes,
-      });
+  return barbersAction(async () => {
+    await requireBarbersAccess(["configure"]);
+    const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
+    if (!user) throw new BarbersError("notAuthenticated");
+    const result = await updatePaymentMethod(tenant.id, id, data);
+    if (result) {
+      const changes = diffFields(result.before, result.after, ["name", "feeRate", "status"]);
+      if (Object.keys(changes).length > 0) {
+        await auditBarbers(tenant.id, user.id, "paymentMethod.updated", {
+          entityId: id,
+          summary: { name: result.after.name },
+          changes,
+        });
+      }
     }
-  }
-  revalidatePath("/barbers/payment-methods");
+    revalidatePath("/barbers/payment-methods");
+  });
 }

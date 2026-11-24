@@ -8,6 +8,7 @@ import { commissionRateOn } from "@/lib/barbers/rate-schedule";
 import { businessDateOf, todayBusinessDate } from "@/lib/barbers/dates";
 import { loadRateContext } from "./rate-changes";
 import type { InferSelectModel } from "drizzle-orm";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
 
@@ -195,10 +196,10 @@ async function assertActivityRefsBelongToTenant(
       : db.select({ id: services.id }).from(services).where(and(eq(services.tenantId, tenantId), eq(services.id, serviceId))).limit(1),
     db.select({ id: paymentMethods.id }).from(paymentMethods).where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, paymentMethodId))).limit(1),
   ]);
-  if (!barber) throw new Error("Barber not found for this tenant.");
-  if (!location) throw new Error("Location not found for this tenant.");
-  if (!serviceRows[0]) throw new Error("Service not found for this tenant.");
-  if (!paymentMethod) throw new Error("Payment method not found for this tenant.");
+  if (!barber) throw new BarbersError("notFound");
+  if (!location) throw new BarbersError("notFound");
+  if (!serviceRows[0]) throw new BarbersError("notFound");
+  if (!paymentMethod) throw new BarbersError("notFound");
 }
 
 /**
@@ -234,8 +235,8 @@ export async function logActivity(
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
     getBarberSettings(tenantId),
   ]);
-  if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
-  if (feeRate == null) throw new Error("Could not resolve a fee rate for this payment method.");
+  if (!effective) throw new BarbersError("rateUnresolved");
+  if (feeRate == null) throw new BarbersError("rateUnresolved");
 
   const commissionRate = effective.rate;
   const commissionAmount = computeCommissionAmount(data.priceCharged, commissionRate, settings.ivaRate);
@@ -293,7 +294,7 @@ export async function logActivityBatch(
   createdBy: string,
   data: LogActivityBatchInput
 ): Promise<BarberActivityRow[]> {
-  if (data.lines.length === 0) throw new Error("Cannot log an empty batch of services.");
+  if (data.lines.length === 0) throw new BarbersError("emptyBatch");
 
   // Validate the shared refs (barber, location, payment method) once.
   await assertActivityRefsBelongToTenant(
@@ -313,7 +314,7 @@ export async function logActivityBatch(
     .from(services)
     .where(and(eq(services.tenantId, tenantId), inArray(services.id, distinctServiceIds)));
   if (serviceRows.length !== distinctServiceIds.length) {
-    throw new Error("One or more services do not belong to this tenant.");
+    throw new BarbersError("notFound");
   }
 
   // Resolve every rate up front: effective commission rates for all services in
@@ -328,14 +329,14 @@ export async function logActivityBatch(
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
     getBarberSettings(tenantId),
   ]);
-  if (feeRate == null) throw new Error("Could not resolve a fee rate for this payment method.");
+  if (feeRate == null) throw new BarbersError("rateUnresolved");
 
   const performedAt = data.performedAt ? new Date(data.performedAt) : new Date();
   const customerName = data.customerName ?? null;
 
   const values = data.lines.map((line) => {
     const resolved = rateByService.get(line.serviceId);
-    if (!resolved) throw new Error("Could not resolve a commission rate for this barber and service.");
+    if (!resolved) throw new BarbersError("rateUnresolved");
     return {
       id: crypto.randomUUID(),
       tenantId,
@@ -482,7 +483,7 @@ export async function updateActivity(
   let commissionRate = parseFloat(existing.commissionRate);
   if (serviceId && (barberId !== existing.barberId || serviceId !== existing.serviceId)) {
     const effective = await getEffectiveCommissionRate(tenantId, barberId, serviceId);
-    if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
+    if (!effective) throw new BarbersError("rateUnresolved");
     commissionRate = effective.rate;
   }
 
@@ -494,7 +495,7 @@ export async function updateActivity(
   let paymentMethodFeeRate = parseFloat(existing.paymentMethodFeeRate);
   if (paymentMethodId !== existing.paymentMethodId) {
     const resolvedFee = await getPaymentMethodFeeRate(tenantId, paymentMethodId);
-    if (resolvedFee == null) throw new Error("Could not resolve a fee rate for this payment method.");
+    if (resolvedFee == null) throw new BarbersError("rateUnresolved");
     paymentMethodFeeRate = resolvedFee;
   }
 
@@ -567,19 +568,19 @@ export async function setActivityStatus(
   reason?: string | null
 ): Promise<{ before: BarberActivityRow; after: BarberActivityRow }> {
   const before = await getActivityRow(tenantId, id);
-  if (!before) throw new Error("Service not found.");
+  if (!before) throw new BarbersError("notFound");
   const trimmed = reason?.trim() || null;
-  if (status === "voided" && !trimmed) throw new Error("A reason is required to void a service.");
+  if (status === "voided" && !trimmed) throw new BarbersError("voidReasonRequired");
 
   // Restoring a voided warranty redo puts it back as a warranty.
   const next = before.warrantyOfActivityId ? (status === "voided" ? "voided" : "warranty") : status;
   if (before.warrantyOfActivityId && next === "warranty" && before.status === "voided") {
     const other = await getActiveWarrantyOf(tenantId, before.warrantyOfActivityId);
-    if (other) throw new Error("That service already has another warranty redo.");
+    if (other) throw new BarbersError("warrantyExists");
   }
   if (!before.warrantyOfActivityId && status === "voided") {
     const redo = await getActiveWarrantyOf(tenantId, id);
-    if (redo) throw new Error("Void its warranty redo first.");
+    if (redo) throw new BarbersError("voidWarrantyFirst");
   }
 
   const [after] = await db
@@ -607,11 +608,11 @@ export async function logWarrantyRedo(
   reason?: string | null
 ): Promise<BarberActivityRow> {
   const original = await getActivityRow(tenantId, originalId);
-  if (!original) throw new Error("Service not found.");
+  if (!original) throw new BarbersError("notFound");
   if (original.status === "voided" || original.status === "warranty") {
-    throw new Error("Only a normal or courtesy service can be redone under warranty.");
+    throw new BarbersError("warrantyNotAllowed");
   }
-  if (await getActiveWarrantyOf(tenantId, originalId)) throw new Error("This service already has a warranty redo.");
+  if (await getActiveWarrantyOf(tenantId, originalId)) throw new BarbersError("warrantyExists");
 
   const sameBarber = correctorBarberId === original.barberId;
   const [corrector] = await db
@@ -619,13 +620,13 @@ export async function logWarrantyRedo(
     .from(barbers)
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, correctorBarberId)))
     .limit(1);
-  if (!corrector) throw new Error("Barber not found for this tenant.");
+  if (!corrector) throw new BarbersError("notFound");
 
   let commissionRate = 0;
   if (!sameBarber) {
     if (original.serviceId) {
       const effective = await getEffectiveCommissionRate(tenantId, correctorBarberId, original.serviceId);
-      if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
+      if (!effective) throw new BarbersError("rateUnresolved");
       commissionRate = effective.rate;
     } else {
       // Imported line (no catalog service): the corrector's fixed rate if they

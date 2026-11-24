@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { barberDailyRoster, barbers, locations } from "@/db/schema";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,8 +23,8 @@ async function assertLocationAndBarberBelongToTenant(
     db.select({ id: locations.id }).from(locations).where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId))).limit(1),
     db.select({ id: barbers.id }).from(barbers).where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, barberId))).limit(1),
   ]);
-  if (!location) throw new Error("Location not found for this tenant.");
-  if (!barber) throw new Error("Barber not found for this tenant.");
+  if (!location) throw new BarbersError("notFound");
+  if (!barber) throw new BarbersError("notFound");
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { LocationRow } from "@/services/barbers/locations";
 import { createBarberAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function CreateBarberModal({ locations }: { locations: LocationRow[] }) {
   const t = useTranslations("barbers");
@@ -37,7 +38,7 @@ export default function CreateBarberModal({ locations }: { locations: LocationRo
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      await createBarberAction(
+      await unwrap(createBarberAction(
         {
           firstName,
           lastName,
@@ -47,7 +48,7 @@ export default function CreateBarberModal({ locations }: { locations: LocationRo
           notes: notes || undefined,
         },
         selectedLocations
-      );
+      ));
       router.refresh();
       resetAndClose();
     });

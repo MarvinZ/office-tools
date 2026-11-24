@@ -7,6 +7,7 @@ import { CalendarClock, Trash2 } from "lucide-react";
 import { deleteRateChangeAction, recordRateChangeAction } from "../actions";
 import type { RateChangeListItem } from "@/services/barbers/rate-changes";
 import { fmtDay } from "@/lib/barbers/dates";
+import { unwrap } from "@/lib/barbers/errors";
 
 const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n * 10000) / 100}%`);
 
@@ -47,13 +48,13 @@ export default function RateChangesEditor({
     }
     startTransition(async () => {
       try {
-        const { reRated } = await recordRateChangeAction({
+        const { reRated } = await unwrap(recordRateChangeAction({
           barberId,
           serviceId: scope || null,
           rate: value != null ? value / 100 : null,
           effectiveFrom: from,
           note,
-        });
+        }));
         setMessage(from > today ? t("scheduled", { date: fmtDay(from) }) : t("applied", { count: reRated }));
         setRate("");
         setNote("");
@@ -67,7 +68,7 @@ export default function RateChangesEditor({
   function remove(id: string) {
     startTransition(async () => {
       try {
-        await deleteRateChangeAction(barberId, id);
+        await unwrap(deleteRateChangeAction(barberId, id));
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : t("errorGeneric"));

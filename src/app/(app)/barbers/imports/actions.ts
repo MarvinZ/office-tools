@@ -10,21 +10,22 @@ import {
   type ClosingDecisions,
   type ClosingPreview,
   type ClosingUpload,
-  type ImportResult,
 } from "@/services/barbers/closing-imports";
 import { requireBarbersAccess } from "@/services/barbers/roles";
+import { BarbersError } from "@/lib/barbers/errors";
+import { barbersAction } from "@/services/barbers/action";
 
 const MAX_FILES = 31;
 const MAX_BYTES = 2 * 1024 * 1024;
 
 async function readUploads(formData: FormData): Promise<ClosingUpload[]> {
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) throw new Error("Choose at least one closing file.");
-  if (files.length > MAX_FILES) throw new Error(`At most ${MAX_FILES} files at a time.`);
+  if (files.length === 0) throw new BarbersError("chooseFiles");
+  if (files.length > MAX_FILES) throw new BarbersError("tooManyFiles", { max: MAX_FILES });
   return Promise.all(
     files.map(async (f) => {
-      if (!/\.xlsx$/i.test(f.name)) throw new Error(`${f.name}: only .xlsx files are accepted.`);
-      if (f.size > MAX_BYTES) throw new Error(`${f.name}: the file is too large.`);
+      if (!/\.xlsx$/i.test(f.name)) throw new BarbersError("onlyXlsx", { name: f.name });
+      if (f.size > MAX_BYTES) throw new BarbersError("fileTooLarge", { name: f.name });
       return { name: f.name, bytes: await f.arrayBuffer() };
     })
   );
@@ -44,24 +45,28 @@ export type PreviewResponse = {
 };
 
 /** Parse and check the files; writes nothing. */
-export async function previewClosingsAction(formData: FormData): Promise<PreviewResponse> {
-  await requireBarbersAccess(["operate", "view"]);
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated.");
-  const tenant = await requireTenant();
-  const locationId = String(formData.get("locationId") ?? "");
-  const [uploads, context] = await Promise.all([readUploads(formData), loadImportContext(tenant.id)]);
-  const previews = await previewClosings(tenant.id, locationId, uploads, readDecisions(formData), context);
-  return { previews, missingMethodCodes: context.missingMethodCodes };
+export async function previewClosingsAction(formData: FormData) {
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate", "view"]);
+    const { userId } = await auth();
+    if (!userId) throw new BarbersError("notAuthenticated");
+    const tenant = await requireTenant();
+    const locationId = String(formData.get("locationId") ?? "");
+    const [uploads, context] = await Promise.all([readUploads(formData), loadImportContext(tenant.id)]);
+    const previews = await previewClosings(tenant.id, locationId, uploads, readDecisions(formData), context);
+    return { previews, missingMethodCodes: context.missingMethodCodes };
+  });
 }
 
 /** Import the ready files. Replaces earlier imports of the same dates, so admins only. */
-export async function importClosingsAction(formData: FormData): Promise<ImportResult[]> {
-  const { userId, tenant } = await requireBarbersAccess(["configure"]);
-  const locationId = String(formData.get("locationId") ?? "");
-  const results = await importClosings(tenant.id, userId, locationId, await readUploads(formData), readDecisions(formData));
-  for (const path of ["/barbers/imports", "/barbers", "/barbers/reports", "/barbers/settlements", "/barbers/vales", "/barbers/product-sales"]) {
-    revalidatePath(path);
-  }
-  return results;
+export async function importClosingsAction(formData: FormData) {
+  return barbersAction(async () => {
+    const { userId, tenant } = await requireBarbersAccess(["configure"]);
+    const locationId = String(formData.get("locationId") ?? "");
+    const results = await importClosings(tenant.id, userId, locationId, await readUploads(formData), readDecisions(formData));
+    for (const path of ["/barbers/imports", "/barbers", "/barbers/reports", "/barbers/settlements", "/barbers/vales", "/barbers/product-sales"]) {
+      revalidatePath(path);
+    }
+    return results;
+  });
 }

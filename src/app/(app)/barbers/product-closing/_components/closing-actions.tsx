@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Trash2, Undo2 } from "lucide-react";
 import { deleteCustomerSaleAction, markCommissionsPaidAction, unmarkCommissionPaidAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 /** "Mark paid" for one collaborator's pending commissions in the period. */
 export function MarkPaidControl({
@@ -30,7 +31,7 @@ export function MarkPaidControl({
     setError(null);
     startTransition(async () => {
       try {
-        await markCommissionsPaidAction({ barberId, from, to, paidAt, asCashOutflow });
+        await unwrap(markCommissionsPaidAction({ barberId, from, to, paidAt, asCashOutflow }));
         setOpen(false);
         router.refresh();
       } catch (e) {
@@ -91,7 +92,7 @@ export function SaleRowActions({ saleId, paid }: { saleId: string; paid: boolean
     <span className="inline-flex items-center gap-2">
       {paid ? (
         <button
-          onClick={() => run(() => unmarkCommissionPaidAction(saleId))}
+          onClick={() => run(() => unwrap(unmarkCommissionPaidAction(saleId)))}
           disabled={pending}
           title={t("undoPaid")}
           aria-label={t("undoPaid")}
@@ -101,7 +102,7 @@ export function SaleRowActions({ saleId, paid }: { saleId: string; paid: boolean
         </button>
       ) : (
         <button
-          onClick={() => run(() => deleteCustomerSaleAction(saleId))}
+          onClick={() => run(() => unwrap(deleteCustomerSaleAction(saleId)))}
           disabled={pending}
           title={t("deleteSale")}
           aria-label={t("deleteSale")}

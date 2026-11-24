@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Pencil } from "lucide-react";
 import type { ProductRow } from "@/services/barbers/products";
 import { updateProductAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function EditProductModal({ product }: { product: ProductRow }) {
   const t = useTranslations("barbers");
@@ -27,7 +28,7 @@ export default function EditProductModal({ product }: { product: ProductRow }) {
     if (!Number.isFinite(parsedCommission) || parsedCommission < 0 || parsedCommission > parsedPrice) return;
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) return;
     startTransition(async () => {
-      await updateProductAction(product.id, { name, price: parsedPrice, commissionAmount: parsedCommission, chargesIva, status });
+      await unwrap(updateProductAction(product.id, { name, price: parsedPrice, commissionAmount: parsedCommission, chargesIva, status }));
       router.refresh();
       setOpen(false);
     });

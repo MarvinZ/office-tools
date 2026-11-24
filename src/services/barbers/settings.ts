@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { barberSettings } from "@/db/schema";
+import { BarbersError } from "@/lib/barbers/errors";
 
 export type BarberSettings = {
   ivaRate: number; // 0.13
@@ -34,15 +35,15 @@ export async function updateBarberSettings(
   data: BarberSettings
 ): Promise<BarberSettings> {
   if (!Number.isFinite(data.ivaRate) || data.ivaRate < 0 || data.ivaRate >= 1) {
-    throw new Error("IVA rate must be a decimal between 0 and 1 (e.g. 0.13).");
+    throw new BarbersError("ivaRateRange");
   }
   if (!Number.isFinite(data.maintenanceDailyFee) || data.maintenanceDailyFee < 0) {
-    throw new Error("Maintenance fee must be zero or a positive amount.");
+    throw new BarbersError("maintenanceFeeNegative");
   }
 
   const invoiceEmail = data.invoiceEmail?.trim() || null;
   if (invoiceEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invoiceEmail)) {
-    throw new Error("The invoice email doesn't look valid.");
+    throw new BarbersError("invalidEmail");
   }
 
   const values = {

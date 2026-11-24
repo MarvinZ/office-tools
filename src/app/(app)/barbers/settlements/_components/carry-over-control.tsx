@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { carryOverAction, undoCarryOverAction } from "../actions";
 import { fmtColones } from "@/lib/barbers/currency";
+import { unwrap } from "@/lib/barbers/errors";
 
 /**
  * Admin action on a closed fortnight's shortfall (spec §8.1, §8.5): move all
@@ -49,7 +50,7 @@ export default function CarryOverControl({
       setError(t("carryInvalid"));
       return;
     }
-    run(() => carryOverAction(period, barberId, amount));
+    run(() => unwrap(carryOverAction(period, barberId, amount)));
   }
 
   const link = "underline hover:text-black disabled:opacity-50 dark:hover:text-white";
@@ -62,7 +63,7 @@ export default function CarryOverControl({
           {!nextClosed && (
             <>
               {" · "}
-              <button className={link} disabled={pending} onClick={() => run(() => undoCarryOverAction(period, barberId))}>
+              <button className={link} disabled={pending} onClick={() => run(() => unwrap(undoCarryOverAction(period, barberId)))}>
                 {t("carryUndo")}
               </button>
             </>

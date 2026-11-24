@@ -13,6 +13,7 @@ import { fortnightKey, fortnightOf } from "@/lib/barbers/settlement";
 import { commissionRateOn, scopeRateOn, type RateBaselines, type RateChange } from "@/lib/barbers/rate-schedule";
 import { getBarberSettings } from "./settings";
 import { lineCommission } from "@/lib/barbers/settlement";
+import { BarbersError } from "@/lib/barbers/errors";
 
 /**
  * Commission changes with a start date. All date logic is in
@@ -88,22 +89,22 @@ export async function recordRateChange(
   input: RateChangeInput
 ): Promise<{ reRated: number; previousRate: number | null }> {
   if (input.rate != null && (!Number.isFinite(input.rate) || input.rate <= 0 || input.rate > 1)) {
-    throw new Error("Rate must be above 0% and at most 100%.");
+    throw new BarbersError("rateOutOfRange");
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom)) throw new Error("Invalid start date.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom)) throw new BarbersError("invalidDate");
   const [barber] = await db
     .select({ id: barbers.id })
     .from(barbers)
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, input.barberId)))
     .limit(1);
-  if (!barber) throw new Error("Barber not found for this tenant.");
+  if (!barber) throw new BarbersError("notFound");
   if (input.serviceId) {
     const [service] = await db
       .select({ id: services.id })
       .from(services)
       .where(and(eq(services.tenantId, tenantId), eq(services.id, input.serviceId)))
       .limit(1);
-    if (!service) throw new Error("Service not found for this tenant.");
+    if (!service) throw new BarbersError("notFound");
   }
 
   const ctx = await loadRateContext(tenantId, input.barberId);
@@ -135,7 +136,7 @@ export async function deleteFutureRateChange(tenantId: string, id: string) {
     .where(and(eq(barberRateChanges.tenantId, tenantId), eq(barberRateChanges.id, id)))
     .limit(1);
   if (!row) return null;
-  if (row.effectiveFrom <= todayBusinessDate()) throw new Error("Only changes that haven't started can be deleted.");
+  if (row.effectiveFrom <= todayBusinessDate()) throw new BarbersError("rateChangeStarted");
   await db.delete(barberRateChanges).where(and(eq(barberRateChanges.tenantId, tenantId), eq(barberRateChanges.id, id)));
   await syncTodayColumns(tenantId, row.barberId, row.serviceId);
   return row;

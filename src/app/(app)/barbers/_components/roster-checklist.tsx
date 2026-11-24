@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { checkInBarberAction, checkOutBarberAction } from "../actions";
 import type { BarberRow } from "@/services/barbers/barbers";
+import { unwrap } from "@/lib/barbers/errors";
 
 /**
  * "Who's working today?" — editable all day. Checking a barber in makes them
@@ -34,9 +35,9 @@ export default function RosterChecklist({
 
     startTransition(async () => {
       if (willCheckIn) {
-        await checkInBarberAction(locationId, barberId, workDate);
+        await unwrap(checkInBarberAction(locationId, barberId, workDate));
       } else {
-        await checkOutBarberAction(locationId, barberId, workDate);
+        await unwrap(checkOutBarberAction(locationId, barberId, workDate));
       }
     });
   }

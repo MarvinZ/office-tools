@@ -2,6 +2,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { productSales, products, barbers } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
 
@@ -38,8 +39,8 @@ async function assertSaleRefsBelongToTenant(
       .where(and(eq(products.tenantId, tenantId), eq(products.id, productId)))
       .limit(1),
   ]);
-  if (!barber) throw new Error("Barber not found for this tenant.");
-  if (!product) throw new Error("Product not found for this tenant.");
+  if (!barber) throw new BarbersError("notFound");
+  if (!product) throw new BarbersError("notFound");
 }
 
 // ── Computation ───────────────────────────────────────────────────────────────
@@ -136,10 +137,10 @@ export async function createProductSale(
   await assertSaleRefsBelongToTenant(tenantId, data.barberId, data.productId);
 
   if (!DATE_ONLY_RE.test(data.saleDate)) {
-    throw new Error(`Expected a YYYY-MM-DD date, got: ${data.saleDate}`);
+    throw new BarbersError("invalidDate");
   }
   if (!Number.isInteger(data.quantity) || data.quantity <= 0) {
-    throw new Error("Quantity must be a positive whole number.");
+    throw new BarbersError("quantityInvalid");
   }
 
   // Tenant-scoped price lookup — the snapshot source of truth.
@@ -148,7 +149,7 @@ export async function createProductSale(
     .from(products)
     .where(and(eq(products.tenantId, tenantId), eq(products.id, data.productId)))
     .limit(1);
-  if (!product) throw new Error("Product not found for this tenant.");
+  if (!product) throw new BarbersError("notFound");
 
   const unitPrice = parseFloat(product.price);
   const totalAmount = computeSaleTotal(data.quantity, unitPrice);

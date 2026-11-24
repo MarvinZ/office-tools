@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createServiceAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function CreateServiceModal() {
   const t = useTranslations("barbers");
@@ -28,12 +29,12 @@ export default function CreateServiceModal() {
     const rate = parseFloat(defaultCommissionRate);
     if (Number.isNaN(rate)) return;
     startTransition(async () => {
-      await createServiceAction({
+      await unwrap(createServiceAction({
         name,
         category: category || undefined,
         defaultCommissionRate: rate,
         status: "active",
-      });
+      }));
       router.refresh();
       resetAndClose();
     });

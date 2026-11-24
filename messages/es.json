@@ -1486,7 +1486,11 @@
       "new": "nuevo",
       "createProfessional": "Crear “{name}” como profesional nuevo",
       "reimport": "Importar de nuevo archivos ya importados",
-      "reimportHint": "Úselo después de cambiar porcentajes o configuración: los días se reemplazan con los valores nuevos."
+      "reimportHint": "Úselo después de cambiar porcentajes o configuración: los días se reemplazan con los valores nuevos.",
+      "planError": {
+        "missing_sheet": "Falta la hoja {sheet}. Hojas en este archivo: {sheets}.",
+        "no_date": "No hay fecha en el nombre del archivo ni en la hoja. Renombre el archivo como CIERRE DD-MM-AAAA.xlsx."
+      }
     },
     "rateChanges": {
       "scope": "Aplica a",
@@ -1592,6 +1596,49 @@
       "difference": "Diferencia",
       "missing": "faltan {amount}",
       "extra": "sobran {amount}"
+    },
+    "errors": {
+      "generic": "Algo salió mal. Intente de nuevo.",
+      "notAuthenticated": "Su sesión terminó. Vuelva a ingresar.",
+      "forbidden": "No tiene permiso para hacer esto.",
+      "notFound": "Ese registro ya no existe. Actualice la página e intente de nuevo.",
+      "rateUnresolved": "No hay porcentaje de comisión o cargo de pago configurado para esto. Revise el servicio, el profesional y el método de pago.",
+      "invalidDate": "Esa fecha no es válida.",
+      "invalidInput": "Ese valor no es válido.",
+      "emptyBatch": "Agregue al menos un servicio.",
+      "amountPositive": "El monto debe ser mayor a cero.",
+      "quantityInvalid": "La cantidad debe ser un número entero de al menos 1.",
+      "rateOutOfRange": "El porcentaje debe ser mayor a 0 % y como máximo 100 %.",
+      "ivaRateRange": "El IVA debe estar entre 0 % y 99 %.",
+      "ivaBaseRange": "La base de IVA debe estar entre 0 % y 100 %.",
+      "maintenanceFeeNegative": "La cuota de mantenimiento no puede ser negativa.",
+      "additionNegative": "El adicional quincenal no puede ser negativo.",
+      "commissionNegative": "La comisión no puede ser negativa.",
+      "commissionAbovePrice": "La comisión no puede ser mayor al precio del producto.",
+      "invalidIban": "Ese IBAN no parece válido (p. ej. CR05015202001026284066).",
+      "invalidEmail": "Ese correo no parece válido.",
+      "voidReasonRequired": "Escriba por qué se anula este servicio.",
+      "voidWarrantyFirst": "Primero anule la garantía de este servicio.",
+      "warrantyExists": "Este servicio ya tiene una garantía registrada.",
+      "warrantyNotAllowed": "Solo un servicio normal o de cortesía puede tener garantía.",
+      "fortnightClosed": "Esta quincena ya está cerrada.",
+      "fortnightNotStarted": "Esta quincena aún no ha comenzado.",
+      "nextFortnightClosed": "La quincena siguiente ya está cerrada.",
+      "reopenReasonRequired": "Escriba por qué se reabre esta quincena.",
+      "closeBeforeCarry": "Cierre la quincena antes de trasladar un saldo.",
+      "noShortfall": "Este profesional no tiene faltante en esta quincena.",
+      "shortfallToSalary": "El faltante de este profesional va a descuento salarial.",
+      "carryAmount": "El monto debe ser mayor a cero y no mayor al faltante.",
+      "carryExists": "Ya se trasladó un saldo para este profesional.",
+      "rateChangeStarted": "Solo se pueden eliminar cambios que aún no han comenzado.",
+      "commissionAlreadyPaid": "La comisión de esta venta ya se pagó, así que no se puede eliminar.",
+      "chooseCommissionsToPay": "Elija un colaborador y fechas, o ventas específicas.",
+      "chooseFiles": "Elija al menos un archivo de cierre.",
+      "tooManyFiles": "Máximo {max} archivos a la vez.",
+      "onlyXlsx": "{name}: solo se aceptan archivos .xlsx.",
+      "fileTooLarge": "{name}: el archivo es demasiado grande.",
+      "ownRole": "No puede cambiar su propio rol.",
+      "notInOrganization": "Esa persona no está en esta organización."
     }
   },
   "webhooks": {
