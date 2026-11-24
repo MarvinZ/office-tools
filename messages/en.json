@@ -893,7 +893,21 @@
       "submitAllButton": "Log {count, plural, one {# service} other {# services}}",
       "noPaymentMethods": "No active payment methods. Add one from the Payment Methods tab first.",
       "colPaymentMethod": "Payment",
-      "errorEmptyCart": "Add at least one service before logging."
+      "errorEmptyCart": "Add at least one service before logging.",
+      "productsTitle": "Products on this ticket",
+      "addProduct": "Add a product…",
+      "iva": "IVA",
+      "quantity": "Quantity",
+      "commissionTo": "Commission to",
+      "commissionToTicketBarber": "The ticket's barber",
+      "noCommission": "No commission",
+      "servicesSubtotal": "Services",
+      "productsSubtotal": "Products",
+      "productsIvaIncluded": "Product IVA (included)",
+      "totalToCharge": "Total to charge",
+      "productCommission": "Product commission",
+      "submitTicketButton": "{count, plural, =0 {Log} one {Log # line} other {Log # lines}}",
+      "ticketSaved": "Saved: {services, plural, one {# service} other {# services}} and {products, plural, one {# product} other {# products}}."
     },
     "barbersPage": {
       "title": "Barbers",

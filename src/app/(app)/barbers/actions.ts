@@ -11,6 +11,7 @@ import type { LogActivityInput, LogActivityBatchInput } from "@/services/barbers
 import { requireBarbersAccess } from "@/services/barbers/roles";
 import { BarbersError } from "@/lib/barbers/errors";
 import { barbersAction } from "@/services/barbers/action";
+import { logTicket, type TicketInput } from "@/services/barbers/tickets";
 
 async function requireUserAndTenant() {
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
@@ -58,6 +59,36 @@ export async function logActivityBatchAction(data: LogActivityBatchInput) {
     }
     revalidatePath("/barbers");
     return rows;
+  });
+}
+
+/** Services and products charged together on one ticket (written atomically). */
+export async function logTicketAction(input: TicketInput) {
+  return barbersAction(async () => {
+    await requireBarbersAccess(["operate"]);
+    const { userId, tenant } = await requireUserAndTenant();
+    const { ticketId, activities, sales } = await logTicket(tenant.id, userId, input);
+    if (activities.length > 0) {
+      await auditBarbers(tenant.id, userId, "activity.logged", {
+        barberId: activities[0].barberId,
+        entityId: ticketId,
+        summary: {
+          count: activities.length,
+          total: activities.reduce((n, r) => n + Number(r.priceCharged), 0),
+          date: businessDateOf(activities[0].performedAt),
+        },
+      });
+    }
+    for (const s of sales) {
+      await auditBarbers(tenant.id, userId, "productCustomerSale.created", {
+        barberId: s.barberId,
+        entityId: s.id,
+        summary: { product: s.productName, amount: Number(s.total), commission: Number(s.commissionTotal), date: s.saleDate },
+      });
+    }
+    revalidatePath("/barbers");
+    revalidatePath("/barbers/product-closing");
+    return { activities, salesCount: sales.length };
   });
 }
 

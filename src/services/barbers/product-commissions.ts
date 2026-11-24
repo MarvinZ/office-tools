@@ -23,6 +23,17 @@ export type CustomerSaleInput = {
 };
 
 export async function createCustomerSale(tenantId: string, userId: string, input: CustomerSaleInput) {
+  const values = await prepareCustomerSale(tenantId, userId, input);
+  const [row] = await db.insert(productCustomerSales).values(values).returning();
+  return row;
+}
+
+/** Validate a sale and build its row without writing it (see logTicket). */
+export async function prepareCustomerSale(
+  tenantId: string,
+  userId: string,
+  input: CustomerSaleInput & { ticketId?: string | null }
+): Promise<typeof productCustomerSales.$inferInsert> {
   if (!Number.isInteger(input.quantity) || input.quantity < 1) throw new BarbersError("quantityInvalid");
   if (!isDateString(input.saleDate)) throw new BarbersError("invalidDate");
   const [[product], settings] = await Promise.all([
@@ -53,9 +64,7 @@ export async function createCustomerSale(tenantId: string, userId: string, input
     ivaRate,
     commissionPerUnit,
   });
-  const [row] = await db
-    .insert(productCustomerSales)
-    .values({
+  return {
       id: crypto.randomUUID(),
       tenantId,
       productId: product.id,
@@ -71,10 +80,9 @@ export async function createCustomerSale(tenantId: string, userId: string, input
       paymentMethodId: input.paymentMethodId,
       saleDate: input.saleDate,
       note: input.note?.trim() || null,
+      ticketId: input.ticketId ?? null,
       createdBy: userId,
-    })
-    .returning();
-  return row;
+  };
 }
 
 /** Only while its commission is unpaid: a paid commission is history. */

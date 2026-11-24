@@ -903,6 +903,8 @@ export const productCustomerSales = pgTable("product_customer_sales", {
   commissionPaidBy: text("commission_paid_by"),
   paidAsCashOutflow: boolean("paid_as_cash_outflow").notNull().default(false),
   note: text("note"),
+  // Shared with the services charged on the same ticket (barber_activities.ticket_id).
+  ticketId: text("ticket_id"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

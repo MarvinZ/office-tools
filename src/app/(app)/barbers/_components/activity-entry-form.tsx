@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { X } from "lucide-react";
+import { Package, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { logActivityBatchAction } from "../actions";
+import { logTicketAction } from "../actions";
+import { productSaleFigures } from "@/lib/barbers/product-commissions";
 import { fmtColones } from "@/lib/barbers/currency";
 import RecentActivityList from "./recent-activity-list";
 import ServiceCombobox from "./service-combobox";
@@ -37,6 +38,19 @@ type CartLine = {
   priceCharged: string;
 };
 
+type ProductOption = { id: string; name: string; price: number; commissionAmount: number; chargesIva: boolean };
+
+/**
+ * A product on the same ticket. Its commission goes to the ticket's barber by
+ * default ("ticket"), to another collaborator, or to nobody ("none").
+ */
+type ProductLine = {
+  clientId: string;
+  productId: string;
+  quantity: string;
+  earner: string; // "ticket" | "none" | barberId
+};
+
 function nowLocalDatetime(): string {
   const d = new Date();
   d.setSeconds(0, 0);
@@ -54,6 +68,7 @@ export default function ActivityEntryForm({
   effectiveRateMap,
   initialActivities,
   ivaRate,
+  products,
 }: {
   locationId: string;
   barbers: BarberRow[];
@@ -64,6 +79,7 @@ export default function ActivityEntryForm({
   effectiveRateMap: EffectiveRateEntry[];
   initialActivities: ActivityListItem[];
   ivaRate: number;
+  products: ProductOption[];
 }) {
   const t = useTranslations("barbers");
   const tc = useTranslations("common");
@@ -85,6 +101,42 @@ export default function ActivityEntryForm({
   const [performedAt, setPerformedAt] = useState(nowLocalDatetime());
 
   const [lines, setLines] = useState<CartLine[]>([]);
+  const [productLines, setProductLines] = useState<ProductLine[]>([]);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
+
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+
+  /** Price, IVA, total and commission per product line, as the server will compute them. */
+  const productFigures = useMemo(
+    () =>
+      productLines.map((l) => {
+        const p = productById.get(l.productId);
+        const qty = Math.floor(Number(l.quantity));
+        if (!p || !(qty >= 1)) return null;
+        return productSaleFigures({
+          unitPrice: p.price,
+          quantity: qty,
+          chargesIva: p.chargesIva,
+          ivaRate,
+          commissionPerUnit: l.earner === "none" ? 0 : p.commissionAmount,
+        });
+      }),
+    [productLines, productById, ivaRate]
+  );
+  const productsTotal = productFigures.reduce((n, f) => n + (f?.total ?? 0), 0);
+  const productsIva = productFigures.reduce((n, f) => n + (f?.ivaAmount ?? 0), 0);
+  const productsCommission = productFigures.reduce((n, f) => n + (f?.commissionTotal ?? 0), 0);
+  const lineCount = lines.length + productLines.length;
+
+  function addProduct(productId: string) {
+    if (!productById.has(productId)) return;
+    setProductLines((prev) => [...prev, { clientId: crypto.randomUUID(), productId, quantity: "1", earner: "ticket" }]);
+    setError(null);
+  }
+
+  function updateProductLine(clientId: string, patch: Partial<ProductLine>) {
+    setProductLines((prev) => prev.map((l) => (l.clientId === clientId ? { ...l, ...patch } : l)));
+  }
 
   const priceLookup = useMemo(() => {
     const map = new Map<string, number>();
@@ -159,8 +211,12 @@ export default function ActivityEntryForm({
       setError(t("log.errorMissingFields"));
       return;
     }
-    if (lines.length === 0) {
+    if (lineCount === 0) {
       setError(t("log.errorEmptyCart"));
+      return;
+    }
+    if (productFigures.some((f) => f == null)) {
+      setError(t("log.errorInvalidNumbers"));
       return;
     }
 
@@ -172,14 +228,20 @@ export default function ActivityEntryForm({
 
     startTransition(async () => {
       try {
-        const rows = await unwrap(logActivityBatchAction({
+        // One ticket: services and products are saved together or not at all.
+        const { activities: rows, salesCount } = await unwrap(logTicketAction({
           barberId,
           locationId,
           paymentMethodId,
           customerName: customerName || undefined,
-          // No commissionRate / feeRate: the server resolves both itself.
+          // No commissionRate / feeRate / prices of products: the server resolves them.
           performedAt: performedAt ? new Date(performedAt).toISOString() : undefined,
-          lines: parsed,
+          services: parsed,
+          products: productLines.map((l) => ({
+            productId: l.productId,
+            quantity: Math.floor(Number(l.quantity)),
+            barberId: l.earner === "none" ? null : l.earner === "ticket" ? barberId : l.earner,
+          })),
         }));
 
         const barber = barbers.find((b) => b.id === barberId);
@@ -215,12 +277,14 @@ export default function ActivityEntryForm({
         // Keep barber + payment method: the front desk usually logs several
         // rounds for the same barber and tender in a row.
         setLines([]);
+        setProductLines([]);
+        setSavedNote(t("log.ticketSaved", { services: rows.length, products: salesCount }));
         setCustomerName("");
         setPerformedAt(nowLocalDatetime());
-      } catch {
-        // Nothing was written (the batch is a single atomic statement), so the
-        // cart is deliberately left intact for a safe retry.
-        setError(t("log.errorSubmitFailed"));
+      } catch (e) {
+        // Nothing was written (the ticket is one atomic batch), so the cart is
+        // deliberately left intact for a safe retry.
+        setError(e instanceof Error ? e.message : t("log.errorSubmitFailed"));
       }
     });
   }
@@ -285,7 +349,7 @@ export default function ActivityEntryForm({
         {/* Cart — stacked vertically so it stays readable at ~375px */}
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{t("log.cartTitle")}</p>
-          {lines.length === 0 ? (
+          {lineCount === 0 ? (
             <p className="rounded-lg border border-dashed border-zinc-200 px-3 py-6 text-center text-sm text-zinc-400 dark:border-zinc-800">
               {t("log.cartEmpty")}
             </p>
@@ -322,30 +386,130 @@ export default function ActivityEntryForm({
           )}
         </div>
 
-        {lines.length > 0 && (
+        {/* Products on the same ticket */}
+        {products.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+            <label htmlFor="addProduct" className={labelCls}>
+              <span className="inline-flex items-center gap-1.5"><Package size={13} /> {t("log.productsTitle")}</span>
+            </label>
+            <select
+              id="addProduct"
+              value=""
+              onChange={(e) => addProduct(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">{t("log.addProduct")}</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {fmtColones(p.price)}
+                  {p.chargesIva ? ` + ${t("log.iva")}` : ""}
+                </option>
+              ))}
+            </select>
+            {productLines.length > 0 && (
+              <ul className="flex flex-col gap-2">
+                {productLines.map((line, i) => {
+                  const product = productById.get(line.productId);
+                  const fig = productFigures[i];
+                  return (
+                    <li
+                      key={line.clientId}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2.5 dark:border-zinc-800"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm text-black dark:text-white">{product?.name}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        aria-label={t("log.quantity")}
+                        value={line.quantity}
+                        onChange={(e) => updateProductLine(line.clientId, { quantity: e.target.value })}
+                        className="w-16 shrink-0 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-white"
+                      />
+                      <select
+                        aria-label={t("log.commissionTo")}
+                        value={line.earner}
+                        onChange={(e) => updateProductLine(line.clientId, { earner: e.target.value })}
+                        className="w-44 shrink-0 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                      >
+                        <option value="ticket">{t("log.commissionToTicketBarber")}</option>
+                        {barbers.map((b) => (
+                          <option key={b.id} value={b.id}>{b.firstName} {b.lastName}</option>
+                        ))}
+                        <option value="none">{t("log.noCommission")}</option>
+                      </select>
+                      <span className="w-24 shrink-0 text-right text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+                        {fig ? fmtColones(fig.total) : "—"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setProductLines((prev) => prev.filter((l) => l.clientId !== line.clientId))}
+                        aria-label={t("log.removeLine")}
+                        className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        <X size={16} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {lineCount > 0 && (
           <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4 text-sm dark:border-zinc-800">
+            {lines.length > 0 && productLines.length > 0 && (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">{t("log.servicesSubtotal")}</span>
+                  <span className="tabular-nums text-zinc-700 dark:text-zinc-300">{fmtColones(cartTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">{t("log.productsSubtotal")}</span>
+                  <span className="tabular-nums text-zinc-700 dark:text-zinc-300">{fmtColones(productsTotal)}</span>
+                </div>
+              </>
+            )}
+            {productsIva > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">{t("log.productsIvaIncluded")}</span>
+                <span className="tabular-nums text-zinc-700 dark:text-zinc-300">{fmtColones(productsIva)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-zinc-500">{t("log.cartTotal")}</span>
-              <span className="font-semibold text-black dark:text-white">{fmtColones(cartTotal)}</span>
+              <span className="text-zinc-500">{t("log.totalToCharge")}</span>
+              <span className="text-base font-semibold tabular-nums text-black dark:text-white">{fmtColones(cartTotal + productsTotal)}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-500">{t("log.cartEstimatedCommission")}</span>
-              <span aria-live="polite" className="text-zinc-700 dark:text-zinc-300">
-                {previewCommission != null ? fmtColones(previewCommission) : "—"}
-              </span>
-            </div>
+            {lines.length > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">{t("log.cartEstimatedCommission")}</span>
+                <span aria-live="polite" className="tabular-nums text-zinc-700 dark:text-zinc-300">
+                  {previewCommission != null ? fmtColones(previewCommission) : "—"}
+                </span>
+              </div>
+            )}
+            {productsCommission > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">{t("log.productCommission")}</span>
+                <span className="tabular-nums text-zinc-700 dark:text-zinc-300">{fmtColones(productsCommission)}</span>
+              </div>
+            )}
           </div>
         )}
 
         {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {savedNote && !error && lineCount === 0 && (
+          <p className="text-sm text-green-700 dark:text-green-400">{savedNote}</p>
+        )}
 
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={pending || barbers.length === 0 || paymentMethods.length === 0 || lines.length === 0}
+            disabled={pending || barbers.length === 0 || paymentMethods.length === 0 || lineCount === 0}
             className="w-full rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200 sm:w-auto"
           >
-            {pending ? tc("saving") : t("log.submitAllButton", { count: lines.length })}
+            {pending ? tc("saving") : t("log.submitTicketButton", { count: lineCount })}
           </button>
         </div>
       </form>
