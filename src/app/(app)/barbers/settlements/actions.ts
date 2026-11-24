@@ -1,17 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 import { requireTenant } from "@/services/tenants";
 import { closeFortnight, createCarryOver, deleteCarryOver, reopenFortnight } from "@/services/barbers/settlements";
 import { auditBarbers } from "@/services/barbers/audit";
 import { parseFortnightKey } from "@/lib/barbers/settlement";
 
-/** Closing, reopening and carry-overs change what gets paid: org admins only. */
+/** Closing, reopening and carry-overs change what gets paid ("settle": admins). */
 async function requireAdmin() {
-  const { userId, orgRole } = await auth();
-  if (!userId) throw new Error("Not authenticated.");
-  if (orgRole !== "org:admin") throw new Error("Only an admin can do this.");
+  const { userId } = await requireBarbersAccess(["settle"]);
   return userId;
 }
 

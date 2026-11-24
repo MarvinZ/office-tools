@@ -6,8 +6,10 @@ import { requireTenant } from "@/services/tenants";
 import { createService, updateService } from "@/services/barbers/catalog";
 import type { ServiceInput } from "@/services/barbers/catalog";
 import { auditBarbers, diffFields } from "@/services/barbers/audit";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 
 export async function createServiceAction(data: ServiceInput) {
+  await requireBarbersAccess(["configure"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   await createService(tenant.id, user.id, data);
@@ -15,6 +17,7 @@ export async function createServiceAction(data: ServiceInput) {
 }
 
 export async function updateServiceAction(id: string, data: Partial<ServiceInput>) {
+  await requireBarbersAccess(["configure"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   const result = await updateService(tenant.id, id, data);

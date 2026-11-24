@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import Decimal from "decimal.js";
 import { dateFromClosingFileName, matchPerson, normalizeText, type AliasCandidate, type ClosingPaymentMethod } from "./normalize";
 import { parseFacturacion } from "./parse-facturacion";
-import { parseCierreGeneral } from "./parse-cierre-general";
+import { parseCierreGeneral, type ClosingShift } from "./parse-cierre-general";
 
 /**
  * Turns one daily closing workbook into exactly what would be imported, plus
@@ -24,7 +24,11 @@ import { parseCierreGeneral } from "./parse-cierre-general";
  *   (§8.2); the one who performed it is paid through the FACTURACION line.
  */
 
-export type ImportBarber = AliasCandidate & { fixedCommissionRate: number | null };
+export type ImportBarber = AliasCandidate & {
+  fixedCommissionRate: number | null;
+  /** Fixed rate in force on a date (dated changes); overrides fixedCommissionRate. */
+  fixedRateOn?: (date: string) => number | null;
+};
 
 export type ImportPaymentMethod = { id: string; code: ClosingPaymentMethod; feeRate: number };
 
@@ -74,7 +78,8 @@ export type ImportWarning = {
     | "missing_rate"
     | "pending_method"
     | "missing_amount"
-    | "service_received_by_non_professional";
+    | "service_received_by_non_professional"
+    | "cash_difference";
   sourceRow?: number;
   barberId?: string;
   values?: Record<string, string | number>;
@@ -105,6 +110,8 @@ export type ClosingPlan = {
     salonOutflows: number;
   };
   cashiers: { shift1: string; shift2: string };
+  /** Cash per shift; a positive difference is a shortfall for that cashier. */
+  shifts: ClosingShift[];
 };
 
 const SUPPLIER_KEYS = new Set(["METERASA", "METERSA", "METERESA", "METERAZA"]);
@@ -137,6 +144,7 @@ export function planClosingImport(input: {
     errors: [],
     totals: { billed: 0, services: 0, supplier: 0, salonOutflows: 0 },
     cashiers: { shift1: "", shift2: "" },
+    shifts: [],
   };
 
   const fact = parseFacturacion(workbook);
@@ -147,6 +155,12 @@ export function planClosingImport(input: {
 
   plan.internalDate = fact.internalDate;
   plan.cashiers = general.data.cashiers;
+  plan.shifts = general.data.shifts;
+  for (const s of plan.shifts) {
+    if (s.difference !== 0) {
+      plan.warnings.push({ code: "cash_difference", values: { shift: s.shift, cashier: s.cashier, amount: s.difference } });
+    }
+  }
   if (!plan.businessDate) {
     if (plan.internalDate) {
       plan.businessDate = plan.internalDate;
@@ -158,7 +172,10 @@ export function planClosingImport(input: {
     plan.warnings.push({ code: "internal_date_mismatch", values: { fileDate: plan.businessDate, internalDate: plan.internalDate } });
   }
 
-  const fixedRate = new Map(barbers.map((b) => [b.id, b.fixedCommissionRate]));
+  const day = plan.businessDate;
+  const fixedRate = new Map(
+    barbers.map((b) => [b.id, b.fixedRateOn && day ? b.fixedRateOn(day) : b.fixedCommissionRate])
+  );
   const methodByCode = new Map(paymentMethods.map((m) => [m.code, m]));
   const unknown = new Map<string, UnknownName>();
 

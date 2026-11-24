@@ -7,6 +7,8 @@ import { computeCommissionAmount } from "./activities";
 import { getBarberSettings } from "./settings";
 import { isFortnightClosed } from "./settlements";
 import { auditBarbers } from "./audit";
+import { loadRateContexts } from "./rate-changes";
+import { scopeRateOn } from "@/lib/barbers/rate-schedule";
 import { fortnightOf } from "@/lib/barbers/settlement";
 import { normalizeText, paymentMethodCodeOfName, type ClosingPaymentMethod } from "@/lib/barbers/closing-import/normalize";
 import {
@@ -83,6 +85,7 @@ export async function loadImportContext(tenantId: string): Promise<ImportContext
     db.select().from(barbers).where(eq(barbers.tenantId, tenantId)),
     db.select().from(paymentMethods).where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.status, "active"))),
   ]);
+  const rates = await loadRateContexts(tenantId, barberRows.map((b) => b.id));
   const methods: ImportPaymentMethod[] = [];
   for (const m of methodRows) {
     const code = paymentMethodCodeOfName(m.name);
@@ -94,6 +97,10 @@ export async function loadImportContext(tenantId: string): Promise<ImportContext
       // First name, full name and every alias are accepted spellings.
       names: [b.firstName, `${b.firstName} ${b.lastName}`, ...b.aliases],
       fixedCommissionRate: b.fixedCommissionRate != null ? Number(b.fixedCommissionRate) : null,
+      fixedRateOn: (date: string) => {
+        const ctx = rates.get(b.id);
+        return ctx ? scopeRateOn(ctx.changes, null, date, ctx.baselines.fixed) : null;
+      },
     })),
     barberNames: Object.fromEntries(barberRows.map((b) => [b.id, `${b.firstName} ${b.lastName}`])),
     paymentMethods: methods,
@@ -399,6 +406,7 @@ export async function importClosings(
           summary: {
             totals: plan.totals,
             cashiers: plan.cashiers,
+            shifts: plan.shifts,
             counts: { services: activityValues.length, deductions: voucherValues.length, products: productValues.length },
             warnings: plan.warnings,
             salonOutflows: plan.openOutflows,

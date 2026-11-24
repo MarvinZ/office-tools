@@ -866,6 +866,67 @@ export const barberVouchers = pgTable("barber_vouchers", {
 // A tip ("propina") owed to a barber. Tips are paid out in full on top of the
 // settlement transfer: no IVA, not part of the electronic invoice. Same shape
 // and same delete-and-re-enter correction policy as barberVouchers.
+// A person's role in the Barbers module (admin / cashier / accountant), set by
+// an admin. Authoritative over the Clerk org role inside Barbers, because Team
+// invites have made everyone an org admin. Without a row: Clerk org admin =
+// admin, anyone else = cashier. See lib/barbers/permissions.ts.
+export const barberMemberRoles = pgTable("barber_member_roles", {
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  userId: text("user_id").notNull(), // Clerk user id
+  role: text("role").notNull(), // admin | cashier | accountant
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.userId] })]);
+
+// A product sold to a customer, and the commission it earns a collaborator
+// (Brayan, Nov 2026). Price, IVA and commission are snapshotted at sale time,
+// so editing the product later never changes a past sale. The commission is
+// settled in a separate product closing (pending → paid, with the date and
+// optionally as a cash outflow); it's never paid or deducted in the service
+// settlement.
+export const productCustomerSales = pgTable("product_customer_sales", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  productId: text("product_id").notNull().references(() => products.id),
+  productName: text("product_name").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(), // before IVA
+  ivaRate: numeric("iva_rate", { precision: 5, scale: 4 }).notNull(), // 0 when not charged
+  ivaAmount: numeric("iva_amount", { precision: 12, scale: 2 }).notNull(),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull(), // what the customer paid
+  commissionPerUnit: numeric("commission_per_unit", { precision: 12, scale: 2 }).notNull(),
+  commissionTotal: numeric("commission_total", { precision: 12, scale: 2 }).notNull(),
+  barberId: text("barber_id").references(() => barbers.id), // who earns the commission
+  paymentMethodId: text("payment_method_id").references(() => paymentMethods.id),
+  saleDate: date("sale_date").notNull(),
+  commissionPaidAt: date("commission_paid_at"), // null = pending
+  commissionPaidBy: text("commission_paid_by"),
+  paidAsCashOutflow: boolean("paid_as_cash_outflow").notNull().default(false),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// A commission change with a start date (Brayan, Nov 2026: "option B"). Scope
+// is the barber's fixed rate (serviceId null) or one service's override. The
+// rate of a service is resolved as of its own date (lib/barbers/rate-schedule),
+// so a change from the 10th leaves the 1st–9th at the old rate. previousRate
+// records what was in force before, which is the history before the first
+// change. barbers.fixed_commission_rate / barber_service_rates hold the value
+// in force today, kept in step by the service.
+export const barberRateChanges = pgTable("barber_rate_changes", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  barberId: text("barber_id").notNull().references(() => barbers.id),
+  serviceId: text("service_id").references(() => services.id),
+  rate: numeric("rate", { precision: 5, scale: 4 }), // null = no fixed rate / no override from this date
+  previousRate: numeric("previous_rate", { precision: 5, scale: 4 }),
+  effectiveFrom: date("effective_from").notNull(),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // A shortfall moved by an admin from a closed fortnight to the next one
 // (spec §8.1/§8.5: a manual, audited action, possibly only part of it). The
 // next fortnight deducts `amount` as "previous balance".
@@ -931,7 +992,14 @@ export const products = pgTable("products", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   name: text("name").notNull(),
+  // Sale price before IVA (Brayan, Nov 2026). Also the price to barbers on credit.
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  // Fixed commission per unit paid to the collaborator who sells it, set by
+  // NOURA from the product's margin. Paid in the product closing, never in the
+  // service settlement.
+  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  // "Gravar con IVA": the shop's IVA % is added on top of the price.
+  chargesIva: boolean("charges_iva").notNull().default(false),
   status: productStatusEnum("status").notNull().default("active"),
   tags: text("tags").array().notNull().default([]),
   createdBy: text("created_by").notNull(),

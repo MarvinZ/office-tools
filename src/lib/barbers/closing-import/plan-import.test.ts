@@ -9,6 +9,7 @@ function closing(opts: {
   outflows?: [string, string, number][]; // G who, J concept, L amount (rows 17+)
   credit?: [string, string, string, number][]; // G performer, I detail, J client, L amount (rows 30+)
   products?: [string, number, string, string, number][]; // G product, H qty, I person, K vendor, L amount (rows 40+)
+  shift?: { system: number; counted: number }; // shift 1 cash
 }): XLSX.WorkBook {
   const fact: unknown[][] = [["NOURA"], ["CONTROL FACTURACION DIARIA"], ["FECHA:", opts.b3 ?? null], [], ["#", "Hora", "Mini empresa", "Servicio", "Costo", "%", "Pago"], ...opts.services];
   const total = opts.services.reduce((n, r) => n + (typeof r[4] === "number" ? (r[4] as number) : 0), 0);
@@ -19,6 +20,12 @@ function closing(opts: {
   set("I5", "KAREN");
   set("K5", "LESLY");
   set("C8", total);
+  if (opts.shift) {
+    set("C13", opts.shift.system);
+    set("C19", opts.shift.counted);
+    set("B25", "DIFERENCIA");
+    set("C25", opts.shift.system - opts.shift.counted);
+  }
   (opts.outflows ?? []).forEach(([who, concept, amount], i) => {
     set(`G${17 + i}`, who);
     set(`J${17 + i}`, concept);
@@ -151,5 +158,11 @@ describe("planClosingImport", () => {
       code: "internal_date_mismatch",
       values: { fileDate: "2026-11-14", internalDate: "2026-11-13" },
     });
+  });
+
+  it("reports a cash shortfall per shift and cashier", () => {
+    const p = plan(closing({ services: [], shift: { system: 100000, counted: 98500 } }));
+    expect(p.shifts).toEqual([{ shift: 1, cashier: "KAREN", system: 100000, counted: 98500, difference: 1500 }]);
+    expect(p.warnings).toContainEqual({ code: "cash_difference", values: { shift: 1, cashier: "KAREN", amount: 1500 } });
   });
 });

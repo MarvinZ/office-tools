@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
+import { getMyBarbersRole } from "@/services/barbers/roles";
+import { can } from "@/lib/barbers/permissions";
 import { AlertTriangle, ChevronLeft, ChevronRight, FileSpreadsheet, History, Lock, Printer, Settings } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { requireTenant } from "@/services/tenants";
 import { getSettlementView, type BarberSettlementRow, type SettlementTotals } from "@/services/barbers/settlements";
 import { fortnightKey, fortnightOf, parseFortnightKey, shiftFortnight } from "@/lib/barbers/settlement";
 import { businessDateOf, fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
@@ -19,7 +19,7 @@ export default async function SettlementsPage({
   searchParams: Promise<{ period?: string; version?: string }>;
 }) {
   const { period, version } = await searchParams;
-  const [tenant, t, { orgRole }] = await Promise.all([requireTenant(), getTranslations("barbers"), auth()]);
+  const [{ tenant, role }, t] = await Promise.all([getMyBarbersRole(), getTranslations("barbers")]);
   // ?period=YYYY-MM-H, H = 1 (days 1–15) or 2 (16–end of month).
   const fortnight = parseFortnightKey(period) ?? fortnightOf(todayBusinessDate());
   const key = fortnightKey(fortnight);
@@ -33,7 +33,7 @@ export default async function SettlementsPage({
   const viewingOld = !!closing?.reopenedAt;
   // Print/export show exactly what's on screen.
   const docQuery = viewingOld ? `period=${key}&version=${closing!.version}` : `period=${key}`;
-  const isAdmin = orgRole === "org:admin";
+  const isAdmin = can(role, "settle");
   // "Mixtos" (spec §10.3): barbers whose services were paid at more than one rate.
   const mixed = rows.filter((r) => r.byRate.length > 1);
   const canClose = fortnight.from <= todayBusinessDate();

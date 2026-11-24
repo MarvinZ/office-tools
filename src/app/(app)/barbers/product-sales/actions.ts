@@ -6,8 +6,10 @@ import { requireTenant } from "@/services/tenants";
 import { createProductSale, deleteProductSale } from "@/services/barbers/product-sales";
 import type { ProductSaleInput } from "@/services/barbers/product-sales";
 import { auditBarbers } from "@/services/barbers/audit";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 
 export async function createProductSaleAction(data: ProductSaleInput) {
+  await requireBarbersAccess(["operate"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   const row = await createProductSale(tenant.id, user.id, data);
@@ -21,6 +23,7 @@ export async function createProductSaleAction(data: ProductSaleInput) {
 }
 
 export async function deleteProductSaleAction(id: string) {
+  await requireBarbersAccess(["operate"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   const row = await deleteProductSale(tenant.id, id);

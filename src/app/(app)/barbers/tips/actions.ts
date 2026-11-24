@@ -6,8 +6,10 @@ import { requireTenant } from "@/services/tenants";
 import { createTip, deleteTip } from "@/services/barbers/tips";
 import type { TipInput } from "@/services/barbers/tips";
 import { auditBarbers } from "@/services/barbers/audit";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 
 export async function createTipAction(data: TipInput) {
+  await requireBarbersAccess(["operate"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   const row = await createTip(tenant.id, user.id, data);
@@ -21,6 +23,7 @@ export async function createTipAction(data: TipInput) {
 }
 
 export async function deleteTipAction(id: string) {
+  await requireBarbersAccess(["operate"]);
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new Error("Not authenticated.");
   const row = await deleteTip(tenant.id, id);

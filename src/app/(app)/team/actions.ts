@@ -10,7 +10,7 @@ async function requireOrgAdmin() {
   if (orgRole !== "org:admin") throw new Error("Not authorized.");
 }
 
-export async function inviteTeamMemberAction(email: string) {
+export async function inviteTeamMemberAction(email: string, role: "org:admin" | "org:member" = "org:admin") {
   await requireOrgAdmin();
   const tenant = await requireTenant();
 
@@ -18,7 +18,7 @@ export async function inviteTeamMemberAction(email: string) {
   if (!trimmed) return { error: "Email is required." };
 
   try {
-    await inviteClientAdmin(tenant.clerkOrgId, trimmed);
+    await inviteClientAdmin(tenant.clerkOrgId, trimmed, role === "org:member" ? "org:member" : "org:admin");
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to send invitation." };
   }

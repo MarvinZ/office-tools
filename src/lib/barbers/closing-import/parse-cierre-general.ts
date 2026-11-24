@@ -7,6 +7,8 @@ import { normalizeAmount, normalizeText } from "./normalize";
  *
  *   I5 / K5    cashier of shift 1 / shift 2
  *   C8:D8      system total per shift
+ *   C13:D13    net system total per shift; C19:D19 counted (methods + outflows)
+ *   C25:D25    cash difference per shift ("DIFERENCIA") = net system − counted
  *   G17:L24    cash outflows ("salidas"): G who it was given to, J concept, L amount
  *   G30:L34    services on credit: G professional, I detail, J client, L amount
  *   G40:L45    products on credit: G product, H qty, I professional, K vendor, L amount
@@ -28,8 +30,15 @@ export type ClosingProductOnCredit = {
   amount: number;
 };
 
+/**
+ * One cash shift ("corte"). difference > 0 means money is missing (a
+ * shortfall charged to the shift's cashier, Brayan Nov 2026); < 0 a surplus.
+ */
+export type ClosingShift = { shift: 1 | 2; cashier: string; system: number; counted: number; difference: number };
+
 export type CierreGeneral = {
   cashiers: { shift1: string; shift2: string };
+  shifts: ClosingShift[];
   systemTotal: number | null;
   outflows: ClosingOutflow[];
   servicesOnCredit: ClosingServiceOnCredit[];
@@ -96,12 +105,28 @@ export function parseCierreGeneral(workbook: XLSX.WorkBook): CierreGeneralParseR
     });
   }
 
+  const shifts: ClosingShift[] = [];
+  for (const [shift, col, cashierCell] of [[1, "C", "I5"], [2, "D", "K5"]] as const) {
+    const system = amount(ws, `${col}13`) ?? 0;
+    const counted = amount(ws, `${col}19`) ?? 0;
+    if (system === 0 && counted === 0) continue; // shift not used that day
+    const written = normalizeText(text(ws, "B25")) === "DIFERENCIA" ? amount(ws, `${col}25`) : null;
+    shifts.push({
+      shift,
+      cashier: text(ws, cashierCell),
+      system,
+      counted,
+      difference: written ?? Math.round((system - counted) * 100) / 100,
+    });
+  }
+
   const shift1 = amount(ws, "C8");
   const shift2 = amount(ws, "D8");
   return {
     ok: true,
     data: {
       cashiers: { shift1: text(ws, "I5"), shift2: text(ws, "K5") },
+      shifts,
       systemTotal: shift1 == null && shift2 == null ? null : (shift1 ?? 0) + (shift2 ?? 0),
       outflows,
       servicesOnCredit,

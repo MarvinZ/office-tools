@@ -840,7 +840,7 @@
     "tabProducts": "Productos",
     "tabPaymentMethods": "Métodos de pago",
     "tabVales": "Vales",
-    "tabProductSales": "Ventas de productos",
+    "tabProductSales": "Productos a crédito",
     "tabReports": "Reportes",
     "tabTips": "Propinas",
     "tabSettlements": "Liquidaciones",
@@ -938,7 +938,8 @@
       "resetToDefault": "Restablecer al predeterminado",
       "sectionHistory": "Cambios recientes",
       "historyViewAll": "Ver todo",
-      "sourceBarber": "Porcentaje fijo del profesional"
+      "sourceBarber": "Porcentaje fijo del profesional",
+      "sectionRateChanges": "Cambios de comisión"
     },
     "locationsPage": {
       "title": "Sucursales",
@@ -1021,7 +1022,11 @@
       "priceHint": "Lo que la barbería le cobra al barbero por una unidad.",
       "editPriceHint": "Cambiar el precio solo aplica a las ventas de ahora en adelante. Las ventas ya registradas conservan el precio al que se vendieron.",
       "fieldStatus": "Estado",
-      "createProduct": "Crear producto"
+      "createProduct": "Crear producto",
+      "fieldCommission": "Comisión de venta (₡ por unidad)",
+      "commissionHint": "Monto fijo que se paga al colaborador que lo vende a un cliente, según la utilidad del producto. Se paga en el cierre de productos, no en la liquidación.",
+      "fieldChargesIva": "Gravar con IVA",
+      "chargesIvaHint": "Suma el IVA al precio: ₡8.000 → el cliente paga ₡9.040."
     },
     "paymentMethodsPage": {
       "title": "Métodos de pago",
@@ -1350,7 +1355,8 @@
         "email": "Correo",
         "fixedCommissionRate": "Porcentaje fijo",
         "cardFeeOnGross": "Datáfono sobre precio con IVA",
-        "invoiceEmail": "Correo de facturas"
+        "invoiceEmail": "Correo de facturas",
+        "role": "Rol"
       },
       "actions": {
         "activity": {
@@ -1395,6 +1401,17 @@
         },
         "closing": {
           "imported": "Cierre del {date} importado (v{version}, {services} servicios)"
+        },
+        "productCustomerSale": {
+          "created": "Venta de producto: {product} · {amount} (comisión {commission})",
+          "deleted": "Venta de producto eliminada: {product} · {amount}"
+        },
+        "productCommission": {
+          "paid": "{count, plural, one {Se pagó # comisión de productos} other {Se pagaron # comisiones de productos}} · {amount}",
+          "unpaid": "Se deshizo el pago de comisión: {product} · {amount}"
+        },
+        "member": {
+          "role": "Se cambió el rol de una persona en Barbers"
         }
       }
     },
@@ -1463,12 +1480,118 @@
         "missing_rate": "{name}: {count, plural, one {# línea no tiene} other {# líneas no tienen}} % ni porcentaje fijo; se pagan al 0 % (filas {rows}).",
         "pending_method": "{name}: {count, plural, one {# línea no tiene} other {# líneas no tienen}} un método de pago reconocido (filas {rows}).",
         "missing_amount": "{count, plural, one {# línea no tiene} other {# líneas no tienen}} monto y se {count, plural, one {omitió} other {omitieron}} (filas {rows}).",
-        "service_received_by_non_professional": "El servicio a crédito para {client} ({amount}) no es de un profesional, así que no se rebaja (fila {rows})."
+        "service_received_by_non_professional": "El servicio a crédito para {client} ({amount}) no es de un profesional, así que no se rebaja (fila {rows}).",
+        "cash_difference": "El corte {shift} ({cashier}) no cuadra: diferencia de {amount}."
       },
       "new": "nuevo",
       "createProfessional": "Crear “{name}” como profesional nuevo",
       "reimport": "Importar de nuevo archivos ya importados",
       "reimportHint": "Úselo después de cambiar porcentajes o configuración: los días se reemplazan con los valores nuevos."
+    },
+    "rateChanges": {
+      "scope": "Aplica a",
+      "allServices": "Todos los servicios (porcentaje fijo)",
+      "newRate": "Nuevo porcentaje",
+      "noRate": "ninguno",
+      "from": "A partir del",
+      "note": "Nota (opcional)",
+      "save": "Guardar cambio",
+      "hint": "Un cambio puede empezar a mitad de quincena: los servicios antes de esa fecha conservan el porcentaje anterior. Si la fecha ya pasó, se recalculan los servicios registrados desde esa fecha, excepto en quincenas cerradas. Deje el porcentaje vacío para quitar un porcentaje fijo o especial desde esa fecha.",
+      "scheduled": "Programado a partir del {date}.",
+      "applied": "{count, plural, =0 {Guardado. Ningún servicio registrado necesitó recálculo.} one {Guardado. Se recalculó # servicio registrado.} other {Guardado. Se recalcularon # servicios registrados.}}",
+      "upcoming": "próximo",
+      "delete": "Eliminar este cambio programado",
+      "errorRate": "El porcentaje debe ser mayor a 0 % y como máximo 100 %.",
+      "errorGeneric": "No se pudo guardar el cambio."
+    },
+    "tabProductClosing": "Venta de productos",
+    "productClosing": {
+      "title": "Venta de productos",
+      "subtitle": "Productos vendidos a clientes y la comisión que gana cada colaborador. Las comisiones se pagan en este cierre, aparte de la liquidación de servicios.",
+      "noProducts": "Primero agregue productos (con su comisión) en Catálogos → Productos.",
+      "product": "Producto",
+      "quantity": "Cant.",
+      "collaborator": "Colaborador",
+      "noCommission": "Sin comisión",
+      "paymentMethod": "Pago",
+      "date": "Fecha",
+      "price": "Precio",
+      "iva": "IVA",
+      "customerPays": "Paga el cliente",
+      "commission": "Comisión",
+      "record": "Registrar venta",
+      "saved": "Venta registrada.",
+      "errorQuantity": "Elija un producto y una cantidad de al menos 1.",
+      "errorGeneric": "No se pudo guardar.",
+      "closingTitle": "Cierre de productos",
+      "thisWeek": "Esta semana",
+      "thisFortnight": "Esta quincena",
+      "lastFortnight": "Quincena anterior",
+      "from": "Desde",
+      "to": "Hasta",
+      "show": "Ver",
+      "sold": "Vendido (sin IVA)",
+      "charged": "Cobrado",
+      "commissions": "Comisiones",
+      "paid": "Pagado",
+      "pending": "Pendiente",
+      "salesCount": "Ventas",
+      "status": "Comisión",
+      "markPaid": "Marcar como pagado",
+      "paidOn": "Pagado el",
+      "asCashOutflow": "como salida de caja",
+      "confirmPaid": "Confirmar",
+      "cancel": "Cancelar",
+      "undoPaid": "Deshacer pago",
+      "deleteSale": "Eliminar venta",
+      "paidOnDate": "Pagada {date}",
+      "cashOutflow": "salida de caja",
+      "inclIva": "incl. IVA {iva}",
+      "empty": "No hay ventas de productos en este período.",
+      "sheetSummary": "Resumen",
+      "sheetSales": "Ventas",
+      "fileName": "Cierre_Productos"
+    },
+    "tabCash": "Caja",
+    "roles": {
+      "title": "Personas y roles",
+      "subtitle": "Lo que cada persona puede hacer en Barbers. El rol de aquí es el que manda, sin importar su rol en la organización.",
+      "role": {
+        "admin": "Administrador",
+        "cashier": "Cajera",
+        "accountant": "Contador"
+      },
+      "describe": {
+        "admin": "Todo: liquidaciones, cierres, porcentajes, catálogos, configuración y roles.",
+        "cashier": "Recepción: servicios, vales, propinas, productos a crédito, venta de productos, asistencia.",
+        "accountant": "Solo consulta: liquidaciones, reportes, historial, caja, cierre de productos y exportaciones."
+      },
+      "you": "usted",
+      "roleFor": "Rol de {name}",
+      "inviteHint": "Para agregar a alguien, invítelo en",
+      "teamLink": "Equipo",
+      "errorGeneric": "No se pudo cambiar el rol."
+    },
+    "cash": {
+      "title": "Faltantes de caja",
+      "subtitle": "Diferencias por corte de caja, según los cierres diarios importados. Un faltante se le carga a la cajera del corte en el pago de la misma quincena.",
+      "prev": "Quincena anterior",
+      "next": "Quincena siguiente",
+      "daysImported": "{count, plural, =0 {ningún día importado} one {# día importado} other {# días importados}}",
+      "noImports": "Aún no hay cierres importados en esta quincena. Impórtelos en Cierres.",
+      "balanced": "Todos los cortes importados cuadran: no hay faltantes.",
+      "cashier": "Cajera",
+      "shortfall": "Faltante",
+      "surplus": "Sobrante",
+      "applyNote": "Los faltantes se rebajan del pago de cada cajera en la quincena que termina el {date}.",
+      "date": "Fecha",
+      "shift": "Corte",
+      "shiftN": "Corte {n}",
+      "system": "Sistema",
+      "counted": "Contado",
+      "difference": "Diferencia",
+      "missing": "faltan {amount}",
+      "extra": "sobran {amount}"
     }
   },
   "webhooks": {
@@ -1537,7 +1660,10 @@
     "invite": {
       "title": "Invitar a un miembro del equipo",
       "placeholder": "usuario@ejemplo.com",
-      "button": "Invitar"
+      "button": "Invitar",
+      "role": "Rol",
+      "roleMember": "Miembro (cajera, contador…)",
+      "roleAdmin": "Administrador"
     }
   }
 }

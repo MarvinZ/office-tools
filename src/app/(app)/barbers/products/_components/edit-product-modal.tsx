@@ -16,14 +16,18 @@ export default function EditProductModal({ product }: { product: ProductRow }) {
 
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(product.price);
+  const [commission, setCommission] = useState(product.commissionAmount);
+  const [chargesIva, setChargesIva] = useState(product.chargesIva);
   const [status, setStatus] = useState<"active" | "inactive">(product.status);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsedPrice = parseFloat(price);
+    const parsedCommission = commission.trim() === "" ? 0 : parseFloat(commission);
+    if (!Number.isFinite(parsedCommission) || parsedCommission < 0 || parsedCommission > parsedPrice) return;
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) return;
     startTransition(async () => {
-      await updateProductAction(product.id, { name, price: parsedPrice, status });
+      await updateProductAction(product.id, { name, price: parsedPrice, commissionAmount: parsedCommission, chargesIva, status });
       router.refresh();
       setOpen(false);
     });
@@ -57,6 +61,18 @@ export default function EditProductModal({ product }: { product: ProductRow }) {
                     the unit price snapshotted onto them at the time of sale. */}
                 <p className="mt-1 text-xs text-zinc-400">{t("productForm.editPriceHint")}</p>
               </div>
+              <div>
+                <label className={labelCls} htmlFor="productCommissionEdit">{t("productForm.fieldCommission")}</label>
+                <input id="productCommissionEdit" type="number" min="0" step="0.01" inputMode="decimal" value={commission} onChange={(e) => setCommission(e.target.value)} className={inputCls} />
+                <p className="mt-1 text-xs text-zinc-400">{t("productForm.commissionHint")}</p>
+              </div>
+              <label className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                <input type="checkbox" checked={chargesIva} onChange={(e) => setChargesIva(e.target.checked)} className="mt-1" />
+                <span>
+                  {t("productForm.fieldChargesIva")}
+                  <span className="block text-xs text-zinc-400">{t("productForm.chargesIvaHint")}</span>
+                </span>
+              </label>
               <div>
                 <label className={labelCls}>{t("productForm.fieldStatus")}</label>
                 <select value={status} onChange={(e) => setStatus(e.target.value as "active" | "inactive")} className={inputCls}>

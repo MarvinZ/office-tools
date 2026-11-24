@@ -9,13 +9,14 @@ export default function InviteTeamMember() {
   const t = useTranslations("team");
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"org:admin" | "org:member">("org:member");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleInvite() {
     setError(null);
     startTransition(async () => {
-      const result = await inviteTeamMemberAction(email);
+      const result = await inviteTeamMemberAction(email, role);
       if (result?.error) {
         setError(result.error);
         return;
@@ -37,6 +38,15 @@ export default function InviteTeamMember() {
           placeholder={t("invite.placeholder")}
           className="flex-1 rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm text-black dark:border-zinc-700 dark:text-white"
         />
+        <select
+          aria-label={t("invite.role")}
+          value={role}
+          onChange={(e) => setRole(e.target.value as "org:admin" | "org:member")}
+          className="shrink-0 rounded-lg border border-zinc-300 bg-transparent px-2 py-2 text-sm text-black dark:border-zinc-700 dark:text-white"
+        >
+          <option value="org:member">{t("invite.roleMember")}</option>
+          <option value="org:admin">{t("invite.roleAdmin")}</option>
+        </select>
         <button
           onClick={handleInvite}
           disabled={isPending || !email.trim()}

@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
 import { getTranslations } from "next-intl/server";
 import { getAvailableTools, getCurrentTenant } from "@/services/tenants";
+import { getMyBarbersRole } from "@/services/barbers/roles";
+import { can } from "@/lib/barbers/permissions";
 import { getSettlementDocuments } from "@/services/barbers/settlements";
 import { fortnightKey, parseFortnightKey } from "@/lib/barbers/settlement";
 import { buildSettlementWorkbook } from "@/lib/barbers/settlement-document";
@@ -16,6 +18,8 @@ export const dynamic = "force-dynamic";
  * the (app) layouts, so tenant and tool access are checked here.
  */
 export async function GET(request: Request) {
+  const me = await getMyBarbersRole().catch(() => null);
+  if (!me || !can(me.role, "view")) return new Response("Forbidden", { status: 403 });
   const tenant = await getCurrentTenant();
   if (!tenant) return new Response("Unauthorized", { status: 401 });
   if (!(await getAvailableTools(tenant)).includes("barbers")) {

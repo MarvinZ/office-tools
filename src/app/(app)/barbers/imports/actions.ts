@@ -12,6 +12,7 @@ import {
   type ClosingUpload,
   type ImportResult,
 } from "@/services/barbers/closing-imports";
+import { requireBarbersAccess } from "@/services/barbers/roles";
 
 const MAX_FILES = 31;
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -44,6 +45,7 @@ export type PreviewResponse = {
 
 /** Parse and check the files; writes nothing. */
 export async function previewClosingsAction(formData: FormData): Promise<PreviewResponse> {
+  await requireBarbersAccess(["operate", "view"]);
   const { userId } = await auth();
   if (!userId) throw new Error("Not authenticated.");
   const tenant = await requireTenant();
@@ -55,10 +57,7 @@ export async function previewClosingsAction(formData: FormData): Promise<Preview
 
 /** Import the ready files. Replaces earlier imports of the same dates, so admins only. */
 export async function importClosingsAction(formData: FormData): Promise<ImportResult[]> {
-  const { userId, orgRole } = await auth();
-  if (!userId) throw new Error("Not authenticated.");
-  if (orgRole !== "org:admin") throw new Error("Only an admin can import closings.");
-  const tenant = await requireTenant();
+  const { userId, tenant } = await requireBarbersAccess(["configure"]);
   const locationId = String(formData.get("locationId") ?? "");
   const results = await importClosings(tenant.id, userId, locationId, await readUploads(formData), readDecisions(formData));
   for (const path of ["/barbers/imports", "/barbers", "/barbers/reports", "/barbers/settlements", "/barbers/vales", "/barbers/product-sales"]) {
