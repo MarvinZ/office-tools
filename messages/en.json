@@ -1412,6 +1412,9 @@
         },
         "member": {
           "role": "A person's Barbers role was changed"
+        },
+        "catalog": {
+          "pricesImported": "Prices imported: {created} new, {updated} updated"
         }
       }
     },
@@ -1642,7 +1645,66 @@
     },
     "tabGroupProducts": "Products",
     "tabGroupReports": "Cash & reports",
-    "navLabel": "Barbers sections"
+    "navLabel": "Barbers sections",
+    "tabPriceImport": "Import prices",
+    "priceImport": {
+      "title": "Import prices",
+      "subtitle": "Load or update service and product prices from an Excel file. Nothing is deleted; empty cells keep their current value.",
+      "step1": "1. Download the template",
+      "step1Hint": "It comes filled with your current services and products. Edit prices, add rows for new ones.",
+      "download": "Download template",
+      "step2": "2. Upload it",
+      "step2Hint": "You'll see what changes before anything is saved.",
+      "upload": "Choose the Excel file",
+      "working": "Reading the file…",
+      "errorGeneric": "Couldn't read the file.",
+      "summary": "{changes, plural, =0 {No changes.} one {# change} other {# changes}} · {unchanged} unchanged",
+      "apply": "{count, plural, =0 {Nothing to apply} one {Apply # change} other {Apply # changes}}",
+      "done": "Done: {created} new, {updated} updated, {skipped} rows skipped.",
+      "services": "Service",
+      "products": "Product",
+      "category": "Category",
+      "commission": "Commission",
+      "prices": "Prices",
+      "price": "Price without IVA",
+      "iva": "IVA",
+      "yes": "Yes",
+      "no": "No",
+      "action": {
+        "create": "New",
+        "update": "Update",
+        "unchanged": "No change"
+      },
+      "sheet": {
+        "services": "Services",
+        "products": "Products",
+        "file": "File"
+      },
+      "row": "row {row}",
+      "issue": {
+        "no_sheets": "The file needs a \"Services\" and/or \"Products\" sheet. Sheets found: {sheets}. Download the template to start from.",
+        "no_name_column": "No \"Name\" column found.",
+        "invalid_rate": "{name}: the commission % isn't valid (use 50 or 50%).",
+        "missing_rate": "{name}: a new service needs its commission %.",
+        "invalid_price": "{name}: the price isn't valid.",
+        "invalid_commission": "{name}: the commission isn't valid or is more than the price.",
+        "duplicate_name": "{name} appears twice; only the first row is used."
+      },
+      "template": {
+        "servicesSheet": "Services",
+        "productsSheet": "Products",
+        "name": "Name",
+        "category": "Category",
+        "commissionPct": "Commission %",
+        "priceAt": "Price {location}",
+        "price": "Price without IVA",
+        "commissionAmount": "Commission ₡",
+        "chargesIva": "Charge with IVA",
+        "yes": "Yes",
+        "no": "No",
+        "fileName": "Prices"
+      }
+    }
   },
   "webhooks": {
     "page": {
