@@ -39,7 +39,8 @@ export type BarberAuditAction =
   | "productCustomerSale.deleted"
   | "productCommission.paid"
   | "productCommission.unpaid"
-  | "member.role";
+  | "member.role"
+  | "catalog.pricesImported";
 
 /** field → [old, new]. Only fields that actually changed. */
 export type AuditChanges = Record<string, [unknown, unknown]>;

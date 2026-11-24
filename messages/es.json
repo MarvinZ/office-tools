@@ -1412,6 +1412,9 @@
         },
         "member": {
           "role": "Se cambió el rol de una persona en Barbers"
+        },
+        "catalog": {
+          "pricesImported": "Precios importados: {created} nuevos, {updated} actualizados"
         }
       }
     },
@@ -1642,7 +1645,66 @@
     },
     "tabGroupProducts": "Productos",
     "tabGroupReports": "Caja y reportes",
-    "navLabel": "Secciones de Barbería"
+    "navLabel": "Secciones de Barbería",
+    "tabPriceImport": "Importar precios",
+    "priceImport": {
+      "title": "Importar precios",
+      "subtitle": "Cargue o actualice precios de servicios y productos desde un archivo de Excel. No se elimina nada; las celdas vacías conservan su valor actual.",
+      "step1": "1. Descargue la plantilla",
+      "step1Hint": "Viene con sus servicios y productos actuales. Cambie precios y agregue filas para los nuevos.",
+      "download": "Descargar plantilla",
+      "step2": "2. Súbala",
+      "step2Hint": "Verá qué cambia antes de guardar nada.",
+      "upload": "Elegir el archivo de Excel",
+      "working": "Leyendo el archivo…",
+      "errorGeneric": "No se pudo leer el archivo.",
+      "summary": "{changes, plural, =0 {Sin cambios.} one {# cambio} other {# cambios}} · {unchanged} sin cambios",
+      "apply": "{count, plural, =0 {Nada que aplicar} one {Aplicar # cambio} other {Aplicar # cambios}}",
+      "done": "Listo: {created} nuevos, {updated} actualizados, {skipped} filas omitidas.",
+      "services": "Servicio",
+      "products": "Producto",
+      "category": "Categoría",
+      "commission": "Comisión",
+      "prices": "Precios",
+      "price": "Precio sin IVA",
+      "iva": "IVA",
+      "yes": "Sí",
+      "no": "No",
+      "action": {
+        "create": "Nuevo",
+        "update": "Actualizar",
+        "unchanged": "Sin cambio"
+      },
+      "sheet": {
+        "services": "Servicios",
+        "products": "Productos",
+        "file": "Archivo"
+      },
+      "row": "fila {row}",
+      "issue": {
+        "no_sheets": "El archivo necesita una hoja \"Servicios\" y/o \"Productos\". Hojas encontradas: {sheets}. Descargue la plantilla para empezar.",
+        "no_name_column": "No se encontró la columna \"Nombre\".",
+        "invalid_rate": "{name}: el % de comisión no es válido (use 50 o 50%).",
+        "missing_rate": "{name}: un servicio nuevo necesita su % de comisión.",
+        "invalid_price": "{name}: el precio no es válido.",
+        "invalid_commission": "{name}: la comisión no es válida o es mayor que el precio.",
+        "duplicate_name": "{name} aparece dos veces; solo se usa la primera fila."
+      },
+      "template": {
+        "servicesSheet": "Servicios",
+        "productsSheet": "Productos",
+        "name": "Nombre",
+        "category": "Categoría",
+        "commissionPct": "Comisión %",
+        "priceAt": "Precio {location}",
+        "price": "Precio sin IVA",
+        "commissionAmount": "Comisión ₡",
+        "chargesIva": "Gravar con IVA",
+        "yes": "Sí",
+        "no": "No",
+        "fileName": "Precios"
+      }
+    }
   },
   "webhooks": {
     "page": {

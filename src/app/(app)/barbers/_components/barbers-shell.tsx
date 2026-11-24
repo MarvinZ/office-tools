@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   Wallet,
   PieChart,
+  FileSpreadsheet,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -72,6 +73,7 @@ const NAV: NavEntry[] = [
       { href: "/barbers/locations", labelKey: "tabLocations", icon: MapPin },
       { href: "/barbers/services", labelKey: "tabServices", icon: Sparkles },
       { href: "/barbers/products", labelKey: "tabProducts", icon: Package },
+      { href: "/barbers/price-import", labelKey: "tabPriceImport", icon: FileSpreadsheet },
       { href: "/barbers/payment-methods", labelKey: "tabPaymentMethods", icon: CreditCard },
       { href: "/barbers/settings", labelKey: "tabSettings", icon: SlidersHorizontal },
       { href: "/barbers/history", labelKey: "tabHistory", icon: History },
