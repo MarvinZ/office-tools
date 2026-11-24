@@ -193,7 +193,7 @@ export default function ActivityEntryForm({
             locationId: row.locationId,
             locationName: "",
             serviceId: row.serviceId,
-            serviceName: serviceById.get(row.serviceId)?.name ?? "",
+            serviceName: (row.serviceId && serviceById.get(row.serviceId)?.name) || row.description || "",
             paymentMethodId: row.paymentMethodId,
             paymentMethodName: paymentMethod?.name ?? "",
             paymentMethodFeeRate: parseFloat(row.paymentMethodFeeRate),

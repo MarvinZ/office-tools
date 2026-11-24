@@ -43,9 +43,9 @@ export async function GET(request: Request) {
     summaryHeaders: [
       t("settlements.colBarber"), t("settlements.colServices"), t("settlements.colDays"),
       t("settlements.colIncome"), t("settlements.colAddition"), t("settlements.colCardFee"),
-      t("settlements.colMaintenance"), t("settlements.colProductCredit"), t("settlements.colVales"),
-      t("settlements.colCarryOver"), t("settlements.colWarrantyClawback"),
-      t("settlements.colNet"), t("settlements.colIva"), t("settlements.colInvoice"),
+      t("settlements.colMaintenance"), t("settlements.colProductCredit"), t("settlements.colServicesReceived"),
+      t("settlements.colVales"), t("settlements.colCarryOver"), t("settlements.colWarrantyClawback"),
+      t("settlements.colNet"), t("settlements.colIva"), t("settlements.colInvoice"), t("settlements.colNonInvoiced"),
       t("settlements.colTips"), t("settlements.colTransfer"),
     ],
     total: t("settlements.total"),

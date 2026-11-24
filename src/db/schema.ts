@@ -707,6 +707,11 @@ export const barbers = pgTable("barbers", {
   // When deductions exceed earnings, the shortfall is taken from this person's
   // monthly salary instead of being carried as a balance (spec §7, CA 10).
   shortfallToSalary: boolean("shortfall_to_salary").notNull().default(false),
+  // When set, this rate is paid on all the barber's services instead of the
+  // service default — and overrides the % written in imported closings
+  // (e.g. Genesis 0.6, Maicol 1.0). Per-service overrides still win. Null for
+  // barbers paid by category (Imara, Zoe), who keep the written %.
+  fixedCommissionRate: numeric("fixed_commission_rate", { precision: 5, scale: 4 }),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -719,6 +724,11 @@ export const barberSettings = pgTable("barber_settings", {
   tenantId: text("tenant_id").primaryKey().references(() => tenants.id),
   ivaRate: numeric("iva_rate", { precision: 5, scale: 4 }).notNull().default("0.13"),
   maintenanceDailyFee: numeric("maintenance_daily_fee", { precision: 12, scale: 2 }).notNull().default("1000"),
+  // Card fee basis: false = fee × price without IVA (spec §6.5); true = fee ×
+  // the IVA-included price actually charged (NOURA's accountant in practice).
+  cardFeeOnGross: boolean("card_fee_on_gross").notNull().default(false),
+  // Where professionals send their electronic invoice; printed on settlements.
+  invoiceEmail: text("invoice_email"),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -790,7 +800,10 @@ export const barberActivities = pgTable("barber_activities", {
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   barberId: text("barber_id").notNull().references(() => barbers.id),
   locationId: text("location_id").notNull().references(() => locations.id),
-  serviceId: text("service_id").notNull().references(() => services.id),
+  // Null for services imported from a daily closing, which carry the
+  // cashier's free-text description instead of a catalog service.
+  serviceId: text("service_id").references(() => services.id),
+  description: text("description"),
   // No onDelete cascade, same as barberId/locationId/serviceId: a payout record
   // must outlive edits to the catalog it was created from.
   paymentMethodId: text("payment_method_id").notNull().references(() => paymentMethods.id),
@@ -814,6 +827,11 @@ export const barberActivities = pgTable("barber_activities", {
   // A warranty redo points at the service it redoes. The barber on this row is
   // the one who redid it; the original row's barber is the one responsible.
   warrantyOfActivityId: text("warranty_of_activity_id"),
+  // ── Origin (spec §4: every movement keeps its file and source row).
+  closingFileId: text("closing_file_id"), // null = entered in the app
+  sourceRow: integer("source_row"), // 1-based row in the FACTURACION sheet
+  ticketId: text("ticket_id"), // column A of the closing
+  writtenRate: numeric("written_rate", { precision: 5, scale: 4 }), // % the cashier wrote
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -836,6 +854,11 @@ export const barberVouchers = pgTable("barber_vouchers", {
   // "the 12th", not a specific instant.
   issuedDate: date("issued_date").notNull(),
   note: text("note"),
+  // "vale": an advance or any other cash outflow charged to the barber;
+  // "service_received": a colleague's service on credit (§8.2), full price.
+  category: text("category").notNull().default("vale"),
+  closingFileId: text("closing_file_id"),
+  sourceRow: integer("source_row"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -846,6 +869,30 @@ export const barberVouchers = pgTable("barber_vouchers", {
 // A shortfall moved by an admin from a closed fortnight to the next one
 // (spec §8.1/§8.5: a manual, audited action, possibly only part of it). The
 // next fortnight deducts `amount` as "previous balance".
+// One imported daily closing ("CIERRE DD-MM-AAAA.xlsx", spec §4). Re-importing
+// a date replaces the previous import of that date: its rows are removed and
+// recreated, and the old file record stays with status "replaced" (§4.2).
+export const barberClosingFiles = pgTable("barber_closing_files", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  locationId: text("location_id").notNull().references(() => locations.id),
+  businessDate: date("business_date").notNull(), // from the file name
+  internalDate: date("internal_date"), // FACTURACION!B3, compared with the name
+  fileName: text("file_name").notNull(),
+  sha256: text("sha256").notNull(),
+  blobUrl: text("blob_url"), // original file kept in Vercel Blob
+  version: integer("version").notNull(),
+  status: text("status").notNull().default("imported"), // imported | replaced
+  summary: jsonb("summary"), // counts, totals and warnings shown on the imports page
+  importedBy: text("imported_by").notNull(),
+  importedAt: timestamp("imported_at").defaultNow().notNull(),
+  replacedAt: timestamp("replaced_at"),
+}, (t) => [
+  uniqueIndex("barber_closing_files_current_uq")
+    .on(t.tenantId, t.locationId, t.businessDate)
+    .where(sql`${t.status} = 'imported'`),
+]);
+
 export const barberCarryOvers = pgTable("barber_carry_overs", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
@@ -907,7 +954,9 @@ export const productSales = pgTable("product_sales", {
   // barberVouchers: the record of a real debt must outlive later edits to the
   // barber or to the product catalog it was created from.
   barberId: text("barber_id").notNull().references(() => barbers.id),
-  productId: text("product_id").notNull().references(() => products.id),
+  // Null for imported credit sales, which carry the closing's description.
+  productId: text("product_id").references(() => products.id),
+  description: text("description"),
   quantity: integer("quantity").notNull(),
   // Snapshot of products.price at sale time, for the same reason
   // barberActivities snapshots commissionRate: re-pricing a product later must
@@ -916,6 +965,8 @@ export const productSales = pgTable("product_sales", {
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(), // computed server-side
   // A plain calendar date, like barberVouchers.issuedDate.
   saleDate: date("sale_date").notNull(),
+  closingFileId: text("closing_file_id"),
+  sourceRow: integer("source_row"),
   note: text("note"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

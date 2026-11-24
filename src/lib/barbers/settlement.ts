@@ -36,6 +36,12 @@ export type DecimalLike = Decimal.Value;
 export type SettlementSettings = {
   ivaRate: DecimalLike; // 0.13
   maintenanceDailyFee: DecimalLike; // 1000
+  /**
+   * Card fee basis. false (spec §6.5): fee rate × price without IVA. true: fee
+   * rate × the price actually charged, IVA included — what NOURA's accountant
+   * applies in practice (verified against the 1–15 Nov 2026 slips).
+   */
+  cardFeeOnGross?: boolean;
 };
 
 export type BarberSettlementProfile = {
@@ -86,6 +92,11 @@ export type BarberSettlementInput = {
    * period: the commission they earned on each is taken back (§8.8, CA 16).
    */
   warrantyClawbacks?: WarrantyClawback[];
+  /**
+   * Services this barber received from a colleague, at the full price a
+   * customer pays, IVA included (§8.2). Deducted like other expenses.
+   */
+  servicesReceived?: DecimalLike[];
 };
 
 /** Services grouped by commission rate — the "mixtos" report (§10.3). */
@@ -108,13 +119,15 @@ export type BarberSettlement = {
   vales: number;
   carryOver: number; // previous fortnight's shortfall, deducted now
   warrantyClawback: number; // commission taken back for services a colleague redid
+  servicesReceived: number; // services received from colleagues, deducted (§8.2)
   totalExpenses: number;
   net: number;
   ivaBase: number;
   iva: number;
   ivaPaid: number; // iva, or 0 when informative
   ivaInformative: boolean;
-  invoice: number;
+  invoice: number; // electronic invoice amount: invoiced net + IVA paid
+  nonInvoiced: number; // net paid outside the invoice (IVA base below 100%)
   tips: number;
   transfer: number;
   shortfall: number;
@@ -172,7 +185,8 @@ export function computeBarberSettlement(
     serviceIncome = serviceIncome.plus(income);
     // Only a service the customer actually paid by card carries the card fee.
     if ((line.kind ?? "service") === "service") {
-      cardFee = cardFee.plus(base.times(line.paymentMethodFeeRate));
+      const feeBase = settings.cardFeeOnGross ? new Decimal(line.priceCharged) : base;
+      cardFee = cardFee.plus(feeBase.times(line.paymentMethodFeeRate));
     }
     // Courtesies and redos count too: a day with any registered service (§6.6).
     days.add(line.date);
@@ -205,9 +219,12 @@ export function computeBarberSettlement(
 
   const carryOver = new Decimal(input.carryOver ?? 0);
 
+  const servicesReceived = sum(input.servicesReceived ?? []);
+
   const totalExpenses = cardFee
     .plus(maintenance)
     .plus(productCredit)
+    .plus(servicesReceived)
     .plus(vales)
     .plus(carryOver)
     .plus(warrantyClawback);
@@ -215,8 +232,16 @@ export function computeBarberSettlement(
   const ivaBase = serviceIncome.times(profile.ivaBaseRate).plus(addition).minus(totalExpenses);
   const iva = Decimal.max(ZERO, ivaBase).times(ivaRate);
   const ivaPaid = profile.ivaInformative ? ZERO : iva;
-  const invoice = Decimal.max(ZERO, net).plus(ivaPaid);
-  const transfer = invoice.plus(tips);
+  // Only the IVA-bearing part of the net goes on the electronic invoice. With
+  // an IVA base below 100% (Maicol), the rest of the net is paid outside the
+  // invoice — how the accountant settles it (invoice ₡229,639.39 + ₡251,017.70
+  // paid apart = ₡480,657.09 for 1–15 Nov 2026). For everyone else
+  // ivaBase = net, so nonInvoiced is 0.
+  const payableNet = Decimal.max(ZERO, net);
+  const invoicedNet = Decimal.max(ZERO, Decimal.min(payableNet, ivaBase));
+  const nonInvoiced = payableNet.minus(invoicedNet);
+  const invoice = invoicedNet.plus(ivaPaid);
+  const transfer = invoice.plus(nonInvoiced).plus(tips);
   const shortfall = Decimal.max(ZERO, net.neg());
 
   return {
@@ -231,6 +256,7 @@ export function computeBarberSettlement(
     vales: cents(vales),
     carryOver: cents(carryOver),
     warrantyClawback: cents(warrantyClawback),
+    servicesReceived: cents(servicesReceived),
     totalExpenses: cents(totalExpenses),
     net: cents(net),
     ivaBase: cents(ivaBase),
@@ -238,6 +264,7 @@ export function computeBarberSettlement(
     ivaPaid: cents(ivaPaid),
     ivaInformative: profile.ivaInformative,
     invoice: cents(invoice),
+    nonInvoiced: cents(nonInvoiced),
     tips: cents(tips),
     transfer: cents(transfer),
     shortfall: cents(shortfall),

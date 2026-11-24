@@ -28,7 +28,10 @@ function line(price: number, rate: number, fee = CASH, date = "2026-10-01"): Set
   return { date, priceCharged: price, commissionRate: rate, paymentMethodFeeRate: fee };
 }
 
-function settle(partial: Omit<Partial<BarberSettlementInput>, "profile"> & { profile?: Partial<BarberSettlementProfile> }) {
+function settle(
+  partial: Omit<Partial<BarberSettlementInput>, "profile"> & { profile?: Partial<BarberSettlementProfile> },
+  settings: Parameters<typeof computeBarberSettlement>[1] = SETTINGS
+) {
   return computeBarberSettlement(
     {
       lines: partial.lines ?? [],
@@ -37,10 +40,22 @@ function settle(partial: Omit<Partial<BarberSettlementInput>, "profile"> & { pro
       tips: partial.tips ?? [],
       carryOver: partial.carryOver,
       warrantyClawbacks: partial.warrantyClawbacks,
+      servicesReceived: partial.servicesReceived,
       profile: { ...STANDARD, ...partial.profile },
     },
-    SETTINGS
+    settings
   );
+}
+
+/** n lines on n different days, the first paid by card, adding up to `gross`. */
+function fortnight(card: number, cashTotal: number, days: number, rate: number): SettlementLine[] {
+  const lines = [line(card, rate, CARD, "2026-11-01")];
+  const each = Math.floor(cashTotal / (days - 1));
+  for (let d = 2; d <= days; d++) {
+    const amount = d === days ? cashTotal - each * (days - 2) : each;
+    lines.push(line(amount, rate, CASH, `2026-11-${String(d).padStart(2, "0")}`));
+  }
+  return lines;
 }
 
 describe("lineCommission", () => {
@@ -107,7 +122,10 @@ describe("computeBarberSettlement", () => {
     expect(r.serviceIncome).toBe(100000);
     expect(r.ivaBase).toBe(50000);
     expect(r.iva).toBe(6500);
-    expect(r.invoice).toBe(106500);
+    // Invoice covers the IVA-bearing half plus IVA; the other half is paid apart.
+    expect(r.invoice).toBe(56500);
+    expect(r.nonInvoiced).toBe(50000);
+    expect(r.transfer).toBe(106500);
   });
 
   it("Maicol's IVA base subtracts expenses after halving the base", () => {
@@ -256,5 +274,54 @@ describe("fortnights", () => {
     expect(fortnightKey(shiftFortnight(f, 1))).toBe("2027-01-1");
     expect(fortnightKey(shiftFortnight(fortnightRange(2027, 1, 1), -1))).toBe("2026-12-2");
     expect(fortnightKey(shiftFortnight(fortnightRange(2026, 5, 1), 1))).toBe("2026-05-2");
+  });
+});
+
+// Reproduces the accountant's real slips for 1–15 Nov 2026 (amounts only).
+// The accountant applies the 6.5% card fee to the IVA-included price.
+describe("accountant reference, 1–15 Nov 2026", () => {
+  const ACCOUNTANT = { ...SETTINGS, cardFeeOnGross: true };
+
+  it("Maicol: 100% of base, IVA on 50% — invoice ₡229,639.39 + ₡251,017.70 outside it", () => {
+    const r = settle(
+      {
+        lines: fortnight(109800, 457500, 12, 1), // ₡567,300 billed, ₡109,800 by card, 12 days
+        productCredit: [8360],
+        vales: [20300],
+        profile: { ivaBaseRate: 0.5 },
+      },
+      ACCOUNTANT
+    );
+    expect(r.cardFee).toBe(7137);
+    expect(r.maintenance).toBe(12000);
+    expect(r.iva).toBe(26418.69);
+    expect(r.invoice).toBe(229639.39);
+    expect(r.nonInvoiced).toBe(251017.7);
+    expect(r.transfer).toBe(480657.09);
+  });
+
+  it("Genesis at 60%: transfer ₡305,048.01", () => {
+    const r = settle(
+      { lines: fortnight(106200, 508100, 13, 0.6), productCredit: [22520], vales: [13800] },
+      ACCOUNTANT
+    );
+    expect(r.serviceIncome).toBe(326176.99);
+    expect(r.cardFee).toBe(6903);
+    expect(r.net).toBe(269953.99);
+    expect(r.iva).toBe(35094.02);
+    expect(r.nonInvoiced).toBe(0);
+    expect(r.transfer).toBe(305048.01);
+  });
+
+  it("card fee basis: spec §6.5 (without IVA) vs accountant (with IVA)", () => {
+    const lines = [line(11300, 0.5, CARD)];
+    expect(settle({ lines }).cardFee).toBe(650);
+    expect(settle({ lines }, ACCOUNTANT).cardFee).toBe(734.5);
+  });
+
+  it("§8.2: a service received from a colleague is deducted at full price", () => {
+    const r = settle({ lines: [line(22600, 0.5)], servicesReceived: [3500], profile: { appliesMaintenance: false } });
+    expect(r.servicesReceived).toBe(3500);
+    expect(r.net).toBe(6500);
   });
 });

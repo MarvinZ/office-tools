@@ -83,6 +83,7 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
             ivaInformative: barber.ivaInformative,
             fortnightlyAddition: barber.fortnightlyAddition,
             shortfallToSalary: barber.shortfallToSalary,
+            fixedCommissionRate: barber.fixedCommissionRate,
           }}
         />
       </div>

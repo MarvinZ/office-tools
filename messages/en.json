@@ -937,7 +937,8 @@
       "sourceDefault": "Default",
       "resetToDefault": "Reset to default",
       "sectionHistory": "Recent changes",
-      "historyViewAll": "View all"
+      "historyViewAll": "View all",
+      "sourceBarber": "Barber's fixed rate"
     },
     "locationsPage": {
       "title": "Locations",
@@ -1115,7 +1116,10 @@
       "errorAddition": "Addition must be zero or a positive amount.",
       "errorSaveFailed": "Could not save. Please try again.",
       "shortfallToSalary": "Shortfall goes to salary deduction",
-      "shortfallToSalaryHint": "If deductions exceed earnings, the difference is taken from their monthly salary instead of carried as a balance."
+      "shortfallToSalaryHint": "If deductions exceed earnings, the difference is taken from their monthly salary instead of carried as a balance.",
+      "fixedRate": "Fixed commission rate",
+      "fixedRateHint": "Leave empty to pay by service (and by the % written in imported closings). When set, it's paid on all this barber's services.",
+      "errorFixedRate": "Fixed rate must be above 0% and at most 100%."
     },
     "settlements": {
       "title": "Settlements",
@@ -1183,7 +1187,9 @@
       "carryInvalid": "Enter an amount above zero and no more than the shortfall.",
       "carried": "{amount} carried to next fortnight",
       "carryUndo": "Undo",
-      "reopenReasonPrompt": "Why are you reopening this fortnight? (required)"
+      "reopenReasonPrompt": "Why are you reopening this fortnight? (required)",
+      "colServicesReceived": "Services received",
+      "colNonInvoiced": "Outside invoice"
     },
     "paymentDetails": {
       "idNumber": "ID number (cédula)",
@@ -1217,9 +1223,12 @@
         "invoice": "Amount to invoice",
         "tips": "Tips",
         "transfer": "Total to transfer",
-        "warrantyClawback": "Warranty: commission taken back"
+        "warrantyClawback": "Warranty: commission taken back",
+        "servicesReceived": "Services received from colleagues",
+        "nonInvoiced": "Paid outside the invoice"
       },
-      "mixedSheet": "By rate"
+      "mixedSheet": "By rate",
+      "sendInvoiceTo": "Send the electronic invoice to:"
     },
     "settingsPage": {
       "title": "Settlement settings",
@@ -1231,7 +1240,14 @@
       "errorIva": "IVA must be between 0 and 99.",
       "errorFee": "Fee must be zero or a positive amount.",
       "errorSaveFailed": "Could not save settings. Please try again.",
-      "saved": "Settings saved."
+      "saved": "Settings saved.",
+      "fieldCardFeeBasis": "Card fee is charged on",
+      "cardFeeOnGross": "The price charged, IVA included",
+      "cardFeeOnGrossHint": "How NOURA's accountant calculates it today (₡11,300 by card → ₡734.50).",
+      "cardFeeOnBase": "The price without IVA",
+      "cardFeeOnBaseHint": "As the specification describes it (₡11,300 by card → ₡650).",
+      "fieldInvoiceEmail": "Email for electronic invoices",
+      "fieldInvoiceEmailHint": "Printed on each settlement as where to send the electronic invoice."
     },
     "tips": {
       "title": "Tips",
@@ -1331,7 +1347,10 @@
         "firstName": "First name",
         "lastName": "Last name",
         "phone": "Phone",
-        "email": "Email"
+        "email": "Email",
+        "fixedCommissionRate": "Fixed commission rate",
+        "cardFeeOnGross": "Card fee on price with IVA",
+        "invoiceEmail": "Invoice email"
       },
       "actions": {
         "activity": {
@@ -1373,8 +1392,83 @@
         "carryOver": {
           "created": "Carried {amount} from {period} to the next fortnight",
           "deleted": "Carry-over of {amount} from {period} undone"
+        },
+        "closing": {
+          "imported": "Daily closing {date} imported (v{version}, {services} services)"
         }
       }
+    },
+    "tabImports": "Imports",
+    "imports": {
+      "title": "Daily closing imports",
+      "subtitle": "Upload the cashiers' CIERRE files. Each is checked first and nothing is saved until you import. Importing a date again replaces that day.",
+      "noLocations": "Add a location first: each closing is imported for a location.",
+      "location": "Location",
+      "chooseFiles": "Closing files (.xlsx)",
+      "chooseHint": "Choose one or more CIERRE DD-MM-AAAA.xlsx files",
+      "filesChosen": "{count, plural, one {# file chosen} other {# files chosen}}",
+      "working": "Reading files…",
+      "errorGeneric": "Couldn't read the files.",
+      "doneTitle": "Import finished",
+      "summary": {
+        "new": "{count} new",
+        "replace": "{count} to replace",
+        "unchanged": "{count} already imported",
+        "blocked": "{count} need attention"
+      },
+      "status": {
+        "new": "New",
+        "replace": "Replaces",
+        "unchanged": "Already imported",
+        "blocked": "Needs attention"
+      },
+      "blocked": {
+        "fortnight_closed": "This day belongs to a closed fortnight. Reopen it to import this file.",
+        "not_ready": "Answer the questions above to import this file.",
+        "duplicate_date": "Another selected file has the same date. Choose only one per day."
+      },
+      "willCreateMethods": "Payment methods that will be created: {methods}",
+      "importButton": "{count, plural, =0 {Nothing to import} one {Import # file} other {Import # files}}",
+      "adminOnly": "Only an admin can import.",
+      "namesTitle": "Who is this?",
+      "namesHint": "These names aren't anyone's name or alias yet. Your answer is saved as an alias, so next time it's recognized.",
+      "chooseWho": "Choose…",
+      "inactive": "inactive",
+      "notAProfessional": "Not a professional (skip)",
+      "billed": "Billed",
+      "servicesTotal": "Services",
+      "supplier": "Supplier (Meterasa)",
+      "cashiers": "Cashiers",
+      "colBarber": "Barber",
+      "colServices": "Services",
+      "colBilled": "Billed",
+      "colDeductions": "Vales & deductions",
+      "colProducts": "Products on credit",
+      "outflowsTitle": "Cash outflows not charged to a professional",
+      "salonExpense": "Salon expense",
+      "maybe": "maybe {name}?",
+      "chargeTo": "Charge to {name}",
+      "clean": "No warnings.",
+      "importedTitle": "Imported days",
+      "importedEmpty": "No closings imported yet.",
+      "colDate": "Date",
+      "colFile": "File",
+      "colWarnings": "Warnings",
+      "colImported": "Imported",
+      "warning": {
+        "internal_date_mismatch": "The file is named {fileDate} but its sheet says {internalDate}. The file name's date is used.",
+        "date_from_internal": "No date in the file name; using the sheet's date, {date}.",
+        "total_mismatch": "Lines add up to {parsed} but the sheet's total says {sheet}.",
+        "rate_differs": "{name}: {count, plural, one {# line written} other {# lines written}} at {written}, paid at their fixed {applied} (rows {rows}).",
+        "missing_rate": "{name}: {count, plural, one {# line has} other {# lines have}} no % and no fixed rate; paid at 0% (rows {rows}).",
+        "pending_method": "{name}: {count, plural, one {# line has} other {# lines have}} no recognized payment method (rows {rows}).",
+        "missing_amount": "{count, plural, one {# line has} other {# lines have}} no amount and {count, plural, one {was} other {were}} skipped (rows {rows}).",
+        "service_received_by_non_professional": "Service on credit for {client} ({amount}) isn't a professional's, so it isn't deducted (row {rows})."
+      },
+      "new": "new",
+      "createProfessional": "Create “{name}” as a new professional",
+      "reimport": "Import again files already imported",
+      "reimportHint": "Use after changing rates or settings: the days are replaced with the new values."
     }
   },
   "webhooks": {

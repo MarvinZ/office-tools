@@ -3,7 +3,7 @@ import { BUSINESS_TIME_ZONE } from "@/lib/barbers/dates";
 import { fmtColones } from "@/lib/barbers/currency";
 import type { BarberAuditEntry } from "@/services/barbers/audit";
 
-const RATE_FIELDS = new Set(["commissionRate", "defaultCommissionRate", "ivaBaseRate", "ivaRate", "feeRate"]);
+const RATE_FIELDS = new Set(["commissionRate", "defaultCommissionRate", "ivaBaseRate", "ivaRate", "feeRate", "fixedCommissionRate"]);
 const MONEY_FIELDS = new Set(["fortnightlyAddition", "maintenanceDailyFee"]);
 const SUMMARY_MONEY = new Set(["amount", "total", "totalTransfer"]);
 

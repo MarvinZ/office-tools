@@ -1,4 +1,4 @@
-import { eq, and, gte, desc, count, inArray } from "drizzle-orm";
+import { eq, and, gte, desc, count, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { services, locationServices, barberServiceRates, locations, barbers, barberActivities } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
@@ -106,7 +106,8 @@ export async function getMostUsedServicesAtLocation(
       and(
         eq(barberActivities.tenantId, tenantId),
         eq(barberActivities.locationId, locationId),
-        gte(barberActivities.performedAt, since)
+        gte(barberActivities.performedAt, since),
+        isNotNull(barberActivities.serviceId)
       )
     )
     .groupBy(barberActivities.serviceId)
@@ -115,7 +116,7 @@ export async function getMostUsedServicesAtLocation(
 
   if (ranked.length === 0) return [];
 
-  const rankedIds = ranked.map((r) => r.serviceId);
+  const rankedIds = ranked.flatMap((r) => (r.serviceId ? [r.serviceId] : []));
 
   // Only surface services still active — a retired service shouldn't be offered
   // as a one-tap favorite even if it was popular last month.

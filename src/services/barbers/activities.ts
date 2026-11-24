@@ -19,8 +19,8 @@ export type ActivityListItem = {
   barberName: string;
   locationId: string;
   locationName: string;
-  serviceId: string;
-  serviceName: string;
+  serviceId: string | null; // null for lines imported from a daily closing
+  serviceName: string; // catalog name, or the closing's description
   paymentMethodId: string;
   paymentMethodName: string;
   paymentMethodFeeRate: number;
@@ -66,11 +66,22 @@ export function computeCommissionAmount(
 
 // ── Resolvers ─────────────────────────────────────────────────────────────────
 
-export type EffectiveCommissionRate = { rate: number; source: "override" | "default" };
+export type EffectiveCommissionRate = { rate: number; source: "override" | "barber" | "default" };
+
+/** The barber's fixed rate (barbers.fixedCommissionRate), or null. */
+async function getBarberFixedRate(tenantId: string, barberId: string): Promise<number | null> {
+  const [row] = await db
+    .select({ fixed: barbers.fixedCommissionRate })
+    .from(barbers)
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, barberId)))
+    .limit(1);
+  return row?.fixed != null ? parseFloat(row.fixed) : null;
+}
 
 /**
  * CANONICAL resolver for the effective commission rate of a barber+service:
- * the barber's override if one exists, otherwise the service's
+ * the barber's per-service override if one exists, else the barber's fixed
+ * rate (barbers.fixed_commission_rate), else the service's
  * default_commission_rate. Returns null if the service itself can't be found
  * for this tenant.
  *
@@ -101,6 +112,8 @@ export async function getEffectiveCommissionRate(
     return { rate: parseFloat(overrideRow.commissionRate), source: "override" };
   }
 
+  const fixed = await getBarberFixedRate(tenantId, barberId);
+
   const [serviceRow] = await db
     .select({ defaultCommissionRate: services.defaultCommissionRate })
     .from(services)
@@ -108,6 +121,7 @@ export async function getEffectiveCommissionRate(
     .limit(1);
 
   if (!serviceRow) return null;
+  if (fixed != null) return { rate: fixed, source: "barber" };
   return { rate: parseFloat(serviceRow.defaultCommissionRate), source: "default" };
 }
 
@@ -131,10 +145,13 @@ export async function resolveEffectiveCommissionRates(
   barberId: string,
   serviceRows: { id: string; defaultCommissionRate: string }[]
 ): Promise<Map<string, EffectiveRateForService>> {
-  const overrideRows = await db
-    .select({ serviceId: barberServiceRates.serviceId, commissionRate: barberServiceRates.commissionRate })
-    .from(barberServiceRates)
-    .where(and(eq(barberServiceRates.tenantId, tenantId), eq(barberServiceRates.barberId, barberId)));
+  const [overrideRows, fixed] = await Promise.all([
+    db
+      .select({ serviceId: barberServiceRates.serviceId, commissionRate: barberServiceRates.commissionRate })
+      .from(barberServiceRates)
+      .where(and(eq(barberServiceRates.tenantId, tenantId), eq(barberServiceRates.barberId, barberId))),
+    getBarberFixedRate(tenantId, barberId),
+  ]);
 
   const overrideByService = new Map(overrideRows.map((o) => [o.serviceId, parseFloat(o.commissionRate)]));
 
@@ -145,8 +162,8 @@ export async function resolveEffectiveCommissionRates(
     result.set(s.id, {
       serviceId: s.id,
       defaultCommissionRate: defaultRate,
-      rate: override ?? defaultRate,
-      source: override != null ? "override" : "default",
+      rate: override ?? fixed ?? defaultRate,
+      source: override != null ? "override" : fixed != null ? "barber" : "default",
     });
   }
   return result;
@@ -387,6 +404,7 @@ export async function listActivities(
       locationName: locations.name,
       serviceId: barberActivities.serviceId,
       serviceName: services.name,
+      description: barberActivities.description,
       paymentMethodId: barberActivities.paymentMethodId,
       paymentMethodName: paymentMethods.name,
       paymentMethodFeeRate: barberActivities.paymentMethodFeeRate,
@@ -404,7 +422,7 @@ export async function listActivities(
     .from(barberActivities)
     .innerJoin(barbers, eq(barbers.id, barberActivities.barberId))
     .innerJoin(locations, eq(locations.id, barberActivities.locationId))
-    .innerJoin(services, eq(services.id, barberActivities.serviceId))
+    .leftJoin(services, eq(services.id, barberActivities.serviceId))
     .innerJoin(paymentMethods, eq(paymentMethods.id, barberActivities.paymentMethodId))
     .where(and(...conditions))
     .orderBy(desc(barberActivities.performedAt));
@@ -417,7 +435,7 @@ export async function listActivities(
     locationId: r.locationId,
     locationName: r.locationName,
     serviceId: r.serviceId,
-    serviceName: r.serviceName,
+    serviceName: r.serviceName ?? r.description ?? "",
     paymentMethodId: r.paymentMethodId,
     paymentMethodName: r.paymentMethodName,
     paymentMethodFeeRate: parseFloat(r.paymentMethodFeeRate),
@@ -481,7 +499,7 @@ export async function updateActivity(
   // unless the barber or the service changed, in which case re-resolve it from
   // the DB. It is never accepted from the caller.
   let commissionRate = parseFloat(existing.commissionRate);
-  if (barberId !== existing.barberId || serviceId !== existing.serviceId) {
+  if (serviceId && (barberId !== existing.barberId || serviceId !== existing.serviceId)) {
     const effective = await getEffectiveCommissionRate(tenantId, barberId, serviceId);
     if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
     commissionRate = effective.rate;
@@ -624,9 +642,20 @@ export async function logWarrantyRedo(
 
   let commissionRate = 0;
   if (!sameBarber) {
-    const effective = await getEffectiveCommissionRate(tenantId, correctorBarberId, original.serviceId);
-    if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
-    commissionRate = effective.rate;
+    if (original.serviceId) {
+      const effective = await getEffectiveCommissionRate(tenantId, correctorBarberId, original.serviceId);
+      if (!effective) throw new Error("Could not resolve a commission rate for this barber and service.");
+      commissionRate = effective.rate;
+    } else {
+      // Imported line (no catalog service): the corrector's fixed rate if they
+      // have one, else the rate the original line was paid at.
+      const [c] = await db
+        .select({ fixed: barbers.fixedCommissionRate })
+        .from(barbers)
+        .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, correctorBarberId)))
+        .limit(1);
+      commissionRate = c?.fixed != null ? Number(c.fixed) : Number(original.commissionRate);
+    }
   }
   const priceCharged = parseFloat(original.priceCharged);
   const { ivaRate } = await getBarberSettings(tenantId);
@@ -640,6 +669,7 @@ export async function logWarrantyRedo(
       barberId: correctorBarberId,
       locationId: original.locationId,
       serviceId: original.serviceId,
+      description: original.description,
       paymentMethodId: original.paymentMethodId,
       customerName: original.customerName,
       priceCharged: original.priceCharged,

@@ -33,7 +33,8 @@ export type BarberAuditAction =
   | "fortnight.closed"
   | "fortnight.reopened"
   | "carryOver.created"
-  | "carryOver.deleted";
+  | "carryOver.deleted"
+  | "closing.imported";
 
 /** field → [old, new]. Only fields that actually changed. */
 export type AuditChanges = Record<string, [unknown, unknown]>;

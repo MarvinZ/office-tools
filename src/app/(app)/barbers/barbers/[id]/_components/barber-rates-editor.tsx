@@ -58,7 +58,11 @@ export default function BarberRatesEditor({ barberId, rates }: { barberId: strin
               <td className="px-4 py-3 text-zinc-500">{fmtPct(r.defaultCommissionRate)}</td>
               <td className="px-4 py-3 font-medium text-black dark:text-white">{fmtPct(r.commissionRate)}</td>
               <td className="px-4 py-3 text-zinc-500">
-                {r.source === "override" ? t("barberDetail.sourceOverride") : t("barberDetail.sourceDefault")}
+                {r.source === "override"
+                  ? t("barberDetail.sourceOverride")
+                  : r.source === "barber"
+                    ? t("barberDetail.sourceBarber")
+                    : t("barberDetail.sourceDefault")}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">

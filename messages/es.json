@@ -937,7 +937,8 @@
       "sourceDefault": "Predeterminado",
       "resetToDefault": "Restablecer al predeterminado",
       "sectionHistory": "Cambios recientes",
-      "historyViewAll": "Ver todo"
+      "historyViewAll": "Ver todo",
+      "sourceBarber": "Porcentaje fijo del profesional"
     },
     "locationsPage": {
       "title": "Sucursales",
@@ -1115,7 +1116,10 @@
       "errorAddition": "El adicional debe ser cero o un monto positivo.",
       "errorSaveFailed": "No se pudo guardar. Inténtalo de nuevo.",
       "shortfallToSalary": "El faltante va a descuento salarial",
-      "shortfallToSalaryHint": "Si los rebajos superan lo ganado, la diferencia se descuenta del salario mensual en lugar de quedar como saldo."
+      "shortfallToSalaryHint": "Si los rebajos superan lo ganado, la diferencia se descuenta del salario mensual en lugar de quedar como saldo.",
+      "fixedRate": "Porcentaje de comisión fijo",
+      "fixedRateHint": "Déjelo vacío para pagar según el servicio (y el % escrito en los cierres importados). Si se indica, se paga en todos los servicios de este profesional.",
+      "errorFixedRate": "El porcentaje fijo debe ser mayor a 0 % y como máximo 100 %."
     },
     "settlements": {
       "title": "Liquidaciones",
@@ -1183,7 +1187,9 @@
       "carryInvalid": "Ingrese un monto mayor a cero y no mayor al faltante.",
       "carried": "{amount} trasladado a la siguiente quincena",
       "carryUndo": "Deshacer",
-      "reopenReasonPrompt": "¿Por qué reabre esta quincena? (obligatorio)"
+      "reopenReasonPrompt": "¿Por qué reabre esta quincena? (obligatorio)",
+      "colServicesReceived": "Servicios recibidos",
+      "colNonInvoiced": "Fuera de factura"
     },
     "paymentDetails": {
       "idNumber": "Cédula",
@@ -1217,9 +1223,12 @@
         "invoice": "Monto a facturar",
         "tips": "Propinas",
         "transfer": "Total a transferir",
-        "warrantyClawback": "Garantía: comisión rebajada"
+        "warrantyClawback": "Garantía: comisión rebajada",
+        "servicesReceived": "Servicios recibidos de compañeros",
+        "nonInvoiced": "Pagado fuera de la factura"
       },
-      "mixedSheet": "Por porcentaje"
+      "mixedSheet": "Por porcentaje",
+      "sendInvoiceTo": "Enviar la factura electrónica a:"
     },
     "settingsPage": {
       "title": "Configuración de liquidaciones",
@@ -1231,7 +1240,14 @@
       "errorIva": "El IVA debe estar entre 0 y 99.",
       "errorFee": "La cuota debe ser cero o un monto positivo.",
       "errorSaveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo.",
-      "saved": "Configuración guardada."
+      "saved": "Configuración guardada.",
+      "fieldCardFeeBasis": "El datáfono se cobra sobre",
+      "cardFeeOnGross": "El precio cobrado, con IVA",
+      "cardFeeOnGrossHint": "Como lo calcula hoy el contador de NOURA (₡11.300 con tarjeta → ₡734,50).",
+      "cardFeeOnBase": "El precio sin IVA",
+      "cardFeeOnBaseHint": "Como lo describe la especificación (₡11.300 con tarjeta → ₡650).",
+      "fieldInvoiceEmail": "Correo para facturas electrónicas",
+      "fieldInvoiceEmailHint": "Se imprime en cada liquidación como el correo al que enviar la factura electrónica."
     },
     "tips": {
       "title": "Propinas",
@@ -1331,7 +1347,10 @@
         "firstName": "Nombre",
         "lastName": "Apellido",
         "phone": "Teléfono",
-        "email": "Correo"
+        "email": "Correo",
+        "fixedCommissionRate": "Porcentaje fijo",
+        "cardFeeOnGross": "Datáfono sobre precio con IVA",
+        "invoiceEmail": "Correo de facturas"
       },
       "actions": {
         "activity": {
@@ -1373,8 +1392,83 @@
         "carryOver": {
           "created": "Se trasladaron {amount} de {period} a la siguiente quincena",
           "deleted": "Se deshizo el traslado de {amount} de {period}"
+        },
+        "closing": {
+          "imported": "Cierre del {date} importado (v{version}, {services} servicios)"
         }
       }
+    },
+    "tabImports": "Cierres",
+    "imports": {
+      "title": "Importación de cierres diarios",
+      "subtitle": "Suba los archivos CIERRE de las cajeras. Primero se revisan y no se guarda nada hasta que importe. Importar de nuevo una fecha reemplaza ese día.",
+      "noLocations": "Primero agregue una sucursal: cada cierre se importa para una sucursal.",
+      "location": "Sucursal",
+      "chooseFiles": "Archivos de cierre (.xlsx)",
+      "chooseHint": "Elija uno o varios archivos CIERRE DD-MM-AAAA.xlsx",
+      "filesChosen": "{count, plural, one {# archivo elegido} other {# archivos elegidos}}",
+      "working": "Leyendo archivos…",
+      "errorGeneric": "No se pudieron leer los archivos.",
+      "doneTitle": "Importación terminada",
+      "summary": {
+        "new": "{count} nuevos",
+        "replace": "{count} a reemplazar",
+        "unchanged": "{count} ya importados",
+        "blocked": "{count} requieren atención"
+      },
+      "status": {
+        "new": "Nuevo",
+        "replace": "Reemplaza",
+        "unchanged": "Ya importado",
+        "blocked": "Requiere atención"
+      },
+      "blocked": {
+        "fortnight_closed": "Este día pertenece a una quincena cerrada. Reábrala para importar este archivo.",
+        "not_ready": "Responda las preguntas de arriba para importar este archivo.",
+        "duplicate_date": "Otro archivo elegido tiene la misma fecha. Elija solo uno por día."
+      },
+      "willCreateMethods": "Métodos de pago que se crearán: {methods}",
+      "importButton": "{count, plural, =0 {Nada que importar} one {Importar # archivo} other {Importar # archivos}}",
+      "adminOnly": "Solo un administrador puede importar.",
+      "namesTitle": "¿Quién es?",
+      "namesHint": "Estos nombres aún no son el nombre ni el alias de nadie. Su respuesta se guarda como alias para reconocerlo la próxima vez.",
+      "chooseWho": "Elegir…",
+      "inactive": "inactivo",
+      "notAProfessional": "No es profesional (omitir)",
+      "billed": "Facturado",
+      "servicesTotal": "Servicios",
+      "supplier": "Proveedor (Meterasa)",
+      "cashiers": "Cajeras",
+      "colBarber": "Profesional",
+      "colServices": "Servicios",
+      "colBilled": "Facturado",
+      "colDeductions": "Vales y rebajos",
+      "colProducts": "Productos a crédito",
+      "outflowsTitle": "Salidas de efectivo no cargadas a un profesional",
+      "salonExpense": "Gasto del salón",
+      "maybe": "¿quizás {name}?",
+      "chargeTo": "Cargar a {name}",
+      "clean": "Sin advertencias.",
+      "importedTitle": "Días importados",
+      "importedEmpty": "Aún no se han importado cierres.",
+      "colDate": "Fecha",
+      "colFile": "Archivo",
+      "colWarnings": "Advertencias",
+      "colImported": "Importado",
+      "warning": {
+        "internal_date_mismatch": "El archivo se llama {fileDate} pero la hoja dice {internalDate}. Se usa la fecha del nombre del archivo.",
+        "date_from_internal": "El nombre del archivo no tiene fecha; se usa la de la hoja, {date}.",
+        "total_mismatch": "Las líneas suman {parsed} pero el total de la hoja dice {sheet}.",
+        "rate_differs": "{name}: {count, plural, one {# línea escrita} other {# líneas escritas}} al {written}, pagadas a su porcentaje fijo de {applied} (filas {rows}).",
+        "missing_rate": "{name}: {count, plural, one {# línea no tiene} other {# líneas no tienen}} % ni porcentaje fijo; se pagan al 0 % (filas {rows}).",
+        "pending_method": "{name}: {count, plural, one {# línea no tiene} other {# líneas no tienen}} un método de pago reconocido (filas {rows}).",
+        "missing_amount": "{count, plural, one {# línea no tiene} other {# líneas no tienen}} monto y se {count, plural, one {omitió} other {omitieron}} (filas {rows}).",
+        "service_received_by_non_professional": "El servicio a crédito para {client} ({amount}) no es de un profesional, así que no se rebaja (fila {rows})."
+      },
+      "new": "nuevo",
+      "createProfessional": "Crear “{name}” como profesional nuevo",
+      "reimport": "Importar de nuevo archivos ya importados",
+      "reimportHint": "Úselo después de cambiar porcentajes o configuración: los días se reemplazan con los valores nuevos."
     }
   },
   "webhooks": {
