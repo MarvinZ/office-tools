@@ -833,7 +833,7 @@
     }
   },
   "barbers": {
-    "tabLog": "Log Activity",
+    "tabLog": "Log",
     "tabBarbers": "Barbers",
     "tabLocations": "Locations",
     "tabServices": "Services",
@@ -1639,7 +1639,10 @@
       "fileTooLarge": "{name}: the file is too large.",
       "ownRole": "You can't change your own role.",
       "notInOrganization": "That person isn't in this organization."
-    }
+    },
+    "tabGroupProducts": "Products",
+    "tabGroupReports": "Cash & reports",
+    "navLabel": "Barbers sections"
   },
   "webhooks": {
     "page": {

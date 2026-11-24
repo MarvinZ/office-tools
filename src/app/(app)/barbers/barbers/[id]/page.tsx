@@ -35,7 +35,7 @@ export default async function BarberDetailPage({ params }: { params: Promise<{ i
   if (!barber) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10">
       <div className="flex items-center gap-2 text-sm text-zinc-400">
         <Link href="/barbers/barbers" className="hover:text-black dark:hover:text-white">{t("barbersPage.title")}</Link>
         <span>›</span>

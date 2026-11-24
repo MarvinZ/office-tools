@@ -68,7 +68,7 @@ export default async function ProductClosingPage({
   const td = "px-4 py-2.5";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10">
       <div>
         <h1 className="text-2xl font-semibold text-black dark:text-white">{t("title")}</h1>
         <p className="mt-1 text-sm text-zinc-500">{t("subtitle")}</p>

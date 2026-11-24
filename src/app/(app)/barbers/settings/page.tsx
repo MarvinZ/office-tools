@@ -14,13 +14,16 @@ export default async function BarberSettingsPage() {
   const members = await listBarbersMembers(tenant).catch(() => null);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
       <div>
         <h1 className="text-2xl font-semibold text-black dark:text-white">{t("settingsPage.title")}</h1>
         <p className="mt-1 text-sm text-zinc-500">{t("settingsPage.subtitle")}</p>
       </div>
-      <SettingsForm initial={settings} />
-      {members && <MemberRoles members={members} me={me.userId} />}
+      {/* Wide container to line up with the tabs; the form keeps a readable width. */}
+      <div className="flex w-full max-w-3xl flex-col gap-6">
+        <SettingsForm initial={settings} />
+        {members && <MemberRoles members={members} me={me.userId} />}
+      </div>
     </div>
   );
 }

@@ -22,130 +22,195 @@ import {
   FileUp,
   ShoppingBag,
   Wallet,
+  PieChart,
+  type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-// Daily operations — what front desk uses constantly, always visible.
-const OPERATION_TABS = [
+type NavLink = { href: string; labelKey: string; icon: LucideIcon; exact?: boolean };
+type NavMenu = { key: string; labelKey: string; icon: LucideIcon; items: NavLink[] };
+type NavEntry = NavLink | NavMenu;
+
+const isMenu = (e: NavEntry): e is NavMenu => "items" in e;
+
+/**
+ * Tabs grouped by job so the row stays short: front-desk work first, then
+ * pay, then setup. Groups open a menu; a group with a single visible item is
+ * shown as a plain tab. Which entries a person sees depends on their role
+ * (`visible`, from lib/barbers/permissions.ts).
+ */
+const NAV: NavEntry[] = [
   { href: "/barbers", labelKey: "tabLog", icon: Scissors, exact: true },
-  { href: "/barbers/vales", labelKey: "tabVales", icon: Banknote, exact: false },
-  { href: "/barbers/product-sales", labelKey: "tabProductSales", icon: ShoppingCart, exact: false },
-  { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins, exact: false },
-  { href: "/barbers/product-closing", labelKey: "tabProductClosing", icon: ShoppingBag, exact: false },
-  { href: "/barbers/settlements", labelKey: "tabSettlements", icon: Calculator, exact: false },
-  { href: "/barbers/imports", labelKey: "tabImports", icon: FileUp, exact: false },
-  { href: "/barbers/cash", labelKey: "tabCash", icon: Wallet, exact: false },
-  { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3, exact: false },
-] as const;
+  { href: "/barbers/vales", labelKey: "tabVales", icon: Banknote },
+  { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins },
+  {
+    key: "products",
+    labelKey: "tabGroupProducts",
+    icon: ShoppingBag,
+    items: [
+      { href: "/barbers/product-closing", labelKey: "tabProductClosing", icon: ShoppingBag },
+      { href: "/barbers/product-sales", labelKey: "tabProductSales", icon: ShoppingCart },
+    ],
+  },
+  { href: "/barbers/imports", labelKey: "tabImports", icon: FileUp },
+  { href: "/barbers/settlements", labelKey: "tabSettlements", icon: Calculator },
+  {
+    key: "reports",
+    labelKey: "tabGroupReports",
+    icon: PieChart,
+    items: [
+      { href: "/barbers/cash", labelKey: "tabCash", icon: Wallet },
+      { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3 },
+    ],
+  },
+  {
+    key: "catalogs",
+    labelKey: "tabCatalogs",
+    icon: Settings,
+    items: [
+      { href: "/barbers/barbers", labelKey: "tabBarbers", icon: Users },
+      { href: "/barbers/locations", labelKey: "tabLocations", icon: MapPin },
+      { href: "/barbers/services", labelKey: "tabServices", icon: Sparkles },
+      { href: "/barbers/products", labelKey: "tabProducts", icon: Package },
+      { href: "/barbers/payment-methods", labelKey: "tabPaymentMethods", icon: CreditCard },
+      { href: "/barbers/settings", labelKey: "tabSettings", icon: SlidersHorizontal },
+      { href: "/barbers/history", labelKey: "tabHistory", icon: History },
+    ],
+  },
+];
 
-// Setup/configuration — touched rarely, collapsed into one "Catalogs" menu so
-// the visible tab row stays short instead of scrolling sideways.
-const CATALOG_ITEMS = [
-  { href: "/barbers/barbers", labelKey: "tabBarbers", icon: Users },
-  { href: "/barbers/locations", labelKey: "tabLocations", icon: MapPin },
-  { href: "/barbers/services", labelKey: "tabServices", icon: Sparkles },
-  { href: "/barbers/products", labelKey: "tabProducts", icon: Package },
-  { href: "/barbers/payment-methods", labelKey: "tabPaymentMethods", icon: CreditCard },
-  { href: "/barbers/settings", labelKey: "tabSettings", icon: SlidersHorizontal },
-  { href: "/barbers/history", labelKey: "tabHistory", icon: History },
-] as const;
-
-function isActive(pathname: string, href: string, exact: boolean): boolean {
+function isActive(pathname: string, href: string, exact = false): boolean {
   return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function BarbersShell({ children, visible }: { children: React.ReactNode; visible: string[] }) {
-  const allowed = new Set(visible);
-  const operationTabs = OPERATION_TABS.filter((tab) => allowed.has(tab.href));
-  const catalogItems = CATALOG_ITEMS.filter((item) => allowed.has(item.href));
   const pathname = usePathname();
   const t = useTranslations("barbers");
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const allowed = new Set(visible);
 
-  const inCatalogSection = catalogItems.some((item) => isActive(pathname, item.href, false));
+  // Filter by role; collapse a group with one visible item into a plain tab.
+  const entries: NavEntry[] = NAV.flatMap((e): NavEntry[] => {
+    if (!isMenu(e)) return allowed.has(e.href) ? [e] : [];
+    const items = e.items.filter((i) => allowed.has(i.href));
+    if (items.length === 0) return [];
+    if (items.length === 1) return [items[0]];
+    return [{ ...e, items }];
+  });
+
+  const [open, setOpen] = useState<{ key: string; top: number; left: number } | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!catalogOpen) return;
-    function handlePointerDown(e: PointerEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setCatalogOpen(false);
-      }
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) setOpen(null);
     }
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [catalogOpen]);
+    function close() {
+      setOpen(null);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [open]);
+
+  // Close any open menu when the page changes (adjusting state during render,
+  // React's recommended alternative to an effect for this).
+  const [lastPath, setLastPath] = useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    if (open) setOpen(null);
+  }
+
+  function toggle(key: string, button: HTMLButtonElement) {
+    if (open?.key === key) return setOpen(null);
+    const r = button.getBoundingClientRect();
+    const width = 224;
+    setOpen({ key, top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - width - 8) });
+  }
 
   const tabCls = (active: boolean) =>
-    `flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+    `flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
       active
         ? "border-black text-black dark:border-white dark:text-white"
-        : "border-transparent text-zinc-400 hover:text-black dark:hover:text-white"
+        : "border-transparent text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white"
     }`;
+
+  const openMenu = open ? entries.find((e): e is NavMenu => isMenu(e) && e.key === open.key) : undefined;
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black print:hidden">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-1 px-4">
-          {/*
-            Only the tab links scroll horizontally on narrow screens. The
-            Catalogs dropdown sits outside this scroll container on purpose:
-            an `overflow-x-auto` ancestor also clips the OTHER axis, so an
-            absolutely-positioned dropdown panel inside it gets cut off the
-            moment it extends past the row's bottom edge.
-          */}
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-            {operationTabs.map(({ href, labelKey, icon: Icon, exact }) => (
-              <Link key={href} href={href} className={tabCls(isActive(pathname, href, exact))}>
-                <Icon size={14} />
-                {t(labelKey)}
-              </Link>
-            ))}
-          </div>
-
-          {catalogItems.length > 0 && (
-          <div ref={menuRef} className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setCatalogOpen((v) => !v)}
-              aria-expanded={catalogOpen}
-              aria-haspopup="menu"
-              className={tabCls(inCatalogSection || catalogOpen)}
-            >
-              <Settings size={14} />
-              {t("tabCatalogs")}
-              <ChevronDown size={12} className={`transition-transform ${catalogOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            {catalogOpen && (
-              <div
-                role="menu"
-                className="absolute left-0 top-full z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+      <div ref={barRef} className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black print:hidden">
+        {/*
+          Same width as the app header. On phones the row scrolls sideways (no
+          visible scrollbar); menus open in a fixed layer so the scrolling row
+          can't clip them.
+        */}
+        <nav
+          aria-label={t("navLabel")}
+          className="mx-auto flex w-full max-w-7xl items-center gap-0.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {entries.map((e) => {
+            if (!isMenu(e)) {
+              const Icon = e.icon;
+              return (
+                <Link key={e.href} href={e.href} className={tabCls(isActive(pathname, e.href, e.exact))}>
+                  <Icon size={15} />
+                  {t(e.labelKey)}
+                </Link>
+              );
+            }
+            const Icon = e.icon;
+            const active = e.items.some((i) => isActive(pathname, i.href));
+            const isOpen = open?.key === e.key;
+            return (
+              <button
+                key={e.key}
+                type="button"
+                onClick={(ev) => toggle(e.key, ev.currentTarget)}
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
+                className={tabCls(active || isOpen)}
               >
-                {catalogItems.map(({ href, labelKey, icon: Icon }) => {
-                  const active = isActive(pathname, href, false);
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      role="menuitem"
-                      onClick={() => setCatalogOpen(false)}
-                      className={`flex items-center gap-2 px-3 py-2.5 text-sm ${
-                        active
-                          ? "bg-zinc-100 font-medium text-black dark:bg-zinc-800 dark:text-white"
-                          : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
-                      }`}
-                    >
-                      <Icon size={14} />
-                      {t(labelKey)}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+                <Icon size={15} />
+                {t(e.labelKey)}
+                <ChevronDown size={12} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </button>
+            );
+          })}
+        </nav>
+
+        {open && openMenu && (
+          <div
+            role="menu"
+            style={{ top: open.top, left: open.left }}
+            className="fixed z-50 w-56 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            {openMenu.items.map(({ href, labelKey, icon: Icon }) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  role="menuitem"
+                  onClick={() => setOpen(null)}
+                  className={`flex items-center gap-2 px-3 py-2.5 text-sm ${
+                    active
+                      ? "bg-zinc-100 font-medium text-black dark:bg-zinc-800 dark:text-white"
+                      : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
+                  }`}
+                >
+                  <Icon size={15} />
+                  {t(labelKey)}
+                </Link>
+              );
+            })}
           </div>
-          )}
-        </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col">{children}</div>
     </div>
