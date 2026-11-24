@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { updateBarberSettingsAction } from "../actions";
 import type { BarberSettings } from "@/services/barbers/settings";
+import { unwrap } from "@/lib/barbers/errors";
 
 /** IVA is edited as a percentage (13) and stored as a decimal (0.13). */
 export default function SettingsForm({ initial }: { initial: BarberSettings }) {
@@ -36,12 +37,12 @@ export default function SettingsForm({ initial }: { initial: BarberSettings }) {
     }
     startTransition(async () => {
       try {
-        await updateBarberSettingsAction({
+        await unwrap(updateBarberSettingsAction({
           ivaRate: pct / 100,
           maintenanceDailyFee: amount,
           cardFeeOnGross,
           invoiceEmail: invoiceEmail.trim() || null,
-        });
+        }));
         setSaved(true);
         router.refresh();
       } catch (e) {

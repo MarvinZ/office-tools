@@ -85,6 +85,11 @@ export type ImportWarning = {
   values?: Record<string, string | number>;
 };
 
+/** A problem that stops the file from being imported (translated in the UI). */
+export type PlanError =
+  | { code: "missing_sheet"; values: { sheet: string; sheets: string } }
+  | { code: "no_date"; values?: undefined };
+
 export type UnknownName = { key: string; written: string; where: "services" | "products" | "credit"; rows: number[] };
 
 export type OpenOutflow = { sourceRow: number; who: string; concept: string; amount: number; suggestedBarberId: string | null };
@@ -102,7 +107,7 @@ export type ClosingPlan = {
   openOutflows: OpenOutflow[];
   warnings: ImportWarning[];
   /** Fatal problems: missing sheets, no date. */
-  errors: string[];
+  errors: PlanError[];
   totals: {
     billed: number; // all FACTURACION lines, as the sheet totals them
     services: number; // lines imported as services
@@ -149,8 +154,8 @@ export function planClosingImport(input: {
 
   const fact = parseFacturacion(workbook);
   const general = parseCierreGeneral(workbook);
-  if (!fact.ok) plan.errors.push(`Sheet FACTURACION not found (sheets: ${fact.sheetNames.join(", ")}).`);
-  if (!general.ok) plan.errors.push(`Sheet CIERRE GENERAL not found (sheets: ${general.sheetNames.join(", ")}).`);
+  if (!fact.ok) plan.errors.push({ code: "missing_sheet", values: { sheet: "FACTURACION", sheets: fact.sheetNames.join(", ") } });
+  if (!general.ok) plan.errors.push({ code: "missing_sheet", values: { sheet: "CIERRE GENERAL", sheets: general.sheetNames.join(", ") } });
   if (!fact.ok || !general.ok) return plan;
 
   plan.internalDate = fact.internalDate;
@@ -166,7 +171,7 @@ export function planClosingImport(input: {
       plan.businessDate = plan.internalDate;
       plan.warnings.push({ code: "date_from_internal", values: { date: plan.internalDate } });
     } else {
-      plan.errors.push("No date in the file name or in the sheet.");
+      plan.errors.push({ code: "no_date" });
     }
   } else if (plan.internalDate && plan.internalDate !== plan.businessDate) {
     plan.warnings.push({ code: "internal_date_mismatch", values: { fileDate: plan.businessDate, internalDate: plan.internalDate } });

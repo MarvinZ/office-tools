@@ -9,6 +9,7 @@ import type { ClosingDecisions, ClosingPreview, ImportResult } from "@/services/
 import type { ImportWarning } from "@/lib/barbers/closing-import/plan-import";
 import { fmtColones } from "@/lib/barbers/currency";
 import { fmtDay } from "@/lib/barbers/dates";
+import { unwrap } from "@/lib/barbers/errors";
 
 type Choice = { id: string; name: string; active: boolean };
 
@@ -36,6 +37,7 @@ export default function ImportClosingsClient({
   canImport: boolean;
 }) {
   const t = useTranslations("barbers.imports");
+  const tErrors = useTranslations("barbers.errors");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
@@ -71,7 +73,7 @@ export default function ImportClosingsClient({
     }
     startTransition(async () => {
       try {
-        setPreview(await previewClosingsAction(formData(fs, ds)));
+        setPreview(await unwrap(previewClosingsAction(formData(fs, ds))));
       } catch (e) {
         setError(e instanceof Error ? e.message : t("errorGeneric"));
       }
@@ -107,7 +109,7 @@ export default function ImportClosingsClient({
     setError(null);
     startTransition(async () => {
       try {
-        const r = await importClosingsAction(formData(files, decisions));
+        const r = await unwrap(importClosingsAction(formData(files, decisions)));
         setResults(r);
         setPreview(null);
         setFiles([]);
@@ -196,7 +198,7 @@ export default function ImportClosingsClient({
           <ul className="mt-1 list-disc pl-5">
             {results.map((r) => (
               <li key={r.fileName}>
-                {r.fileName}: {r.error ? r.error : t(`status.${r.status}`)}
+                {r.fileName}: {r.error ? tErrors(r.error) : t(`status.${r.status}`)}
                 {r.version && r.version > 1 ? ` (v${r.version})` : ""}
               </li>
             ))}
@@ -315,7 +317,9 @@ function FileCard({
 
       {p.blockedReason && <p className="text-sm text-amber-700 dark:text-amber-400">{t(`blocked.${p.blockedReason}`)}</p>}
       {plan.errors.map((e) => (
-        <p key={e} className="text-sm text-red-600">{e}</p>
+        <p key={e.code + (e.values?.sheet ?? "")} className="text-sm text-red-600">
+          {t(`planError.${e.code}`, e.values ?? {})}
+        </p>
       ))}
 
       <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-zinc-600 dark:text-zinc-300">

@@ -2,6 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { locations, barberLocations, barbers, locationServices, services } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
 
@@ -157,8 +158,8 @@ async function assertLocationAndServiceBelongToTenant(
     db.select({ id: locations.id }).from(locations).where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId))).limit(1),
     db.select({ id: services.id }).from(services).where(and(eq(services.tenantId, tenantId), eq(services.id, serviceId))).limit(1),
   ]);
-  if (!location) throw new Error("Location not found for this tenant.");
-  if (!service) throw new Error("Service not found for this tenant.");
+  if (!location) throw new BarbersError("notFound");
+  if (!service) throw new BarbersError("notFound");
 }
 
 export async function setLocationServicePrice(

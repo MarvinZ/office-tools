@@ -2,6 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import { BarbersError } from "@/lib/barbers/errors";
 
 // ── Raw row types ─────────────────────────────────────────────────────────────
 
@@ -44,10 +45,10 @@ export type ProductInput = {
 
 function validate(data: Partial<ProductInput>) {
   if (data.commissionAmount != null && (!Number.isFinite(data.commissionAmount) || data.commissionAmount < 0)) {
-    throw new Error("Commission must be zero or a positive amount.");
+    throw new BarbersError("commissionNegative");
   }
   if (data.commissionAmount != null && data.price != null && data.commissionAmount > data.price) {
-    throw new Error("Commission can't be more than the product's price.");
+    throw new BarbersError("commissionAbovePrice");
   }
 }
 

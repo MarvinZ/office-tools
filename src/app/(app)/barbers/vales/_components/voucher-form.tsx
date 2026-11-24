@@ -7,6 +7,7 @@ import VoucherList from "./voucher-list";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { VoucherWithBarberName } from "@/services/barbers/vouchers";
 import { todayBusinessDate } from "@/lib/barbers/dates";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function VoucherForm({
   barbers,
@@ -46,12 +47,12 @@ export default function VoucherForm({
 
     startTransition(async () => {
       try {
-        const row = await createVoucherAction({
+        const row = await unwrap(createVoucherAction({
           barberId,
           amount: parsedAmount,
           issuedDate,
           note: note.trim() || undefined,
-        });
+        }));
 
         const barber = barbers.find((b) => b.id === row.barberId);
         setVouchers((prev) => [

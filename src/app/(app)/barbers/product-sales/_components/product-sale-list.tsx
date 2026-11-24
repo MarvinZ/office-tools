@@ -7,6 +7,7 @@ import { deleteProductSaleAction } from "../actions";
 import { fmtColones } from "@/lib/barbers/currency";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { ProductSaleWithDetails } from "@/services/barbers/product-sales";
+import { unwrap } from "@/lib/barbers/errors";
 
 const ALL = "all";
 
@@ -42,7 +43,7 @@ export default function ProductSaleList({
 
   function handleDelete(id: string) {
     startTransition(async () => {
-      await deleteProductSaleAction(id);
+      await unwrap(deleteProductSaleAction(id));
       onDeleted(id);
     });
   }

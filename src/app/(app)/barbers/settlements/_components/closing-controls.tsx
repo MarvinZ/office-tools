@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Lock, LockOpen } from "lucide-react";
 import { closeFortnightAction, reopenFortnightAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 /** Close (freeze) or reopen the fortnight. Rendered only for org admins. */
 export default function ClosingControls({ period, closed }: { period: string; closed: boolean }) {
@@ -25,7 +26,7 @@ export default function ClosingControls({ period, closed }: { period: string; cl
     setError(null);
     startTransition(async () => {
       try {
-        await (closed ? reopenFortnightAction(period, reason) : closeFortnightAction(period));
+        await (closed ? unwrap(reopenFortnightAction(period, reason)) : unwrap(closeFortnightAction(period)));
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : t("errorClosing"));

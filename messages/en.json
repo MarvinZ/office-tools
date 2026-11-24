@@ -1486,7 +1486,11 @@
       "new": "new",
       "createProfessional": "Create “{name}” as a new professional",
       "reimport": "Import again files already imported",
-      "reimportHint": "Use after changing rates or settings: the days are replaced with the new values."
+      "reimportHint": "Use after changing rates or settings: the days are replaced with the new values.",
+      "planError": {
+        "missing_sheet": "The {sheet} sheet is missing. Sheets in this file: {sheets}.",
+        "no_date": "No date in the file name or in the sheet. Rename the file as CIERRE DD-MM-AAAA.xlsx."
+      }
     },
     "rateChanges": {
       "scope": "Applies to",
@@ -1592,6 +1596,49 @@
       "difference": "Difference",
       "missing": "{amount} missing",
       "extra": "{amount} over"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "notAuthenticated": "Your session has ended. Sign in again.",
+      "forbidden": "You don't have permission to do this.",
+      "notFound": "That record no longer exists. Refresh the page and try again.",
+      "rateUnresolved": "No commission rate or payment fee is set up for this. Check the service, the barber and the payment method.",
+      "invalidDate": "That date isn't valid.",
+      "invalidInput": "That value isn't valid.",
+      "emptyBatch": "Add at least one service.",
+      "amountPositive": "The amount must be more than zero.",
+      "quantityInvalid": "Quantity must be a whole number of at least 1.",
+      "rateOutOfRange": "The rate must be above 0% and at most 100%.",
+      "ivaRateRange": "IVA must be between 0% and 99%.",
+      "ivaBaseRange": "The IVA base must be between 0% and 100%.",
+      "maintenanceFeeNegative": "The maintenance fee can't be negative.",
+      "additionNegative": "The fortnightly addition can't be negative.",
+      "commissionNegative": "The commission can't be negative.",
+      "commissionAbovePrice": "The commission can't be more than the product's price.",
+      "invalidIban": "That IBAN doesn't look valid (e.g. CR05015202001026284066).",
+      "invalidEmail": "That email doesn't look valid.",
+      "voidReasonRequired": "Write why this service is being voided.",
+      "voidWarrantyFirst": "Void its warranty redo first.",
+      "warrantyExists": "This service already has a warranty redo.",
+      "warrantyNotAllowed": "Only a normal or courtesy service can be redone under warranty.",
+      "fortnightClosed": "This fortnight is already closed.",
+      "fortnightNotStarted": "This fortnight hasn't started yet.",
+      "nextFortnightClosed": "The next fortnight is already closed.",
+      "reopenReasonRequired": "Write why this fortnight is being reopened.",
+      "closeBeforeCarry": "Close the fortnight before carrying a balance forward.",
+      "noShortfall": "This barber has no shortfall in this fortnight.",
+      "shortfallToSalary": "This barber's shortfall goes to salary deduction.",
+      "carryAmount": "The amount must be more than zero and no more than the shortfall.",
+      "carryExists": "A balance was already carried forward for this barber.",
+      "rateChangeStarted": "Only changes that haven't started yet can be deleted.",
+      "commissionAlreadyPaid": "This sale's commission was already paid, so it can't be deleted.",
+      "chooseCommissionsToPay": "Choose a collaborator and dates, or specific sales.",
+      "chooseFiles": "Choose at least one closing file.",
+      "tooManyFiles": "At most {max} files at a time.",
+      "onlyXlsx": "{name}: only .xlsx files are accepted.",
+      "fileTooLarge": "{name}: the file is too large.",
+      "ownRole": "You can't change your own role.",
+      "notInOrganization": "That person isn't in this organization."
     }
   },
   "webhooks": {

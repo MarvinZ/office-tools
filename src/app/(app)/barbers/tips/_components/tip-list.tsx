@@ -7,6 +7,7 @@ import { deleteTipAction } from "../actions";
 import { fmtColones } from "@/lib/barbers/currency";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { TipWithBarberName } from "@/services/barbers/tips";
+import { unwrap } from "@/lib/barbers/errors";
 
 const ALL = "all";
 
@@ -42,7 +43,7 @@ export default function TipList({
 
   function handleDelete(id: string) {
     startTransition(async () => {
-      await deleteTipAction(id);
+      await unwrap(deleteTipAction(id));
       onDeleted(id);
     });
   }

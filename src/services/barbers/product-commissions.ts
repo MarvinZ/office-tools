@@ -4,6 +4,7 @@ import { barbers, paymentMethods, productCustomerSales, products } from "@/db/sc
 import { getBarberSettings } from "./settings";
 import { productSaleFigures, summarizeProductClosing, type ProductClosingSummary } from "@/lib/barbers/product-commissions";
 import { isDateString } from "@/lib/barbers/dates";
+import { BarbersError } from "@/lib/barbers/errors";
 
 /**
  * Product sales to customers and the product closing (Brayan, Nov 2026).
@@ -22,16 +23,16 @@ export type CustomerSaleInput = {
 };
 
 export async function createCustomerSale(tenantId: string, userId: string, input: CustomerSaleInput) {
-  if (!Number.isInteger(input.quantity) || input.quantity < 1) throw new Error("Quantity must be a whole number of at least 1.");
-  if (!isDateString(input.saleDate)) throw new Error("Invalid sale date.");
+  if (!Number.isInteger(input.quantity) || input.quantity < 1) throw new BarbersError("quantityInvalid");
+  if (!isDateString(input.saleDate)) throw new BarbersError("invalidDate");
   const [[product], settings] = await Promise.all([
     db.select().from(products).where(and(eq(products.tenantId, tenantId), eq(products.id, input.productId))).limit(1),
     getBarberSettings(tenantId),
   ]);
-  if (!product) throw new Error("Product not found for this tenant.");
+  if (!product) throw new BarbersError("notFound");
   if (input.barberId) {
     const [b] = await db.select({ id: barbers.id }).from(barbers).where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, input.barberId))).limit(1);
-    if (!b) throw new Error("Collaborator not found for this tenant.");
+    if (!b) throw new BarbersError("notFound");
   }
   if (input.paymentMethodId) {
     const [m] = await db
@@ -39,7 +40,7 @@ export async function createCustomerSale(tenantId: string, userId: string, input
       .from(paymentMethods)
       .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, input.paymentMethodId)))
       .limit(1);
-    if (!m) throw new Error("Payment method not found for this tenant.");
+    if (!m) throw new BarbersError("notFound");
   }
 
   // No collaborator → nobody earns a commission on this sale.
@@ -84,7 +85,7 @@ export async function deleteCustomerSale(tenantId: string, id: string) {
     .where(and(eq(productCustomerSales.tenantId, tenantId), eq(productCustomerSales.id, id)))
     .limit(1);
   if (!row) return null;
-  if (row.commissionPaidAt) throw new Error("This sale's commission was already paid; it can't be deleted.");
+  if (row.commissionPaidAt) throw new BarbersError("commissionAlreadyPaid");
   await db.delete(productCustomerSales).where(and(eq(productCustomerSales.tenantId, tenantId), eq(productCustomerSales.id, id)));
   return row;
 }
@@ -175,7 +176,7 @@ export async function markCommissionsPaid(
   userId: string,
   input: { barberId?: string; from?: string; to?: string; saleIds?: string[]; paidAt: string; asCashOutflow: boolean }
 ): Promise<{ count: number; amount: number }> {
-  if (!isDateString(input.paidAt)) throw new Error("Invalid payment date.");
+  if (!isDateString(input.paidAt)) throw new BarbersError("invalidDate");
   const conditions = [eq(productCustomerSales.tenantId, tenantId), isNull(productCustomerSales.commissionPaidAt)];
   if (input.saleIds?.length) conditions.push(inArray(productCustomerSales.id, input.saleIds));
   else if (input.barberId && input.from && input.to) {
@@ -184,7 +185,7 @@ export async function markCommissionsPaid(
       gte(productCustomerSales.saleDate, input.from),
       lte(productCustomerSales.saleDate, input.to)
     );
-  } else throw new Error("Choose a collaborator and dates, or specific sales.");
+  } else throw new BarbersError("chooseCommissionsToPay");
 
   const paid = await db
     .update(productCustomerSales)

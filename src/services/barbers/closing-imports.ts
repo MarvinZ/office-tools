@@ -19,6 +19,7 @@ import {
   type ImportDecisions,
   type ImportPaymentMethod,
 } from "@/lib/barbers/closing-import/plan-import";
+import { BarbersError, type BarbersErrorCode } from "@/lib/barbers/errors";
 
 /**
  * Daily-closing import (spec §4): preview, then import. All the decisions
@@ -241,7 +242,7 @@ async function saveNameDecisions(tenantId: string, userId: string, names: Record
   }
 }
 
-export type ImportResult = { fileName: string; status: FileStatus; version?: number; error?: string };
+export type ImportResult = { fileName: string; status: FileStatus; version?: number; error?: BarbersErrorCode };
 
 /** "GENESIS" → a new active professional named "Genesis", audited. */
 async function createProfessional(tenantId: string, userId: string, written: string): Promise<string> {
@@ -272,7 +273,7 @@ export async function importClosings(
     .from(locations)
     .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
     .limit(1);
-  if (!location) throw new Error("Location not found.");
+  if (!location) throw new BarbersError("notFound");
 
   let ctx = await loadImportContext(tenantId);
   if (ctx.missingMethodCodes.length > 0) {
@@ -429,7 +430,8 @@ export async function importClosings(
       results.push({
         fileName: preview.fileName,
         status: "blocked",
-        error: err instanceof Error ? err.message : "Import failed.",
+        // A code the screen translates (barbers.errors.*); never a raw DB message.
+        error: err instanceof BarbersError ? err.code : "generic",
       });
     }
   }

@@ -1,7 +1,7 @@
 # OfficeTools and the Barbers module: status brief
 
 **Audience:** an AI assistant helping Marvin Zumbado (founder and developer of OfficeTools) prepare answers and decisions for NOURA Center, the barbershop client.
-**As of:** 24 November 2026 (updated after NOURA's answers, the real November files and the daily-closing importer).
+**As of:** 24 November 2026, `master` (after NOURA's answers, the real November files, the importer, dated commission changes, the product closing, roles and the cash report).
 **Source spec:** *Especificación funcional y técnica del sistema de liquidaciones de NOURA Center*, v1.3, 29 October 2026. It isn't in the repo because it contains personal and bank data. Section numbers like "§8.7" below refer to that spec.
 
 Part 1 explains the platform. Part 2 covers the Barbers module: what it does, how close it is to the spec, what's blocked, and the open questions with the background needed to answer them.
@@ -146,10 +146,10 @@ Nothing is rounded until the final figure, then each is rounded to céntimos (§
 
 These choices keep the system simple. Each is open to change if NOURA disagrees.
 
-1. **No start and end dates on rules (§9.2, CA 21–26).** The spec wants every rate and amount versioned by effective date. Instead, closing a fortnight freezes its figures and every change is audited. The trade-off is that a change applies immediately to fortnights that are still open, rather than from a chosen date. **This is open question B in 2.7.**
-2. **Commission rate per service and per barber, not per category table.** Services carry a category and a default rate, and barbers can have per-service overrides. Once the daily-closing import exists, the rate written in the closing file will take priority, with an alert when it differs, as the spec requires (§6.1).
+1. **Start dates for commission rates only (§9.2, CA 21–26).** Brayan chose dated rules (option B) for commissions: a barber's fixed rate or a per-service rate can change from any date, even mid-fortnight. Shop settings (IVA %, maintenance fee, card fee basis) and per-barber settlement settings still apply immediately to open fortnights; closed fortnights are frozen either way.
+2. **Commission rate per service and per barber, not per category table.** Services carry a category and a default rate; barbers can have a fixed rate and per-service rates. On import, a barber's fixed rate wins over the % written in the closing, with a warning; otherwise the written % is used.
 3. **PDF through the browser's "Save as PDF"** rather than a PDF library. The documents are print-formatted.
-4. **Two roles only.** Admins close and reopen fortnights and carry balances; everyone else can do the daily work. The spec's Cajera, Revisor and Contabilidad roles aren't built yet (2.6).
+4. **Three roles instead of five.** Admin, Cashier and Accountant (Contabilidad). The spec's Revisor role isn't separate: admins do the review. Professionals don't log in yet.
 
 ### 2.5 Status against the spec
 
@@ -167,42 +167,39 @@ These choices keep the system simple. Each is open to change if NOURA disagrees.
 | Exact money math, CRC, Costa Rica time (§6.9, §12) | ✅ Done |
 | Vales, products on credit, tips | ✅ Done |
 | **Daily closing import (§4)** | ✅ Built and verified on the real 1–15 Nov 2026 closings (see 2.9). Upload, preview with questions, import, re-import by date. |
-| Service received from a colleague (§8.2) | 🔴 Not built; can be built now |
+| Service received from a colleague (§8.2) | ✅ Imported from the closing's services on credit and deducted from the receiver |
 | Returns (§8.9) | 🔴 Not built; can be built now |
 | Product used inside a service, Meterasa share (§8.3) | 🔴 Not built; needs the WeiBook catalog |
-| Split payments linked by ticket (§6.4) | 🔴 Comes with the import |
-| Cash control per cashier and shift (§4.4) | 🔴 Needs real closing files |
-| SINPE reconciliation (§4.5) | 🔴 Needs real closing files |
-| Meterasa supplier settlement (§8.4, §10.3) | 🔴 Needs real closing files |
-| Cierre – Desglose diario report (§10.2) | 🔴 Needs real closing files |
-| Accountant comparison (§10.3, CA 20) | 🔴 Needs the accountant's files |
-| Roles: Cajera, Revisor, Contabilidad (§2.1) | 🟡 Admin only so far; waiting on the user list |
-| Rules with effective dates (§9.2) | ⚠️ Done differently (2.4.1), awaiting sign-off |
+| Split payments linked by ticket (§6.4) | 🟡 Each line keeps its ticket number; lines aren't linked in the UI |
+| Cash control per cashier and shift (§4.4) | 🟡 Shortfall report per shift and cashier from the imported closings; no in-app shift close |
+| SINPE reconciliation (§4.5) | 🔴 Not built; the files are available now |
+| Meterasa supplier settlement (§8.4, §10.3) | 🔴 Not built; supplier lines are kept apart by the import |
+| Cierre – Desglose diario report (§10.2) | 🔴 Not built; the files are available now |
+| Accountant comparison (§10.3, CA 20) | 🟡 Verified by an automated test against the November slips (2.9); no in-app comparison screen |
+| Roles: Cajera, Revisor, Contabilidad (§2.1) | ✅ Admin, Cashier, Accountant, enforced on every page and action; real users not invited yet |
+| Rules with effective dates (§9.2) | ✅ For commission rates (2.4.1) |
+| Product sales to customers and product closing (Brayan, Nov 2026) | ✅ Fixed commission per product, IVA on top, pending/paid, weekly or fortnightly, Excel |
+| Messages in Spanish and English | ✅ Every screen and every error message |
 
 **Spec acceptance cases (§13):**
 - **Covered by automated tests:** CA 01–12 (including CA 10, the salary-deduction flag) and CA 15–17.
 - **Need the product and Meterasa work:** CA 13–14.
-- **Need the import:** CA 18–19 and CA 27–29.
-- **Needs the accountant's files:** CA 20.
-- **Handled by frozen closings instead of dated rules:** CA 21–26.
+- **Covered by the import:** CA 18 (re-import replaces the day). CA 19 and CA 27–29 (SINPE and Desglose diario) aren't built.
+- **CA 20:** covered by the golden test, not by an in-app screen.
+- **CA 21, 23–26:** commission changes are dated; settings changes apply to open fortnights; closed ones never change.
 
-### 2.6 What's blocked, and on whom
+### 2.6 What's left, and on whom
 
-**On NOURA (Brayan).** This list was sent to him in Spanish as "Lo que necesitamos de usted para terminar":
-1. **Files:**
-   - Daily closings for 16–31 August 2026 together with the accountant's file for that fortnight. This is the most important item: it lets us check our figures against the accountant's to the céntimo.
-   - Reference closings for 12 September and 29 October.
-   - The accountant's other fortnight files.
-   - WeiBook catalogs for services and inventory, including the product amount per service.
-2. Decision A or B (2.7).
-3. Users: name, role and email for each person.
-4. The company's billing email.
+**On Marvin / NOURA (setup, in the app):**
+- Shop settings: card fee on the price with IVA; invoice email estilistascreativos@gmail.com.
+- Import 1–15 Nov from `docs/files/`, creating each professional; then set their settings (fixed rates, maintenance exemptions, Maicol's 50% IVA base, paid without IVA for Jorge, Raquel and Zoe, Brayan's salary deduction) and re-import with "Import again".
+- Products: commission per unit and "charge with IVA".
+- Invite Lesly, Karen and the accountant (as Members) and set their roles.
+- Check every screen in Spanish, in light and dark mode (not done visually yet).
 
-**On Marvin:**
-- Create a `cashier` role in Clerk.
-- Enter NOURA's setup in the app: payment-method fees, each barber's settlement settings, ID numbers, IBANs and aliases.
+**On Brayan:** confirm the decisions in 2.10.
 
-**On development, unblocked:** service received from a colleague (§8.2) and returns (§8.9).
+**On development, possible next:** SINPE reconciliation, Cierre – Desglose diario, Meterasa supplier settlement, returns (§8.9), product used inside a service (needs the WeiBook catalog), and an in-app cashier shift close (only if NOURA stops using the Excel closing).
 
 ### 2.7 Open questions for NOURA, with background
 

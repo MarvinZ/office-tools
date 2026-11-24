@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { MoreHorizontal } from "lucide-react";
 import { logWarrantyRedoAction, setActivityStatusAction } from "../actions";
 import type { ActivityListItem } from "@/services/barbers/activities";
+import { unwrap } from "@/lib/barbers/errors";
 
 type Mode = "menu" | "void" | "warranty";
 
@@ -105,12 +106,12 @@ export default function ActivityRowActions({
           {mode === "menu" && (
             <>
               {status === "active" && (
-                <button className={item} disabled={pending} onClick={() => run(() => setActivityStatusAction(activity.id, "courtesy"))}>
+                <button className={item} disabled={pending} onClick={() => run(() => unwrap(setActivityStatusAction(activity.id, "courtesy")))}>
                   {t("markCourtesy")}
                 </button>
               )}
               {status === "courtesy" && (
-                <button className={item} disabled={pending} onClick={() => run(() => setActivityStatusAction(activity.id, "active"))}>
+                <button className={item} disabled={pending} onClick={() => run(() => unwrap(setActivityStatusAction(activity.id, "active")))}>
                   {t("markNormal")}
                 </button>
               )}
@@ -120,7 +121,7 @@ export default function ActivityRowActions({
                 </button>
               )}
               {status === "voided" ? (
-                <button className={item} disabled={pending} onClick={() => run(() => setActivityStatusAction(activity.id, "active"))}>
+                <button className={item} disabled={pending} onClick={() => run(() => unwrap(setActivityStatusAction(activity.id, "active")))}>
                   {t("restore")}
                 </button>
               ) : (
@@ -142,7 +143,7 @@ export default function ActivityRowActions({
                 <button
                   className={primary}
                   disabled={pending || !reason.trim()}
-                  onClick={() => run(() => setActivityStatusAction(activity.id, "voided", reason))}
+                  onClick={() => run(() => unwrap(setActivityStatusAction(activity.id, "voided", reason)))}
                 >
                   {t("voidConfirm")}
                 </button>
@@ -173,7 +174,7 @@ export default function ActivityRowActions({
                 <button
                   className={primary}
                   disabled={pending}
-                  onClick={() => run(() => logWarrantyRedoAction(activity.id, corrector, reason))}
+                  onClick={() => run(() => unwrap(logWarrantyRedoAction(activity.id, corrector, reason)))}
                 >
                   {t("redoConfirm")}
                 </button>

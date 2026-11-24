@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { updateBarberPaymentDetailsAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 /**
  * Cédula and IBAN (for the bank transfer list) plus the other spellings of the
@@ -39,11 +40,11 @@ export default function BarberPaymentEditor({
     setError(null);
     startTransition(async () => {
       try {
-        await updateBarberPaymentDetailsAction(barberId, {
+        await unwrap(updateBarberPaymentDetailsAction(barberId, {
           idNumber,
           iban,
           aliases: aliases.split(","),
-        });
+        }));
         setDirty(false);
         router.refresh();
       } catch (e) {

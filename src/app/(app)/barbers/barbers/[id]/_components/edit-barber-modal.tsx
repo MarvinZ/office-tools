@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Pencil } from "lucide-react";
 import type { BarberWithRelations } from "@/services/barbers/barbers";
 import { updateBarberAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function EditBarberModal({ barber }: { barber: BarberWithRelations }) {
   const t = useTranslations("barbers");
@@ -24,14 +25,14 @@ export default function EditBarberModal({ barber }: { barber: BarberWithRelation
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      await updateBarberAction(barber.id, {
+      await unwrap(updateBarberAction(barber.id, {
         firstName,
         lastName,
         phone: phone || undefined,
         email: email || undefined,
         status,
         notes: notes || undefined,
-      });
+      }));
       router.refresh();
       setOpen(false);
     });

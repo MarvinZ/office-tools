@@ -7,6 +7,7 @@ import TipList from "./tip-list";
 import type { BarberRow } from "@/services/barbers/barbers";
 import type { TipWithBarberName } from "@/services/barbers/tips";
 import { todayBusinessDate } from "@/lib/barbers/dates";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function TipForm({
   barbers,
@@ -46,12 +47,12 @@ export default function TipForm({
 
     startTransition(async () => {
       try {
-        const row = await createTipAction({
+        const row = await unwrap(createTipAction({
           barberId,
           amount: parsedAmount,
           tipDate,
           note: note.trim() || undefined,
-        });
+        }));
 
         const barber = barbers.find((b) => b.id === row.barberId);
         setTips((prev) => [

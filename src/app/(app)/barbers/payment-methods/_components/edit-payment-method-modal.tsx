@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Pencil } from "lucide-react";
 import type { PaymentMethodRow } from "@/services/barbers/payment-methods";
 import { updatePaymentMethodAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function EditPaymentMethodModal({ paymentMethod }: { paymentMethod: PaymentMethodRow }) {
   const t = useTranslations("barbers");
@@ -23,11 +24,11 @@ export default function EditPaymentMethodModal({ paymentMethod }: { paymentMetho
     const rate = parseFloat(feeRate);
     if (Number.isNaN(rate)) return;
     startTransition(async () => {
-      await updatePaymentMethodAction(paymentMethod.id, {
+      await unwrap(updatePaymentMethodAction(paymentMethod.id, {
         name,
         feeRate: rate,
         status,
-      });
+      }));
       router.refresh();
       setOpen(false);
     });

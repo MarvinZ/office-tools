@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { LocationRow } from "@/services/barbers/locations";
 import { setBarberLocationsAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function BarberLocationsEditor({
   barberId,
@@ -29,7 +30,7 @@ export default function BarberLocationsEditor({
 
   function handleSave() {
     startTransition(async () => {
-      await setBarberLocationsAction(barberId, selected);
+      await unwrap(setBarberLocationsAction(barberId, selected));
       router.refresh();
       setDirty(false);
     });

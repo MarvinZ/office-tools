@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { createCustomerSaleAction } from "../actions";
 import { productSaleFigures } from "@/lib/barbers/product-commissions";
 import { fmtColones } from "@/lib/barbers/currency";
+import { unwrap } from "@/lib/barbers/errors";
 
 type ProductOption = { id: string; name: string; price: number; commissionAmount: number; chargesIva: boolean };
 
@@ -60,13 +61,13 @@ export default function CustomerSaleForm({
     }
     startTransition(async () => {
       try {
-        await createCustomerSaleAction({
+        await unwrap(createCustomerSaleAction({
           productId,
           quantity: qty,
           barberId: barberId || null,
           paymentMethodId: paymentMethodId || null,
           saleDate,
-        });
+        }));
         setSaved(true);
         setQuantity("1");
         router.refresh();

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Pencil } from "lucide-react";
 import type { ServiceRow } from "@/services/barbers/catalog";
 import { updateServiceAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function EditServiceModal({ service }: { service: ServiceRow }) {
   const t = useTranslations("barbers");
@@ -24,12 +25,12 @@ export default function EditServiceModal({ service }: { service: ServiceRow }) {
     const rate = parseFloat(defaultCommissionRate);
     if (Number.isNaN(rate)) return;
     startTransition(async () => {
-      await updateServiceAction(service.id, {
+      await unwrap(updateServiceAction(service.id, {
         name,
         category: category || undefined,
         defaultCommissionRate: rate,
         status,
-      });
+      }));
       router.refresh();
       setOpen(false);
     });

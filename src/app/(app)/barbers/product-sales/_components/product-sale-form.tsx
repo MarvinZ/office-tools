@@ -9,6 +9,7 @@ import type { BarberRow } from "@/services/barbers/barbers";
 import type { ProductRow } from "@/services/barbers/products";
 import type { ProductSaleWithDetails } from "@/services/barbers/product-sales";
 import { todayBusinessDate } from "@/lib/barbers/dates";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function ProductSaleForm({
   barbers,
@@ -73,13 +74,13 @@ export default function ProductSaleForm({
 
     startTransition(async () => {
       try {
-        const row = await createProductSaleAction({
+        const row = await unwrap(createProductSaleAction({
           barberId,
           productId,
           quantity: parsedQuantity,
           saleDate,
           note: note.trim() || undefined,
-        });
+        }));
 
         const barber = barbers.find((b) => b.id === row.barberId);
         const product = products.find((p) => p.id === row.productId);

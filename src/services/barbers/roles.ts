@@ -6,6 +6,7 @@ import { barberMemberRoles } from "@/db/schema";
 import { requireTenant, type TenantRow } from "@/services/tenants";
 import { getOrgMembers } from "@/lib/clerk-admin";
 import { BARBERS_ROLES, canAny, homeOf, type BarbersArea, type BarbersRole } from "@/lib/barbers/permissions";
+import { BarbersError } from "@/lib/barbers/errors";
 
 /**
  * The signed-in person's role in Barbers. An assigned role (set by an admin)
@@ -13,7 +14,7 @@ import { BARBERS_ROLES, canAny, homeOf, type BarbersArea, type BarbersRole } fro
  */
 export async function getMyBarbersRole(tenant?: TenantRow): Promise<{ role: BarbersRole; userId: string; tenant: TenantRow }> {
   const [{ userId, orgRole }, t] = await Promise.all([auth(), tenant ? Promise.resolve(tenant) : requireTenant()]);
-  if (!userId) throw new Error("Not authenticated.");
+  if (!userId) throw new BarbersError("notAuthenticated");
   const [row] = await db
     .select({ role: barberMemberRoles.role })
     .from(barberMemberRoles)
@@ -26,7 +27,7 @@ export async function getMyBarbersRole(tenant?: TenantRow): Promise<{ role: Barb
 /** For server actions and routes: throws unless the role covers one of `areas`. */
 export async function requireBarbersAccess(areas: BarbersArea[]) {
   const me = await getMyBarbersRole();
-  if (!canAny(me.role, areas)) throw new Error("You don't have permission to do this.");
+  if (!canAny(me.role, areas)) throw new BarbersError("forbidden");
   return me;
 }
 
@@ -71,10 +72,10 @@ export async function listBarbersMembers(tenant: TenantRow): Promise<BarbersMemb
 
 /** Set someone's role. Admins can't change their own (no locking yourself out). */
 export async function setMemberRole(tenant: TenantRow, adminUserId: string, userId: string, role: BarbersRole) {
-  if (!BARBERS_ROLES.includes(role)) throw new Error("Unknown role.");
-  if (userId === adminUserId) throw new Error("You can't change your own role.");
+  if (!BARBERS_ROLES.includes(role)) throw new BarbersError("invalidInput");
+  if (userId === adminUserId) throw new BarbersError("ownRole");
   const members = await getOrgMembers(tenant.clerkOrgId);
-  if (!members.some((m) => m.publicUserData?.userId === userId)) throw new Error("That person isn't in this organization.");
+  if (!members.some((m) => m.publicUserData?.userId === userId)) throw new BarbersError("notInOrganization");
   const [before] = await db
     .select({ role: barberMemberRoles.role })
     .from(barberMemberRoles)

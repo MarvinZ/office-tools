@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createProductAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 export default function CreateProductModal() {
   const t = useTranslations("barbers");
@@ -30,7 +31,7 @@ export default function CreateProductModal() {
     if (!Number.isFinite(parsedCommission) || parsedCommission < 0 || parsedCommission > parsedPrice) return;
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) return;
     startTransition(async () => {
-      await createProductAction({ name, price: parsedPrice, commissionAmount: parsedCommission, chargesIva, status: "active" });
+      await unwrap(createProductAction({ name, price: parsedPrice, commissionAmount: parsedCommission, chargesIva, status: "active" }));
       router.refresh();
       resetAndClose();
     });

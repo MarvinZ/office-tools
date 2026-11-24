@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { updateBarberSettlementProfileAction } from "../actions";
+import { unwrap } from "@/lib/barbers/errors";
 
 /**
  * How this barber is paid at settlement time. Each field maps 1:1 to an input
@@ -66,14 +67,14 @@ export default function BarberSettlementEditor({
     }
     startTransition(async () => {
       try {
-        await updateBarberSettlementProfileAction(barberId, {
+        await unwrap(updateBarberSettlementProfileAction(barberId, {
           appliesMaintenance,
           ivaBaseRate: pct / 100,
           ivaInformative,
           fortnightlyAddition: amount,
           shortfallToSalary,
           fixedCommissionRate: fixed != null ? fixed / 100 : null,
-        });
+        }));
         setDirty(false);
         router.refresh();
       } catch (e) {
