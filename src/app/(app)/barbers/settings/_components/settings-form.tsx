@@ -17,6 +17,8 @@ export default function SettingsForm({ initial }: { initial: BarberSettings }) {
 
   const [ivaPct, setIvaPct] = useState(String(Math.round(initial.ivaRate * 10000) / 100));
   const [fee, setFee] = useState(String(initial.maintenanceDailyFee));
+  const [cardFeeOnGross, setCardFeeOnGross] = useState(initial.cardFeeOnGross);
+  const [invoiceEmail, setInvoiceEmail] = useState(initial.invoiceEmail ?? "");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,11 +36,16 @@ export default function SettingsForm({ initial }: { initial: BarberSettings }) {
     }
     startTransition(async () => {
       try {
-        await updateBarberSettingsAction({ ivaRate: pct / 100, maintenanceDailyFee: amount });
+        await updateBarberSettingsAction({
+          ivaRate: pct / 100,
+          maintenanceDailyFee: amount,
+          cardFeeOnGross,
+          invoiceEmail: invoiceEmail.trim() || null,
+        });
         setSaved(true);
         router.refresh();
-      } catch {
-        setError(t("settingsPage.errorSaveFailed"));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t("settingsPage.errorSaveFailed"));
       }
     });
   }
@@ -61,6 +68,46 @@ export default function SettingsForm({ initial }: { initial: BarberSettings }) {
         <label className={labelCls}>{t("settingsPage.fieldMaintenanceFee")} (₡)</label>
         <input type="number" min="0" step="0.01" required value={fee} onChange={(e) => setFee(e.target.value)} className={inputCls} />
         <p className="mt-1 text-xs text-zinc-400">{t("settingsPage.fieldMaintenanceFeeHint")}</p>
+      </div>
+      <fieldset className="flex flex-col gap-2">
+        <legend className={labelCls}>{t("settingsPage.fieldCardFeeBasis")}</legend>
+        <label className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <input
+            type="radio"
+            name="cardFeeBasis"
+            checked={cardFeeOnGross}
+            onChange={() => setCardFeeOnGross(true)}
+            className="mt-1"
+          />
+          <span>
+            {t("settingsPage.cardFeeOnGross")}
+            <span className="block text-xs text-zinc-400">{t("settingsPage.cardFeeOnGrossHint")}</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <input
+            type="radio"
+            name="cardFeeBasis"
+            checked={!cardFeeOnGross}
+            onChange={() => setCardFeeOnGross(false)}
+            className="mt-1"
+          />
+          <span>
+            {t("settingsPage.cardFeeOnBase")}
+            <span className="block text-xs text-zinc-400">{t("settingsPage.cardFeeOnBaseHint")}</span>
+          </span>
+        </label>
+      </fieldset>
+      <div>
+        <label className={labelCls} htmlFor="invoiceEmail">{t("settingsPage.fieldInvoiceEmail")}</label>
+        <input
+          id="invoiceEmail"
+          type="email"
+          value={invoiceEmail}
+          onChange={(e) => setInvoiceEmail(e.target.value)}
+          className={inputCls}
+        />
+        <p className="mt-1 text-xs text-zinc-400">{t("settingsPage.fieldInvoiceEmailHint")}</p>
       </div>
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

@@ -14,12 +14,14 @@ export type SettlementDocLineKey =
   | "cardFee"
   | "maintenance"
   | "productCredit"
+  | "servicesReceived"
   | "vales"
   | "carryOver"
   | "warrantyClawback"
   | "net"
   | "iva"
   | "invoice"
+  | "nonInvoiced"
   | "tips"
   | "transfer";
 
@@ -31,22 +33,37 @@ export type SettlementDocLine = {
   strong?: boolean;
 };
 
-export function settlementDocLines(s: BarberSettlement): SettlementDocLine[] {
+/**
+ * `audience`: "internal" (default) shows everything. "receipt" is what the
+ * professional receives: for someone paid without IVA the IVA line is left out
+ * entirely, so they only see what they're paid (Brayan, Nov 2026); the
+ * calculated IVA stays in the internal views.
+ */
+export function settlementDocLines(
+  s: BarberSettlement,
+  audience: "internal" | "receipt" = "internal"
+): SettlementDocLine[] {
   const lines: SettlementDocLine[] = [{ key: "serviceIncome", amount: s.serviceIncome, sign: "+" }];
   if (s.addition !== 0) lines.push({ key: "addition", amount: s.addition, sign: "+" });
   lines.push(
     { key: "cardFee", amount: s.cardFee, sign: "−" },
     { key: "maintenance", amount: s.maintenance, sign: "−" },
     { key: "productCredit", amount: s.productCredit, sign: "−" },
+    ...(s.servicesReceived !== 0
+      ? [{ key: "servicesReceived" as const, amount: s.servicesReceived, sign: "−" as const }]
+      : []),
     { key: "vales", amount: s.vales, sign: "−" },
     ...(s.carryOver !== 0 ? [{ key: "carryOver" as const, amount: s.carryOver, sign: "−" as const }] : []),
     ...(s.warrantyClawback !== 0
       ? [{ key: "warrantyClawback" as const, amount: s.warrantyClawback, sign: "−" as const }]
       : []),
     { key: "net", amount: s.net, sign: "=" },
-    // Informative IVA is shown but not added — the invoice line makes that visible.
-    { key: "iva", amount: s.iva, sign: s.ivaInformative ? "=" : "+" },
+    // Informative IVA is shown but not added — internal views only.
+    ...(audience === "receipt" && s.ivaInformative
+      ? []
+      : [{ key: "iva" as const, amount: s.iva, sign: (s.ivaInformative ? "=" : "+") as "=" | "+" }]),
     { key: "invoice", amount: s.invoice, sign: "=" },
+    ...(s.nonInvoiced !== 0 ? [{ key: "nonInvoiced" as const, amount: s.nonInvoiced, sign: "+" as const }] : []),
     { key: "tips", amount: s.tips, sign: "+" },
     { key: "transfer", amount: s.transfer, sign: "=", strong: true }
   );
@@ -82,8 +99,8 @@ export type WorkbookLabels = {
 };
 
 const SUMMARY_KEYS = [
-  "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver",
-  "warrantyClawback", "net", "iva", "invoice", "tips", "transfer",
+  "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "servicesReceived", "vales", "carryOver",
+  "warrantyClawback", "net", "iva", "invoice", "nonInvoiced", "tips", "transfer",
 ] as const;
 
 const MONEY = "#,##0.00";

@@ -11,7 +11,7 @@ export async function updateBarberSettingsAction(data: BarberSettings) {
   if (!user) throw new Error("Not authenticated.");
   const before = await getBarberSettings(tenant.id);
   const after = await updateBarberSettings(tenant.id, user.id, data);
-  const changes = diffFields(before, after, ["ivaRate", "maintenanceDailyFee"]);
+  const changes = diffFields(before, after, ["ivaRate", "maintenanceDailyFee", "cardFeeOnGross", "invoiceEmail"]);
   if (Object.keys(changes).length > 0) {
     await auditBarbers(tenant.id, user.id, "settings.updated", { changes });
   }

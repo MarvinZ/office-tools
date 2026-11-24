@@ -22,7 +22,7 @@ export type BarberEffectiveRate = {
   category: string | null;
   defaultCommissionRate: number;
   commissionRate: number; // effective rate: override if present, else default
-  source: "override" | "default";
+  source: "override" | "barber" | "default";
 };
 
 export type BarberWithRelations = BarberRow & {
@@ -173,6 +173,7 @@ export type BarberSettlementProfileInput = {
   ivaInformative: boolean;
   fortnightlyAddition: number; // ≥ 0
   shortfallToSalary: boolean;
+  fixedCommissionRate: number | null; // 0–1, null = by service / closing
 };
 
 export async function updateBarberSettlementProfile(
@@ -186,6 +187,9 @@ export async function updateBarberSettlementProfile(
   if (!Number.isFinite(data.fortnightlyAddition) || data.fortnightlyAddition < 0) {
     throw new Error("Fortnightly addition must be zero or a positive amount.");
   }
+  if (data.fixedCommissionRate != null && (!Number.isFinite(data.fixedCommissionRate) || data.fixedCommissionRate <= 0 || data.fixedCommissionRate > 1)) {
+    throw new Error("Fixed commission rate must be above 0% and at most 100%.");
+  }
 
   const [row] = await db
     .update(barbers)
@@ -195,6 +199,7 @@ export async function updateBarberSettlementProfile(
       ivaInformative: data.ivaInformative,
       fortnightlyAddition: String(data.fortnightlyAddition),
       shortfallToSalary: data.shortfallToSalary,
+      fixedCommissionRate: data.fixedCommissionRate != null ? String(data.fixedCommissionRate) : null,
       updatedAt: new Date(),
     })
     .where(and(eq(barbers.tenantId, tenantId), eq(barbers.id, id)))

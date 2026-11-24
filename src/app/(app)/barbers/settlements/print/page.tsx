@@ -76,7 +76,7 @@ export default async function SettlementPrintPage({
 
           <table className="w-full text-sm">
             <tbody>
-              {settlementDocLines(d).map((l) => (
+              {settlementDocLines(d, "receipt").map((l) => (
                 <tr
                   key={l.key}
                   className={`border-t border-zinc-100 dark:border-zinc-800 print:border-zinc-200 ${l.strong ? "text-base font-semibold" : ""}`}
@@ -110,7 +110,12 @@ export default async function SettlementPrintPage({
             </p>
           )}
 
-          <p className="mt-6 text-xs text-zinc-500">{t("settlementDoc.footer")}</p>
+          {effective.settings.invoiceEmail && (
+            <p className="mt-6 text-sm">
+              {t("settlementDoc.sendInvoiceTo")} <strong>{effective.settings.invoiceEmail}</strong>
+            </p>
+          )}
+          <p className="mt-2 text-xs text-zinc-500">{t("settlementDoc.footer")}</p>
         </section>
       ))}
     </div>

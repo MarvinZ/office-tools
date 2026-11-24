@@ -26,7 +26,7 @@ export type BarberSettlementRow = BarberSettlement & {
 
 /** Numeric fields of a settlement that are meaningful to total across barbers. */
 const SUMMABLE = [
-  "grossCharged", "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "vales", "carryOver", "warrantyClawback",
+  "grossCharged", "serviceIncome", "addition", "cardFee", "maintenance", "productCredit", "servicesReceived", "vales", "carryOver", "warrantyClawback", "nonInvoiced",
   "totalExpenses", "net", "iva", "ivaPaid", "invoice", "tips", "transfer", "shortfall",
 ] as const;
 export type SettlementTotals = Record<(typeof SUMMABLE)[number], number> & { serviceCount: number };
@@ -106,7 +106,7 @@ export async function getFortnightSettlements(
       .from(barberActivities)
       .where(inPeriod),
     db
-      .select({ barberId: barberVouchers.barberId, amount: barberVouchers.amount })
+      .select({ barberId: barberVouchers.barberId, amount: barberVouchers.amount, category: barberVouchers.category })
       .from(barberVouchers)
       .where(and(eq(barberVouchers.tenantId, tenantId), gte(barberVouchers.issuedDate, from), lte(barberVouchers.issuedDate, to))),
     db
@@ -142,7 +142,11 @@ export async function getFortnightSettlements(
     const input = inputFor(c.barberId);
     (input.warrantyClawbacks ??= []).push({ priceCharged: c.priceCharged, commissionRate: c.commissionRate });
   }
-  for (const v of valeRows) inputFor(v.barberId).vales.push(v.amount);
+  for (const v of valeRows) {
+    const input = inputFor(v.barberId);
+    if (v.category === "service_received") (input.servicesReceived ??= []).push(v.amount);
+    else input.vales.push(v.amount);
+  }
   for (const s of saleRows) inputFor(s.barberId).productCredit.push(s.amount);
   for (const t of tipRows) inputFor(t.barberId).tips.push(t.amount);
   for (const c of carryOverRows) inputFor(c.barberId).carryOver = c.amount;
@@ -223,14 +227,32 @@ function readSnapshot(raw: unknown): FortnightSettlements {
       ...r,
       carryOver: r.carryOver ?? 0,
       warrantyClawback: r.warrantyClawback ?? 0,
+      servicesReceived: r.servicesReceived ?? 0,
+      nonInvoiced: r.nonInvoiced ?? 0,
       shortfallToSalary: r.shortfallToSalary ?? false,
       byRate: r.byRate ?? [],
     })),
-    totals: { ...s.totals, carryOver: s.totals.carryOver ?? 0, warrantyClawback: s.totals.warrantyClawback ?? 0 },
+    totals: {
+      ...s.totals,
+      carryOver: s.totals.carryOver ?? 0,
+      warrantyClawback: s.totals.warrantyClawback ?? 0,
+      servicesReceived: s.totals.servicesReceived ?? 0,
+      nonInvoiced: s.totals.nonInvoiced ?? 0,
+    },
+    settings: {
+      ...s.settings,
+      cardFeeOnGross: s.settings.cardFeeOnGross ?? false,
+      invoiceEmail: s.settings.invoiceEmail ?? null,
+    },
   };
 }
 
 /** The fortnight's current (not reopened) closing row, if any. */
+/** Whether the fortnight currently has a (not reopened) closing. */
+export async function isFortnightClosed(tenantId: string, fortnight: Fortnight): Promise<boolean> {
+  return (await getCurrentClosing(tenantId, fortnight)) !== null;
+}
+
 async function getCurrentClosing(tenantId: string, fortnight: Fortnight) {
   const [row] = await db
     .select()

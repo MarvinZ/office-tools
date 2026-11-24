@@ -4,6 +4,7 @@ import {
   normalizePaymentMethod,
   normalizeRate,
   normalizeText,
+  excelSerialToDate,
   type ClosingPaymentMethod,
 } from "./normalize";
 
@@ -44,21 +45,42 @@ export type FacturacionRow = {
 };
 
 export type FacturacionParseResult =
-  | { ok: true; rows: FacturacionRow[] }
+  | {
+      ok: true;
+      rows: FacturacionRow[];
+      /** The date the cashier typed in B3 (often yesterday's, when a file is copied). */
+      internalDate: string | null;
+      /** The sheet's own "TOTAL FACTURACION" figure, to check the parse against. */
+      sheetTotal: number | null;
+    }
   | { ok: false; error: "sheet_not_found"; sheetNames: string[] };
 
 function cellText(value: unknown): string {
   return value == null ? "" : String(value).trim();
 }
 
+/**
+ * The shop opens in the morning, so an hour before this is an afternoon time
+ * typed on a 12-hour clock without "pm" (real files store 1:24 pm as 01:24).
+ */
+const FIRST_OPENING_HOUR = 7;
+
 /** Excel stores times as a fraction of a day; cashiers may also type "14:30". */
 function normalizeTime(value: unknown): string | null {
+  let hours: number;
+  let minutes: number;
   if (typeof value === "number" && Number.isFinite(value)) {
-    const minutes = Math.round((value % 1) * 24 * 60);
-    return `${String(Math.floor(minutes / 60) % 24).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const total = Math.round((value % 1) * 24 * 60);
+    hours = Math.floor(total / 60) % 24;
+    minutes = total % 60;
+  } else {
+    const m = /^(\d{1,2})[:.](\d{2})/.exec(cellText(value));
+    if (!m) return null;
+    hours = Number(m[1]);
+    minutes = Number(m[2]);
   }
-  const m = /^(\d{1,2})[:.](\d{2})/.exec(cellText(value));
-  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : null;
+  if (hours < FIRST_OPENING_HOUR) hours += 12;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 function findSheet(workbook: XLSX.WorkBook): XLSX.WorkSheet | null {
@@ -80,12 +102,16 @@ export function parseFacturacion(workbook: XLSX.WorkBook): FacturacionParseResul
   });
 
   const rows: FacturacionRow[] = [];
+  let sheetTotal: number | null = null;
   raw.forEach((r, i) => {
     const personRaw = cellText(r.C);
     const description = cellText(r.D);
     const amountCell = r.E;
     if (!personRaw && !description && (amountCell == null || amountCell === "")) return;
-    if (normalizeText(personRaw).startsWith("TOTAL") || normalizeText(description).startsWith("TOTAL")) return;
+    if (normalizeText(personRaw).startsWith("TOTAL") || normalizeText(description).startsWith("TOTAL")) {
+      if (sheetTotal == null) sheetTotal = normalizeAmount(amountCell);
+      return;
+    }
 
     const amount = normalizeAmount(amountCell);
     const rateRaw = cellText(r.F);
@@ -114,5 +140,5 @@ export function parseFacturacion(workbook: XLSX.WorkBook): FacturacionParseResul
     });
   });
 
-  return { ok: true, rows };
+  return { ok: true, rows, internalDate: excelSerialToDate(sheet["B3"]?.v), sheetTotal };
 }

@@ -86,10 +86,32 @@ export function matchPerson(written: unknown, candidates: AliasCandidate[]): str
  * and extra spaces; returns null if no valid date is found.
  */
 export function dateFromClosingFileName(fileName: string): string | null {
-  const m = /(\d{1,2})[-./](\d{1,2})[-./](\d{4})/.exec(fileName);
+  // Real files: "CIERRE 15-11- 2026.xlsx", "CIERRE-13-11-2026.xlsx", "CIERRE 7-11- 2026.xlsx".
+  const m = /(\d{1,2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{4})/.exec(fileName);
   if (!m) return null;
   const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const date = new Date(Date.UTC(y, mo - 1, d));
   if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d) return null;
   return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** Excel date serial (1900 system) → "YYYY-MM-DD"; null for anything else. */
+export function excelSerialToDate(value: unknown): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 1 || value > 2958465) return null;
+  return new Date(Math.round((value - 25569) * 86400000)).toISOString().slice(0, 10);
+}
+
+/**
+ * Which closing payment method a tenant's payment-method *name* stands for
+ * ("Cash" / "Efectivo" → EFECTIVO, "Credit Card" / "Tarjeta" → TARJETA…).
+ * Card is checked before credit so "Credit Card" isn't read as CREDITO.
+ */
+export function paymentMethodCodeOfName(name: string): ClosingPaymentMethod | null {
+  const v = normalizeText(name);
+  if (/TARJ|CARD|DATAF/.test(v)) return "TARJETA";
+  if (v.includes("SINPE")) return "SINPE MOVIL";
+  if (/EFECT|CASH/.test(v)) return "EFECTIVO";
+  if (v.startsWith("CRED")) return "CREDITO";
+  if (v.startsWith("PEND")) return "PENDIENTE";
+  return null;
 }

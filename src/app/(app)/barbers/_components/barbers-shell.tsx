@@ -19,6 +19,7 @@ import {
   Calculator,
   SlidersHorizontal,
   History,
+  FileUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -29,6 +30,7 @@ const OPERATION_TABS = [
   { href: "/barbers/product-sales", labelKey: "tabProductSales", icon: ShoppingCart, exact: false },
   { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins, exact: false },
   { href: "/barbers/settlements", labelKey: "tabSettlements", icon: Calculator, exact: false },
+  { href: "/barbers/imports", labelKey: "tabImports", icon: FileUp, exact: false },
   { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3, exact: false },
 ] as const;
 

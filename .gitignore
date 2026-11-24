@@ -45,3 +45,5 @@ next-env.d.ts
 
 # Real client sample files (personal/bank data) — never commit
 fixtures/noura/
+# NOURA client files (personal and bank data) kept under docs for reference — never commit.
+docs/files/

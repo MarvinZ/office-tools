@@ -77,11 +77,14 @@ export async function listProductSales(
       tenantId: productSales.tenantId,
       barberId: productSales.barberId,
       productId: productSales.productId,
+      description: productSales.description,
       quantity: productSales.quantity,
       unitPrice: productSales.unitPrice,
       totalAmount: productSales.totalAmount,
       saleDate: productSales.saleDate,
       note: productSales.note,
+      closingFileId: productSales.closingFileId,
+      sourceRow: productSales.sourceRow,
       createdBy: productSales.createdBy,
       createdAt: productSales.createdAt,
       firstName: barbers.firstName,
@@ -90,12 +93,14 @@ export async function listProductSales(
     })
     .from(productSales)
     .innerJoin(barbers, eq(barbers.id, productSales.barberId))
-    .innerJoin(products, eq(products.id, productSales.productId))
+    // Imported credit sales have no catalog product, only the closing's text.
+    .leftJoin(products, eq(products.id, productSales.productId))
     .where(and(...conditions))
     .orderBy(desc(productSales.saleDate), desc(productSales.createdAt));
 
-  return rows.map(({ firstName, lastName, ...row }) => ({
+  return rows.map(({ firstName, lastName, productName, ...row }) => ({
     ...row,
+    productName: productName ?? row.description ?? "",
     barberName: `${firstName} ${lastName}`,
   }));
 }

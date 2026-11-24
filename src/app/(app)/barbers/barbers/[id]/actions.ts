@@ -84,7 +84,7 @@ export async function updateBarberSettlementProfileAction(id: string, data: Barb
   await auditedBarberUpdate(
     id,
     "barber.settlementProfile",
-    ["appliesMaintenance", "ivaBaseRate", "ivaInformative", "fortnightlyAddition", "shortfallToSalary"],
+    ["appliesMaintenance", "ivaBaseRate", "ivaInformative", "fortnightlyAddition", "shortfallToSalary", "fixedCommissionRate"],
     (tenantId) => updateBarberSettlementProfile(tenantId, id, data)
   );
   revalidatePath(`/barbers/barbers/${id}`);

@@ -21,6 +21,7 @@ export default function BarberSettlementEditor({
     ivaInformative: boolean;
     fortnightlyAddition: string;
     shortfallToSalary: boolean;
+    fixedCommissionRate: string | null;
   };
 }) {
   const t = useTranslations("barbers");
@@ -35,6 +36,9 @@ export default function BarberSettlementEditor({
   const [ivaInformative, setIvaInformative] = useState(initial.ivaInformative);
   const [addition, setAddition] = useState(String(parseFloat(initial.fortnightlyAddition)));
   const [shortfallToSalary, setShortfallToSalary] = useState(initial.shortfallToSalary);
+  const [fixedPct, setFixedPct] = useState(
+    initial.fixedCommissionRate != null ? String(Math.round(parseFloat(initial.fixedCommissionRate) * 10000) / 100) : ""
+  );
 
   function change<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -55,6 +59,11 @@ export default function BarberSettlementEditor({
       setError(t("settlementProfile.errorAddition"));
       return;
     }
+    const fixed = fixedPct.trim() === "" ? null : parseFloat(fixedPct);
+    if (fixed != null && (Number.isNaN(fixed) || fixed <= 0 || fixed > 100)) {
+      setError(t("settlementProfile.errorFixedRate"));
+      return;
+    }
     startTransition(async () => {
       try {
         await updateBarberSettlementProfileAction(barberId, {
@@ -63,6 +72,7 @@ export default function BarberSettlementEditor({
           ivaInformative,
           fortnightlyAddition: amount,
           shortfallToSalary,
+          fixedCommissionRate: fixed != null ? fixed / 100 : null,
         });
         setDirty(false);
         router.refresh();
@@ -116,7 +126,24 @@ export default function BarberSettlementEditor({
         </span>
       </label>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-8">
+        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+          {t("settlementProfile.fixedRate")}
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              placeholder="—"
+              value={fixedPct}
+              onChange={(e) => change(setFixedPct)(e.target.value)}
+              className={inputCls}
+            />
+            <span className="text-zinc-400">%</span>
+          </div>
+          <span className="max-w-xs text-xs text-zinc-400">{t("settlementProfile.fixedRateHint")}</span>
+        </label>
         <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
           {t("settlementProfile.ivaBase")}
           <div className="flex items-center gap-1">

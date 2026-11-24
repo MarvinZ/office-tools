@@ -52,6 +52,9 @@ export default async function SettlementsPage({
     { key: "cardFee", label: t("settlements.colCardFee"), deduction: true },
     { key: "maintenance", label: t("settlements.colMaintenance"), deduction: true },
     { key: "productCredit", label: t("settlements.colProductCredit"), deduction: true },
+    ...(totals.servicesReceived > 0
+      ? [{ key: "servicesReceived" as const, label: t("settlements.colServicesReceived"), deduction: true }]
+      : []),
     { key: "vales", label: t("settlements.colVales"), deduction: true },
     // Only when someone actually carries a balance in — keeps the table narrow.
     ...(totals.carryOver > 0 ? [{ key: "carryOver" as const, label: t("settlements.colCarryOver"), deduction: true }] : []),
@@ -61,6 +64,7 @@ export default async function SettlementsPage({
     { key: "net", label: t("settlements.colNet") },
     { key: "iva", label: t("settlements.colIva") },
     { key: "invoice", label: t("settlements.colInvoice") },
+    ...(totals.nonInvoiced > 0 ? [{ key: "nonInvoiced" as const, label: t("settlements.colNonInvoiced") }] : []),
     { key: "tips", label: t("settlements.colTips") },
     { key: "transfer", label: t("settlements.colTransfer"), strong: true },
   ];

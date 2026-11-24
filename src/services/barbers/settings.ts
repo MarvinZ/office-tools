@@ -5,6 +5,8 @@ import { barberSettings } from "@/db/schema";
 export type BarberSettings = {
   ivaRate: number; // 0.13
   maintenanceDailyFee: number; // ₡ per day worked
+  cardFeeOnGross: boolean; // card fee on the IVA-included price (see schema)
+  invoiceEmail: string | null; // "send your electronic invoice to", on settlements
 };
 
 /**
@@ -21,6 +23,8 @@ export async function getBarberSettings(tenantId: string): Promise<BarberSetting
   return {
     ivaRate: parseFloat(row.ivaRate),
     maintenanceDailyFee: parseFloat(row.maintenanceDailyFee),
+    cardFeeOnGross: row.cardFeeOnGross,
+    invoiceEmail: row.invoiceEmail,
   };
 }
 
@@ -36,9 +40,16 @@ export async function updateBarberSettings(
     throw new Error("Maintenance fee must be zero or a positive amount.");
   }
 
+  const invoiceEmail = data.invoiceEmail?.trim() || null;
+  if (invoiceEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invoiceEmail)) {
+    throw new Error("The invoice email doesn't look valid.");
+  }
+
   const values = {
     ivaRate: String(data.ivaRate),
     maintenanceDailyFee: String(data.maintenanceDailyFee),
+    cardFeeOnGross: data.cardFeeOnGross,
+    invoiceEmail,
     updatedBy,
     updatedAt: new Date(),
   };
@@ -47,5 +58,5 @@ export async function updateBarberSettings(
     .values({ tenantId, ...values })
     .onConflictDoUpdate({ target: barberSettings.tenantId, set: values });
 
-  return { ivaRate: data.ivaRate, maintenanceDailyFee: data.maintenanceDailyFee };
+  return { ...data, invoiceEmail };
 }
