@@ -295,6 +295,20 @@ export async function logActivityBatch(
   data: LogActivityBatchInput
 ): Promise<BarberActivityRow[]> {
   if (data.lines.length === 0) throw new BarbersError("emptyBatch");
+  const values = await prepareActivityBatch(tenantId, createdBy, data);
+  // One statement — see the transaction note above.
+  return db.insert(barberActivities).values(values).returning();
+}
+
+/**
+ * Validate a batch and build its rows without writing them, so a caller can
+ * write them together with other rows in one db.batch (a mixed ticket).
+ */
+export async function prepareActivityBatch(
+  tenantId: string,
+  createdBy: string,
+  data: LogActivityBatchInput
+): Promise<(typeof barberActivities.$inferInsert)[]> {
 
   // Validate the shared refs (barber, location, payment method) once.
   await assertActivityRefsBelongToTenant(
@@ -353,9 +367,7 @@ export async function logActivityBatch(
       createdBy,
     };
   });
-
-  // One statement — see the transaction note above.
-  return db.insert(barberActivities).values(values).returning();
+  return values;
 }
 
 export type ListActivitiesFilter = {

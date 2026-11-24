@@ -15,6 +15,7 @@ import { eq } from "drizzle-orm";
 import LocationGate from "./_components/location-gate";
 import RosterChecklist from "./_components/roster-checklist";
 import ActivityEntryForm from "./_components/activity-entry-form";
+import { listProducts } from "@/services/barbers/products";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function BarbersLogPage({
 
   const today = todayBusinessDate();
 
-  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows, settings] = await Promise.all([
+  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows, settings, allProducts] = await Promise.all([
     listBarbersAtLocation(tenant.id, selectedLocation.id),
     listServices(tenant.id),
     listPaymentMethods(tenant.id),
@@ -72,6 +73,7 @@ export default async function BarbersLogPage({
     }),
     db.select().from(locationServices).where(eq(locationServices.tenantId, tenant.id)),
     getBarberSettings(tenant.id),
+    listProducts(tenant.id),
   ]);
 
   const activeServices = allServices.filter((s) => s.status === "active");
@@ -123,6 +125,15 @@ export default async function BarbersLogPage({
         effectiveRateMap={effectiveRateMap}
         initialActivities={todaysActivities}
         ivaRate={settings.ivaRate}
+        products={allProducts
+          .filter((p) => p.status === "active")
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            price: Number(p.price),
+            commissionAmount: Number(p.commissionAmount),
+            chargesIva: p.chargesIva,
+          }))}
       />
     </div>
   );

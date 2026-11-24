@@ -893,7 +893,21 @@
       "submitAllButton": "Registrar {count, plural, one {# servicio} other {# servicios}}",
       "noPaymentMethods": "No hay métodos de pago activos. Agregá uno desde la pestaña Métodos de pago primero.",
       "colPaymentMethod": "Pago",
-      "errorEmptyCart": "Agregá al menos un servicio antes de registrar."
+      "errorEmptyCart": "Agregá al menos un servicio antes de registrar.",
+      "productsTitle": "Productos en esta factura",
+      "addProduct": "Agregar un producto…",
+      "iva": "IVA",
+      "quantity": "Cantidad",
+      "commissionTo": "Comisión para",
+      "commissionToTicketBarber": "El barbero de la factura",
+      "noCommission": "Sin comisión",
+      "servicesSubtotal": "Servicios",
+      "productsSubtotal": "Productos",
+      "productsIvaIncluded": "IVA de productos (incluido)",
+      "totalToCharge": "Total a cobrar",
+      "productCommission": "Comisión de productos",
+      "submitTicketButton": "{count, plural, =0 {Registrar} one {Registrar # línea} other {Registrar # líneas}}",
+      "ticketSaved": "Registrado: {services, plural, one {# servicio} other {# servicios}} y {products, plural, one {# producto} other {# productos}}."
     },
     "barbersPage": {
       "title": "Barberos",
