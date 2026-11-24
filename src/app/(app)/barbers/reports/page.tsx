@@ -37,7 +37,7 @@ export default async function ReportsPage({
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
       <div>
         <h1 className="text-2xl font-semibold text-black dark:text-white">{t("reportsPage.title")}</h1>
         <p className="mt-1 text-sm text-zinc-500">{t("reportsPage.subtitle")}</p>

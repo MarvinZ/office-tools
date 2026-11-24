@@ -23,7 +23,7 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
   const address = [location.addressStreet, location.addressCity, location.addressState, location.addressZip, location.addressCountry].filter(Boolean).join(", ");
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10">
       <div className="flex items-center gap-2 text-sm text-zinc-400">
         <Link href="/barbers/locations" className="hover:text-black dark:hover:text-white">{t("locationsPage.title")}</Link>
         <span>›</span>

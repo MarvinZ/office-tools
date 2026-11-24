@@ -833,7 +833,7 @@
     }
   },
   "barbers": {
-    "tabLog": "Registrar servicio",
+    "tabLog": "Registro",
     "tabBarbers": "Barberos",
     "tabLocations": "Sucursales",
     "tabServices": "Servicios",
@@ -1639,7 +1639,10 @@
       "fileTooLarge": "{name}: el archivo es demasiado grande.",
       "ownRole": "No puede cambiar su propio rol.",
       "notInOrganization": "Esa persona no está en esta organización."
-    }
+    },
+    "tabGroupProducts": "Productos",
+    "tabGroupReports": "Caja y reportes",
+    "navLabel": "Secciones de Barbería"
   },
   "webhooks": {
     "page": {
