@@ -11,6 +11,7 @@ import {
   previousDay, type Comparison, type DayMessage, type GoalProgress, type Recommendation,
 } from "@/lib/barbers/panel";
 import { isFortnightClosed } from "./settlements";
+import { getRegisterStatus, type RegisterStatus } from "./cash-register";
 import { getBarberSettings } from "./settings";
 import { BarbersError } from "@/lib/barbers/errors";
 
@@ -365,6 +366,7 @@ export type PanelData = {
   };
   recentVisits: RecentVisit[];
   recommendations: PanelRecommendation[];
+  register: RegisterStatus;
 };
 
 function sumGoals(locs: PanelLocation[], field: "monthlyGoal" | "dailyGoal"): number | null {
@@ -390,7 +392,7 @@ export async function getPanelData(
   const currentFortnight = fortnightOf(today);
   const previousFortnight = shiftFortnight(currentFortnight, -1);
 
-  const [daySales, monthSales, previousMonthSales, cmpA, cmpB, recentVisits, prevClosed, pending, yesterdayByLocation, monthByLocation] =
+  const [daySales, monthSales, previousMonthSales, cmpA, cmpB, recentVisits, prevClosed, pending, yesterdayByLocation, monthByLocation, register] =
     await Promise.all([
       getSalesTotals(tenantId, { from: today, to: today, locationId }),
       getSalesTotals(tenantId, { from: month.from, to: today, locationId }),
@@ -413,6 +415,7 @@ export async function getPanelData(
         ),
       Promise.all(scopeLocations.map((l) => getSalesTotals(tenantId, { from: yesterday, to: yesterday, locationId: l.id }))),
       Promise.all(scopeLocations.map((l) => getSalesTotals(tenantId, { from: month.from, to: yesterday, locationId: l.id }))),
+      getRegisterStatus(tenantId, locationId, today),
     ]);
 
   const operating = isOperatingDay(today, closedWeekdays);
@@ -441,6 +444,9 @@ export async function getPanelData(
       // Locations already selling this month, with nothing at all yesterday.
       locationsWithoutSales: scopeLocations.filter((_, i) => monthByLocation[i].total > 0 && yesterdayByLocation[i].total === 0),
     },
+    pendingClosings: register.shifts
+      .filter((s) => s.state === "closingPending")
+      .map((s) => ({ shiftId: s.id, date: s.businessDate, shiftNumber: s.shiftNumber, locationId: s.locationId, locationName: s.locationName })),
   });
   const decisions = await getAlertDecisions(tenantId, recs.map((r) => r.key));
 
@@ -475,6 +481,7 @@ export async function getPanelData(
     },
     recentVisits,
     recommendations: recs.map((r) => ({ ...r, decision: decisions.get(r.key) ?? null })),
+    register,
   };
 }
 

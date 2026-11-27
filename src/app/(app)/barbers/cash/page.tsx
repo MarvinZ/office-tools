@@ -34,12 +34,14 @@ export default async function CashShortfallsPage({ searchParams }: { searchParam
         <Link href={`/barbers/cash?period=${fortnightKey(shiftFortnight(fortnight, 1))}`} className={nav} aria-label={t("next")}>
           <ChevronRight size={16} />
         </Link>
-        <span className="ml-auto text-xs text-zinc-500">{t("daysImported", { count: report.daysImported })}</span>
+        <span className="ml-auto text-xs text-zinc-500">
+          {t("daysImported", { count: report.daysImported })} · {t("shiftsClosed", { count: report.shiftsClosed })}
+        </span>
       </div>
 
       {report.rows.length === 0 ? (
         <p className="rounded-xl border border-zinc-200 p-6 text-center text-sm text-zinc-500 dark:border-zinc-800">
-          {report.daysImported === 0 ? t("noImports") : t("balanced")}
+          {report.daysImported === 0 && report.shiftsClosed === 0 ? t("noImports") : t("balanced")}
         </p>
       ) : (
         <>
@@ -82,9 +84,17 @@ export default async function CashShortfallsPage({ searchParams }: { searchParam
                 </thead>
                 <tbody>
                   {report.rows.map((r) => (
-                    <tr key={`${r.date}-${r.shift}`} className="border-b border-zinc-100 last:border-0 text-zinc-600 dark:border-zinc-800 dark:text-zinc-300">
+                    <tr key={`${r.date}-${r.shift}-${r.shiftId ?? "x"}`} className="border-b border-zinc-100 last:border-0 text-zinc-600 dark:border-zinc-800 dark:text-zinc-300">
                       <td className="whitespace-nowrap px-4 py-2.5">{fmtDay(r.date)}</td>
-                      <td className="px-4 py-2.5">{t("shiftN", { n: r.shift })}</td>
+                      <td className="px-4 py-2.5">
+                        {r.shiftId ? (
+                          <Link href={`/barbers/register/${r.shiftId}`} className="underline decoration-dotted hover:text-black dark:hover:text-white">
+                            {t("shiftN", { n: r.shift })}
+                          </Link>
+                        ) : (
+                          t("shiftN", { n: r.shift })
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-black dark:text-white">{r.cashier || "—"}</td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{fmtColones(r.system)}</td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{fmtColones(r.counted)}</td>

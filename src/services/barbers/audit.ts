@@ -41,6 +41,10 @@ export type BarberAuditAction =
   | "productCommission.unpaid"
   | "member.role"
   | "member.locations"
+  | "cash.opened"
+  | "cash.closed"
+  | "cash.outflow"
+  | "cash.outflowDeleted"
   | "catalog.pricesImported";
 
 /** field → [old, new]. Only fields that actually changed. */

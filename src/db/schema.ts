@@ -839,6 +839,9 @@ export const barberActivities = pgTable("barber_activities", {
   sourceRow: integer("source_row"), // 1-based row in the FACTURACION sheet
   ticketId: text("ticket_id"), // column A of the closing
   writtenRate: numeric("written_rate", { precision: 5, scale: 4 }), // % the cashier wrote
+  // The cash-register shift open at this location when it was recorded (null:
+  // recorded with the register closed, or imported). See barberCashShifts.
+  cashShiftId: text("cash_shift_id"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -918,6 +921,7 @@ export const productCustomerSales = pgTable("product_customer_sales", {
   // Where it was sold, for per-location sales on the admin panel. Null for
   // sales recorded before this existed or from the product closing form.
   locationId: text("location_id").references(() => locations.id),
+  cashShiftId: text("cash_shift_id"), // register shift it was charged in (see barberCashShifts)
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -1066,6 +1070,51 @@ export const barberPanelAlerts = pgTable("barber_panel_alerts", {
   decidedBy: text("decided_by").notNull(),
   decidedAt: timestamp("decided_at").defaultNow().notNull(),
 }, (t) => [primaryKey({ columns: [t.tenantId, t.key] })]);
+
+// A cash-register shift ("corte", NOURA Módulo 1 §3/§13; replaces the CIERRE
+// GENERAL sheet). One location has at most one open shift; a day usually has
+// two (Corte 1, Corte 2). Sales recorded while it's open are stamped with its
+// id (cash_shift_id), so the closing adds up exactly what was charged in it.
+// Closing stores the full result as a snapshot, like fortnight closings: what
+// was expected and counted per payment method and the difference, which is
+// charged to the shift's cashier (positive = shortfall).
+export const barberCashShifts = pgTable("barber_cash_shifts", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  locationId: text("location_id").notNull().references(() => locations.id),
+  businessDate: date("business_date").notNull(), // Costa Rica day it was opened
+  shiftNumber: integer("shift_number").notNull(), // 1, 2… within the day
+  cashierUserId: text("cashier_user_id").notNull(),
+  cashierName: text("cashier_name").notNull(), // snapshot, for reports
+  openingCash: numeric("opening_cash", { precision: 12, scale: 2 }).notNull(), // float in the drawer
+  status: text("status").notNull().default("open"), // open | closed
+  openedAt: timestamp("opened_at").defaultNow().notNull(),
+  closedAt: timestamp("closed_at"),
+  closedBy: text("closed_by"),
+  closing: jsonb("closing"), // ShiftClosing (lib/barbers/cash-register.ts)
+  expectedTotal: numeric("expected_total", { precision: 12, scale: 2 }),
+  countedTotal: numeric("counted_total", { precision: 12, scale: 2 }),
+  difference: numeric("difference", { precision: 12, scale: 2 }), // > 0 shortfall
+  note: text("note"),
+}, (t) => [
+  uniqueIndex("barber_cash_shifts_number_uq").on(t.tenantId, t.locationId, t.businessDate, t.shiftNumber),
+  uniqueIndex("barber_cash_shifts_open_uq").on(t.tenantId, t.locationId).where(sql`${t.status} = 'open'`),
+]);
+
+// Cash taken out of the drawer during a shift ("salidas de efectivo"). Made
+// out to a professional, it's also a vale (barberVouchers) deducted from their
+// pay, created and deleted together with this row.
+export const barberCashOutflows = pgTable("barber_cash_outflows", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  shiftId: text("shift_id").notNull().references(() => barberCashShifts.id),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  concept: text("concept").notNull(),
+  barberId: text("barber_id").references(() => barbers.id),
+  voucherId: text("voucher_id"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // ── Webhooks ──────────────────────────────────────────────────────────────────
 // A generic inbound-webhook receiver: one endpoint per tenant, HMAC-SHA256

@@ -878,7 +878,9 @@
         "newClient": "New client",
         "cashRegister": "Open register",
         "qr": "My QR",
-        "reports": "Reports"
+        "reports": "Reports",
+        "goToRegister": "Go to register",
+        "registerPending": "Closing pending"
       },
       "month": {
         "title": "Month at a glance",
@@ -943,7 +945,8 @@
         "goalBehind": "Sales for {month} are behind the goal: {sales} sold, {expected} expected by now. You need {requiredDaily} a day.",
         "goalReached": "The goal for {month} is reached: {percent}% of {goal}.",
         "commissionsPending": "{count, plural, =1 {1 product commission from earlier fortnights is} other {# product commissions from earlier fortnights are}} still unpaid ({amount}).",
-        "noSalesYesterday": "{location} recorded no sales on {date}. Is that day's closing missing?"
+        "noSalesYesterday": "{location} recorded no sales on {date}. Is that day's closing missing?",
+        "registerClosingPending": "{location}: Shift {shift} from {date} is still open. Close it before opening the register."
       },
       "visits": {
         "title": "Latest visits",
@@ -1005,6 +1008,12 @@
         "title": "The overview couldn't load",
         "body": "This may be a connection problem. Figures are hidden rather than shown incomplete.",
         "retry": "Try again"
+      },
+      "register": {
+        "closed": "Closed",
+        "open": "Open",
+        "closingPending": "Closing pending",
+        "shift": "Shift {n}"
       }
     },
     "tabLog": "Log",
@@ -1605,6 +1614,12 @@
         },
         "catalog": {
           "pricesImported": "Prices imported: {created} new, {updated} updated"
+        },
+        "cash": {
+          "opened": "Register opened · Shift {shift} on {date} · float {openingCash}",
+          "closed": "Register closed · Shift {shift} on {date} · expected {expected}, counted {counted}, difference {difference}",
+          "outflow": "Cash out {amount} · {concept}",
+          "outflowDeleted": "Cash out deleted: {amount} · {concept}"
         }
       }
     },
@@ -1751,7 +1766,7 @@
       "location": "Location",
       "noLocation": "No location"
     },
-    "tabCash": "Cash",
+    "tabCash": "Cash shortfalls",
     "roles": {
       "title": "People and roles",
       "subtitle": "What each person can do in Barbers. The role here decides, whatever their role in the organization.",
@@ -1794,7 +1809,8 @@
       "counted": "Counted",
       "difference": "Difference",
       "missing": "{amount} missing",
-      "extra": "{amount} over"
+      "extra": "{amount} over",
+      "shiftsClosed": "{count, plural, =0 {no shifts in the app} one {# shift in the app} other {# shifts in the app}}"
     },
     "errors": {
       "generic": "Something went wrong. Please try again.",
@@ -1840,7 +1856,11 @@
       "ownRole": "You can't change your own role.",
       "notInOrganization": "That person isn't in this organization.",
       "locationRequired": "Choose the location you're recording at.",
-      "locationNotAllowed": "You're not allowed to record at that location."
+      "locationNotAllowed": "You're not allowed to record at that location.",
+      "registerAlreadyOpen": "This location's register is already open.",
+      "registerClosingPending": "A shift from an earlier day isn't closed. Close it before opening the register.",
+      "registerShiftClosed": "That shift is already closed.",
+      "valeFromRegister": "This vale was paid out of the register. Delete it from the Register while the shift is open."
     },
     "tabGroupProducts": "Products",
     "tabGroupReports": "Cash & reports",
@@ -1902,6 +1922,85 @@
         "yes": "Yes",
         "no": "No",
         "fileName": "Prices"
+      }
+    },
+    "tabRegister": "Register",
+    "register": {
+      "title": "Cash register",
+      "subtitle": "Open the shift with the float, record cash taken out, and close it counting each payment method.",
+      "chooseLocation": "Choose this register's location.",
+      "salesOutside": "Today there {count, plural, =1 {is 1 sale} other {are # sales}} recorded with the register closed ({amount}). They aren't in any shift.",
+      "state": {
+        "closed": "Closed",
+        "open": "Open",
+        "closingPending": "Closing pending",
+        "done": "Closed"
+      },
+      "closedBody": "No shift is open. Open one with the cash left in the drawer to start charging.",
+      "openingCash": "Opening cash float (₡)",
+      "open": "Open register (Shift {n})",
+      "errorAmount": "Enter a valid amount.",
+      "shiftTitle": "Shift {n} · {date}",
+      "openedBy": "opened by {name}, {when}",
+      "viewPrint": "View and print",
+      "pendingBody": "This shift is from {date} and is still open. Close it to open today's register; today's sales don't go into it.",
+      "method": "Payment method",
+      "sales": "Sales",
+      "expected": "Expected",
+      "notCounted": "(not counted)",
+      "cashFormula": "Expected cash = opening float {opening} + cash sales − cash out {outflows}",
+      "counts": "{services, plural, =1 {1 service} other {# services}} and {products, plural, =1 {1 product sale} other {# product sales}} in this shift",
+      "outflowsTitle": "Cash taken out",
+      "noOutflows": "No cash taken out.",
+      "valeFor": "vale for {name}",
+      "deleteOutflow": "Delete",
+      "amount": "Amount",
+      "concept": "Concept",
+      "outflowBarber": "Is it a vale?",
+      "notAVale": "Salon expense",
+      "addOutflow": "Record cash out",
+      "errorOutflow": "Enter the amount and the concept.",
+      "closeTitle": "Close Shift {n}",
+      "closeHint": "Count each payment method. A shortfall is charged to the shift's cashier.",
+      "countHint": {
+        "cash": "What's in the drawer, float included",
+        "card": "Card terminal closing total",
+        "sinpe": "SINPE received in the shift",
+        "other": "Total received",
+        "credit": "Not counted"
+      },
+      "countedFor": "Counted in {name}",
+      "missing": "{amount} short",
+      "extra": "{amount} over",
+      "balanced": "Balanced",
+      "counted": "Counted",
+      "difference": "Difference",
+      "note": "Notes",
+      "confirmShortfall": "{amount} short. It will be charged to the shift's cashier. Close the shift?",
+      "confirmClose": "Close the shift?",
+      "confirm": "Confirm closing",
+      "close": "Close register",
+      "errorCounts": "Enter the counted amount for each method (0 if none).",
+      "historyTitle": "Shifts in the last 14 days",
+      "noHistory": "No shifts at this location yet.",
+      "date": "Date",
+      "shift": "Shift",
+      "cashier": "Cashier",
+      "shiftN": "Shift {n}",
+      "back": "Back to the register",
+      "openedAt": "Opened",
+      "status": "Status",
+      "closedAt": "Closed",
+      "total": "Total",
+      "signCashier": "Cashier's signature",
+      "signReviewer": "Reviewer's signature",
+      "banner": {
+        "closed": "The register is closed: what you charge won't be in any shift.",
+        "open": "Open the register",
+        "pending": "A closing is pending: Shift {n} from {date} is still open.",
+        "goClose": "Close it",
+        "openNow": "Register open · Shift {n} · {name}.",
+        "goTo": "Go to register"
       }
     }
   },

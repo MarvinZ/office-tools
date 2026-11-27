@@ -58,6 +58,13 @@ export default async function PanelPage({
   }));
   const monthOptions = Array.from({ length: 13 }, (_, i) => shiftMonth(currentMonth, -i));
   const sellHref = locationId ? `/barbers?locationId=${locationId}` : "/barbers";
+  const registerHref = locationId ? `/barbers/register?locationId=${locationId}` : "/barbers/register";
+  const reg = data.register;
+  const regShift = reg.shifts.find((s) => s.state === reg.state) ?? null;
+  const registerLabel =
+    reg.state === "open" && regShift
+      ? `${t("cash")}: ${t("register.open")} · ${t("register.shift", { n: regShift.shiftNumber })} · ${regShift.cashierName}`
+      : `${t("cash")}: ${t(`register.${reg.state}`)}`;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
@@ -73,10 +80,13 @@ export default async function PanelPage({
         <section className={`${card} lg:col-span-2`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className={h2}>{t("day.title")}</h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-2.5 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+            <Link
+              href={registerHref}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs hover:underline ${REGISTER_CLS[reg.state]}`}
+            >
               <Wallet size={13} aria-hidden />
-              {t("cash")}: {t("pending")}
-            </span>
+              {registerLabel}
+            </Link>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div className="sm:col-span-2">
@@ -109,7 +119,11 @@ export default async function PanelPage({
             <QuickAction href={sellHref} icon={ShoppingCart} label={t("actions.sell")} />
             <QuickAction icon={CalendarPlus} label={t("actions.newAppointment")} soon={t("comingSoon")} />
             <QuickAction icon={UserPlus} label={t("actions.newClient")} soon={t("comingSoon")} />
-            <QuickAction icon={Wallet} label={t("actions.cashRegister")} soon={t("comingSoon")} />
+            <QuickAction
+              href={registerHref}
+              icon={Wallet}
+              label={reg.state === "closed" ? t("actions.cashRegister") : reg.state === "open" ? t("actions.goToRegister") : t("actions.registerPending")}
+            />
             <QuickAction icon={QrCode} label={t("actions.qr")} soon={t("comingSoon")} />
             <QuickAction href="/barbers/reports" icon={FileBarChart} label={t("actions.reports")} />
           </div>
@@ -313,6 +327,13 @@ export default async function PanelPage({
 
 // ── Pieces ────────────────────────────────────────────────────────────────────
 
+/** Closed is neutral, open is green, a pending closing is red; the text says it too. */
+const REGISTER_CLS = {
+  closed: "border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300",
+  open: "border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300",
+  closingPending: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300",
+} as const;
+
 const card = "rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5";
 const h2 = "text-sm font-semibold text-black dark:text-white";
 const label = "text-xs font-medium text-zinc-500";
@@ -340,6 +361,8 @@ function fortnightLabel(key: string): string {
 function recommendationMessage(r: Recommendation, t: T, locale: string): string {
   const v = r.values;
   switch (r.code) {
+    case "registerClosingPending":
+      return t("recs.registerClosingPending", { location: String(v.location), shift: Number(v.shift), date: fmtDay(String(v.date)) });
     case "fortnightUnclosed":
       return t("recs.fortnightUnclosed", { period: fortnightLabel(String(v.period)) });
     case "goalBehind":

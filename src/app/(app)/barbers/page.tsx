@@ -8,7 +8,7 @@ import { listPaymentMethods, ensureDefaultPaymentMethods } from "@/services/barb
 import { listActivities, resolveEffectiveCommissionRates } from "@/services/barbers/activities";
 import { listRoster } from "@/services/barbers/roster";
 import { getBarberSettings } from "@/services/barbers/settings";
-import { startOfBusinessDay, endOfBusinessDay, todayBusinessDate } from "@/lib/barbers/dates";
+import { startOfBusinessDay, endOfBusinessDay, fmtDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { db } from "@/db";
 import { locationServices } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -16,6 +16,8 @@ import LocationGate from "./_components/location-gate";
 import RosterChecklist from "./_components/roster-checklist";
 import ActivityEntryForm from "./_components/activity-entry-form";
 import { listProducts } from "@/services/barbers/products";
+import { getRegisterStatus } from "@/services/barbers/cash-register";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +68,7 @@ export default async function BarbersLogPage({
 
   const today = todayBusinessDate();
 
-  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows, settings, allProducts] = await Promise.all([
+  const [barbersAtLocation, allServices, allPaymentMethods, favoriteServices, roster, todaysActivities, priceRows, settings, allProducts, register] = await Promise.all([
     listBarbersAtLocation(tenant.id, selectedLocation.id),
     listServices(tenant.id),
     listPaymentMethods(tenant.id),
@@ -80,7 +82,10 @@ export default async function BarbersLogPage({
     db.select().from(locationServices).where(eq(locationServices.tenantId, tenant.id)),
     getBarberSettings(tenant.id),
     listProducts(tenant.id),
+    getRegisterStatus(tenant.id, selectedLocation.id, today),
   ]);
+  const openShift = register.shifts[0] ?? null;
+  const registerHref = `/barbers/register?locationId=${selectedLocation.id}`;
 
   const activeServices = allServices.filter((s) => s.status === "active");
   const activePaymentMethods = allPaymentMethods.filter((m) => m.status === "active");
@@ -113,6 +118,24 @@ export default async function BarbersLogPage({
         </div>
         <LocationGate locations={activeLocations} current={selectedLocation} compact />
       </div>
+
+      {/* The register only warns here (Brayan, Nov 2026): charging still works with it closed. */}
+      {register.state === "closed" ? (
+        <p role="status" className="flex flex-wrap items-center gap-x-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          {t("register.banner.closed")}
+          <Link href={registerHref} className="font-medium underline">{t("register.banner.open")}</Link>
+        </p>
+      ) : register.state === "closingPending" && openShift ? (
+        <p role="status" className="flex flex-wrap items-center gap-x-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {t("register.banner.pending", { n: openShift.shiftNumber, date: fmtDay(openShift.businessDate) })}
+          <Link href={registerHref} className="font-medium underline">{t("register.banner.goClose")}</Link>
+        </p>
+      ) : openShift ? (
+        <p className="text-xs text-zinc-500">
+          {t("register.banner.openNow", { n: openShift.shiftNumber, name: openShift.cashierName })}{" "}
+          <Link href={registerHref} className="underline">{t("register.banner.goTo")}</Link>
+        </p>
+      ) : null}
 
       <RosterChecklist
         locationId={selectedLocation.id}
