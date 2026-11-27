@@ -2,6 +2,8 @@ import Link from "next/link";
 import { FileSpreadsheet } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireTenant } from "@/services/tenants";
+import { canUseLocation, getMyBarbersRole } from "@/services/barbers/roles";
+import { listLocations } from "@/services/barbers/locations";
 import { getProductClosing } from "@/services/barbers/product-commissions";
 import { listProducts } from "@/services/barbers/products";
 import { listPaymentMethods } from "@/services/barbers/payment-methods";
@@ -42,13 +44,18 @@ export default async function ProductClosingPage({
   const from = isDateString(params.from) ? params.from! : current.from;
   const to = isDateString(params.to) && params.to! >= from ? params.to! : current.to;
 
-  const [closing, products, methods, barbers, settings] = await Promise.all([
+  const [closing, products, methods, barbers, settings, allLocations, me] = await Promise.all([
     getProductClosing(tenant.id, from, to),
     listProducts(tenant.id),
     listPaymentMethods(tenant.id),
     listBarbers(tenant.id),
     getBarberSettings(tenant.id),
+    listLocations(tenant.id),
+    getMyBarbersRole(tenant),
   ]);
+  const saleLocations = allLocations
+    .filter((l) => l.status === "active" && canUseLocation(me, l.id))
+    .map((l) => ({ id: l.id, name: l.name }));
   const { summary } = closing;
   const week = weekOf(today);
   const previous = shiftFortnight(current, -1);
@@ -88,6 +95,8 @@ export default async function ProductClosingPage({
         paymentMethods={methods.filter((m) => m.status === "active").map((m) => ({ id: m.id, name: m.name }))}
         ivaRate={settings.ivaRate}
         today={today}
+        locations={saleLocations}
+        locationRequired={me.locationIds !== null}
       />
 
       <section className="flex flex-col gap-4">

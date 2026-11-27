@@ -93,6 +93,7 @@ export type SalesDetailRow = {
   paymentMethodName: string | null;
   customerName: string | null;
   amount: number;
+  createdBy: string; // Clerk user id of who recorded it (or imported it)
 };
 
 /** Everything a total is made of, newest first. */
@@ -110,6 +111,7 @@ export async function listSalesDetail(tenantId: string, f: SalesFilter): Promise
         paymentMethodName: paymentMethods.name,
         customerName: barberActivities.customerName,
         amount: barberActivities.priceCharged,
+        createdBy: barberActivities.createdBy,
       })
       .from(barberActivities)
       .innerJoin(barbers, eq(barbers.id, barberActivities.barberId))
@@ -131,6 +133,7 @@ export async function listSalesDetail(tenantId: string, f: SalesFilter): Promise
         paymentMethodName: paymentMethods.name,
         note: productCustomerSales.note,
         amount: productCustomerSales.total,
+        createdBy: productCustomerSales.createdBy,
       })
       .from(productCustomerSales)
       .leftJoin(barbers, eq(barbers.id, productCustomerSales.barberId))
@@ -152,6 +155,7 @@ export async function listSalesDetail(tenantId: string, f: SalesFilter): Promise
       paymentMethodName: r.paymentMethodName,
       customerName: r.customerName,
       amount: Number(r.amount),
+      createdBy: r.createdBy,
       sortKey: r.performedAt.getTime(),
     })),
     ...productRows.map((r) => ({
@@ -165,6 +169,7 @@ export async function listSalesDetail(tenantId: string, f: SalesFilter): Promise
       paymentMethodName: r.paymentMethodName,
       customerName: r.note,
       amount: Number(r.amount),
+      createdBy: r.createdBy,
       // A product sale has a date but no time: sort it by when it was entered.
       sortKey: r.createdAt.getTime(),
     })),

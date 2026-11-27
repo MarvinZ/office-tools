@@ -40,6 +40,7 @@ export type BarberAuditAction =
   | "productCommission.paid"
   | "productCommission.unpaid"
   | "member.role"
+  | "member.locations"
   | "catalog.pricesImported";
 
 /** field → [old, new]. Only fields that actually changed. */
@@ -127,7 +128,7 @@ export async function listBarberAudit(
 }
 
 /** Clerk user ids → display names, in one call. Falls back to the id. */
-async function userNames(userIds: string[]): Promise<Map<string, string>> {
+export async function userNames(userIds: string[]): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (userIds.length === 0) return map;
   try {

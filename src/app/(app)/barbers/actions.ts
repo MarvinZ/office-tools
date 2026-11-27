@@ -8,7 +8,7 @@ import { checkInBarber, checkOutBarber } from "@/services/barbers/roster";
 import { auditBarbers } from "@/services/barbers/audit";
 import { businessDateOf } from "@/lib/barbers/dates";
 import type { LogActivityInput, LogActivityBatchInput } from "@/services/barbers/activities";
-import { requireBarbersAccess } from "@/services/barbers/roles";
+import { requireBarbersAccess, requireBarbersLocation } from "@/services/barbers/roles";
 import { BarbersError } from "@/lib/barbers/errors";
 import { barbersAction } from "@/services/barbers/action";
 import { logTicket, type TicketInput } from "@/services/barbers/tickets";
@@ -28,7 +28,7 @@ function revalidateActivityViews() {
 
 export async function logActivityAction(data: LogActivityInput) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
+    await requireBarbersLocation(["operate"], data.locationId);
     const { userId, tenant } = await requireUserAndTenant();
     const row = await logActivity(tenant.id, userId, data);
     await auditBarbers(tenant.id, userId, "activity.logged", {
@@ -43,7 +43,7 @@ export async function logActivityAction(data: LogActivityInput) {
 
 export async function logActivityBatchAction(data: LogActivityBatchInput) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
+    await requireBarbersLocation(["operate"], data.locationId);
     const { userId, tenant } = await requireUserAndTenant();
     const rows = await logActivityBatch(tenant.id, userId, data);
     if (rows.length > 0) {
@@ -65,7 +65,7 @@ export async function logActivityBatchAction(data: LogActivityBatchInput) {
 /** Services and products charged together on one ticket (written atomically). */
 export async function logTicketAction(input: TicketInput) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
+    await requireBarbersLocation(["operate"], input.locationId);
     const { userId, tenant } = await requireUserAndTenant();
     const { ticketId, activities, sales } = await logTicket(tenant.id, userId, input);
     if (activities.length > 0) {
@@ -130,7 +130,7 @@ export async function logWarrantyRedoAction(originalId: string, correctorBarberI
 
 export async function checkInBarberAction(locationId: string, barberId: string, workDate: string) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
+    await requireBarbersLocation(["operate"], locationId);
     const tenant = await requireTenant();
     await checkInBarber(tenant.id, locationId, barberId, workDate);
     revalidatePath("/barbers");
@@ -139,7 +139,7 @@ export async function checkInBarberAction(locationId: string, barberId: string, 
 
 export async function checkOutBarberAction(locationId: string, barberId: string, workDate: string) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
+    await requireBarbersLocation(["operate"], locationId);
     const tenant = await requireTenant();
     await checkOutBarber(tenant.id, locationId, barberId, workDate);
     revalidatePath("/barbers");

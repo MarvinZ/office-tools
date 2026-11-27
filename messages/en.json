@@ -998,7 +998,8 @@
         "kindService": "Service",
         "kindProduct": "Product",
         "empty": "No sales for this filter.",
-        "productsWithoutLocation": "Product sales without a recorded location only show under “All locations”."
+        "productsWithoutLocation": "Product sales without a recorded location only show under “All locations”.",
+        "colCreatedBy": "Recorded by"
       },
       "error": {
         "title": "The overview couldn't load",
@@ -1543,7 +1544,8 @@
         "fixedCommissionRate": "Fixed commission rate",
         "cardFeeOnGross": "Card fee on price with IVA",
         "invoiceEmail": "Invoice email",
-        "role": "Role"
+        "role": "Role",
+        "locations": "Locations"
       },
       "actions": {
         "activity": {
@@ -1598,7 +1600,8 @@
           "unpaid": "Product commission payment undone: {product} · {amount}"
         },
         "member": {
-          "role": "A person's Barbers role was changed"
+          "role": "A person's Barbers role was changed",
+          "locations": "A person's Barbers locations were changed"
         },
         "catalog": {
           "pricesImported": "Prices imported: {created} new, {updated} updated"
@@ -1744,7 +1747,9 @@
       "empty": "No product sales in this period.",
       "sheetSummary": "Summary",
       "sheetSales": "Sales",
-      "fileName": "Cierre_Productos"
+      "fileName": "Cierre_Productos",
+      "location": "Location",
+      "noLocation": "No location"
     },
     "tabCash": "Cash",
     "roles": {
@@ -1764,7 +1769,11 @@
       "roleFor": "Role for {name}",
       "inviteHint": "To add someone, invite them in",
       "teamLink": "Team",
-      "errorGeneric": "Couldn't change the role."
+      "errorGeneric": "Couldn't change the role.",
+      "locations": "Locations",
+      "locationsFor": "Locations for {name}",
+      "allLocations": "all locations",
+      "locationsHint": "With no location ticked, the person can work at all of them. With some ticked, they can only record services, sales and check-ins there."
     },
     "cash": {
       "title": "Cash shortfalls",
@@ -1829,7 +1838,9 @@
       "onlyXlsx": "{name}: only .xlsx files are accepted.",
       "fileTooLarge": "{name}: the file is too large.",
       "ownRole": "You can't change your own role.",
-      "notInOrganization": "That person isn't in this organization."
+      "notInOrganization": "That person isn't in this organization.",
+      "locationRequired": "Choose the location you're recording at.",
+      "locationNotAllowed": "You're not allowed to record at that location."
     },
     "tabGroupProducts": "Products",
     "tabGroupReports": "Cash & reports",

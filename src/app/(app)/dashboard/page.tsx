@@ -1,7 +1,10 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAvailableTools, requireTenant } from "@/services/tenants";
+import { getMyBarbersRole } from "@/services/barbers/roles";
+import { homeOf } from "@/lib/barbers/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +30,13 @@ export default async function DashboardPage() {
   ]);
 
   const enabledSlugs = await getAvailableTools(tenant);
+
+  // A tenant that only uses Barbers (NOURA) has nothing to choose here: send
+  // each person straight to their Barbers start page.
+  if (enabledSlugs.length === 1 && enabledSlugs[0] === "barbers") {
+    const { role } = await getMyBarbersRole(tenant);
+    redirect(homeOf(role));
+  }
   const visibleCards = TOOL_CARDS.filter((c) => enabledSlugs.includes(c.slug));
 
   return (

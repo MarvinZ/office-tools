@@ -33,8 +33,13 @@ export function canAny(role: BarbersRole, areas: BarbersArea[]): boolean {
   return areas.some((a) => can(role, a));
 }
 
-/** Where a role lands when it opens a page it can't see. */
+/**
+ * A role's start page in Barbers: after sign-in (when Barbers is the tenant's
+ * only tool) and when it opens a page it can't see. Admins start on the panel
+ * (NOURA Módulo 1 §1), cashiers at the front desk, the accountant on pay.
+ */
 export function homeOf(role: BarbersRole): string {
+  if (role === "admin") return "/barbers/panel";
   return role === "accountant" ? "/barbers/settlements" : "/barbers";
 }
 

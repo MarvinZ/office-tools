@@ -46,6 +46,8 @@ export type BarbersErrorCode =
   | "onlyXlsx"
   | "fileTooLarge"
   | "goalNegative"
+  | "locationRequired"
+  | "locationNotAllowed"
   | "ownRole"
   | "notInOrganization";
 

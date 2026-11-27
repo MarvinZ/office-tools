@@ -998,7 +998,8 @@
         "kindService": "Servicio",
         "kindProduct": "Producto",
         "empty": "No hay ventas para este filtro.",
-        "productsWithoutLocation": "Las ventas de productos sin local registrado solo aparecen con «Todos los locales»."
+        "productsWithoutLocation": "Las ventas de productos sin local registrado solo aparecen con «Todos los locales».",
+        "colCreatedBy": "Registrado por"
       },
       "error": {
         "title": "No se pudo cargar el panel",
@@ -1543,7 +1544,8 @@
         "fixedCommissionRate": "Porcentaje fijo",
         "cardFeeOnGross": "Datáfono sobre precio con IVA",
         "invoiceEmail": "Correo de facturas",
-        "role": "Rol"
+        "role": "Rol",
+        "locations": "Locales"
       },
       "actions": {
         "activity": {
@@ -1598,7 +1600,8 @@
           "unpaid": "Se deshizo el pago de comisión: {product} · {amount}"
         },
         "member": {
-          "role": "Se cambió el rol de una persona en Barbers"
+          "role": "Se cambió el rol de una persona en Barbers",
+          "locations": "Se cambiaron los locales de una persona en Barbers"
         },
         "catalog": {
           "pricesImported": "Precios importados: {created} nuevos, {updated} actualizados"
@@ -1744,7 +1747,9 @@
       "empty": "No hay ventas de productos en este período.",
       "sheetSummary": "Resumen",
       "sheetSales": "Ventas",
-      "fileName": "Cierre_Productos"
+      "fileName": "Cierre_Productos",
+      "location": "Local",
+      "noLocation": "Sin local"
     },
     "tabCash": "Caja",
     "roles": {
@@ -1764,7 +1769,11 @@
       "roleFor": "Rol de {name}",
       "inviteHint": "Para agregar a alguien, invítelo en",
       "teamLink": "Equipo",
-      "errorGeneric": "No se pudo cambiar el rol."
+      "errorGeneric": "No se pudo cambiar el rol.",
+      "locations": "Locales",
+      "locationsFor": "Locales de {name}",
+      "allLocations": "todos los locales",
+      "locationsHint": "Sin locales marcados, la persona puede trabajar en todos. Con locales marcados, solo puede registrar servicios, ventas y asistencia en esos."
     },
     "cash": {
       "title": "Faltantes de caja",
@@ -1829,7 +1838,9 @@
       "onlyXlsx": "{name}: solo se aceptan archivos .xlsx.",
       "fileTooLarge": "{name}: el archivo es demasiado grande.",
       "ownRole": "No puede cambiar su propio rol.",
-      "notInOrganization": "Esa persona no está en esta organización."
+      "notInOrganization": "Esa persona no está en esta organización.",
+      "locationRequired": "Escoja el local donde se registra.",
+      "locationNotAllowed": "No tiene permiso para registrar en ese local."
     },
     "tabGroupProducts": "Productos",
     "tabGroupReports": "Caja y reportes",

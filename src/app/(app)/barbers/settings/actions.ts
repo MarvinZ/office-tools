@@ -5,7 +5,8 @@ import { currentUser } from "@clerk/nextjs/server";
 import { requireTenant } from "@/services/tenants";
 import { getBarberSettings, updateBarberSettings, type BarberSettings } from "@/services/barbers/settings";
 import { auditBarbers, diffFields } from "@/services/barbers/audit";
-import { requireBarbersAccess, setMemberRole } from "@/services/barbers/roles";
+import { requireBarbersAccess, setMemberLocations, setMemberRole } from "@/services/barbers/roles";
+import { listLocations } from "@/services/barbers/locations";
 import type { BarbersRole } from "@/lib/barbers/permissions";
 import { BarbersError } from "@/lib/barbers/errors";
 import { barbersAction } from "@/services/barbers/action";
@@ -38,3 +39,17 @@ export async function setMemberRoleAction(userId: string, role: BarbersRole) {
   });
 }
 
+/** Where someone may work; empty = every location. */
+export async function setMemberLocationsAction(userId: string, locationIds: string[]) {
+  return barbersAction(async () => {
+    const { userId: me, tenant } = await requireBarbersAccess(["configure"]);
+    const { previous } = await setMemberLocations(tenant, me, userId, locationIds);
+    const names = new Map((await listLocations(tenant.id)).map((l) => [l.id, l.name]));
+    const label = (ids: string[]) => (ids.length ? ids.map((id) => names.get(id) ?? id).join(", ") : null);
+    await auditBarbers(tenant.id, me, "member.locations", {
+      entityId: userId,
+      changes: { locations: [label(previous), label(locationIds)] },
+    });
+    revalidatePath("/barbers/settings");
+  });
+}

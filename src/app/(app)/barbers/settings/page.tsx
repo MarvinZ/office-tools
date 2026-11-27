@@ -4,12 +4,18 @@ import { getBarberSettings } from "@/services/barbers/settings";
 import SettingsForm from "./_components/settings-form";
 import MemberRoles from "./_components/member-roles";
 import { getMyBarbersRole, listBarbersMembers } from "@/services/barbers/roles";
+import { listLocations } from "@/services/barbers/locations";
 
 export const dynamic = "force-dynamic";
 
 export default async function BarberSettingsPage() {
   const [tenant, t] = await Promise.all([requireTenant(), getTranslations("barbers")]);
-  const [settings, me] = await Promise.all([getBarberSettings(tenant.id), getMyBarbersRole(tenant)]);
+  const [settings, me, allLocations] = await Promise.all([
+    getBarberSettings(tenant.id),
+    getMyBarbersRole(tenant),
+    listLocations(tenant.id),
+  ]);
+  const locations = allLocations.filter((l) => l.status === "active").map((l) => ({ id: l.id, name: l.name }));
   // The member list comes from Clerk; if it can't be reached, the rest of the page still works.
   const members = await listBarbersMembers(tenant).catch(() => null);
 
@@ -22,7 +28,7 @@ export default async function BarberSettingsPage() {
       {/* Wide container to line up with the tabs; the form keeps a readable width. */}
       <div className="flex w-full max-w-3xl flex-col gap-6">
         <SettingsForm initial={settings} />
-        {members && <MemberRoles members={members} me={me.userId} />}
+        {members && <MemberRoles members={members} me={me.userId} locations={locations} />}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import {
   type CustomerSaleInput,
 } from "@/services/barbers/product-commissions";
 import { auditBarbers } from "@/services/barbers/audit";
-import { requireBarbersAccess } from "@/services/barbers/roles";
+import { requireBarbersAccess, requireBarbersLocation } from "@/services/barbers/roles";
 import { BarbersError } from "@/lib/barbers/errors";
 import { barbersAction } from "@/services/barbers/action";
 
@@ -23,7 +23,7 @@ async function requireUserAndTenant() {
 
 export async function createCustomerSaleAction(input: CustomerSaleInput) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
+    await requireBarbersLocation(["operate"], input.locationId);
     const { userId, tenant } = await requireUserAndTenant();
     const row = await createCustomerSale(tenant.id, userId, input);
     await auditBarbers(tenant.id, userId, "productCustomerSale.created", {
