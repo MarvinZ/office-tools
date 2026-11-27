@@ -1,6 +1,6 @@
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { barberVouchers, barbers } from "@/db/schema";
+import { barberCashOutflows, barberVouchers, barbers } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import { BarbersError } from "@/lib/barbers/errors";
 
@@ -120,6 +120,14 @@ export async function createVoucher(
  */
 /** Returns the deleted row (for the audit trail), or null if none matched. */
 export async function deleteVoucher(tenantId: string, id: string) {
+  // A vale paid out of the register is part of that shift's cash count: it's
+  // removed from the register (while the shift is open), not from here.
+  const [fromRegister] = await db
+    .select({ id: barberCashOutflows.id })
+    .from(barberCashOutflows)
+    .where(and(eq(barberCashOutflows.tenantId, tenantId), eq(barberCashOutflows.voucherId, id)))
+    .limit(1);
+  if (fromRegister) throw new BarbersError("valeFromRegister");
   const [row] = await db
     .delete(barberVouchers)
     .where(and(eq(barberVouchers.tenantId, tenantId), eq(barberVouchers.id, id)))

@@ -182,7 +182,7 @@ export type Recommendation = {
   key: string;
   category: RecommendationCategory;
   /** Translation key under barbers.panel.recs, plus the values it shows. */
-  code: "fortnightUnclosed" | "commissionsPending" | "goalBehind" | "goalReached" | "noSalesYesterday";
+  code: "registerClosingPending" | "fortnightUnclosed" | "commissionsPending" | "goalBehind" | "goalReached" | "noSalesYesterday";
   values: Record<string, string | number>;
   /** Where "Revisar" takes the admin. Recommendations never act by themselves. */
   href: string;
@@ -200,6 +200,8 @@ export type RecommendationFacts = {
   month: { key: string; progress: GoalProgress | null; elapsedOperatingDays: number; totalOperatingDays: number };
   /** Yesterday, when it was an operating day: locations with no sales at all. */
   yesterday: { date: string; operating: boolean; locationsWithoutSales: { id: string; name: string }[] };
+  /** Register shifts left open from an earlier day (§13 "Cierre pendiente"). */
+  pendingClosings?: { shiftId: string; date: string; shiftNumber: number; locationId: string; locationName: string }[];
 };
 
 /** How far behind the expected pace (as a share of the goal) counts as "behind". */
@@ -212,6 +214,16 @@ const BEHIND_PACE = 0.1;
  */
 export function buildRecommendations(f: RecommendationFacts): Recommendation[] {
   const out: Recommendation[] = [];
+
+  for (const s of f.pendingClosings ?? []) {
+    out.push({
+      key: `registerClosingPending:${s.shiftId}`,
+      category: "alert",
+      code: "registerClosingPending",
+      values: { date: s.date, shift: s.shiftNumber, location: s.locationName },
+      href: `/barbers/register?locationId=${s.locationId}`,
+    });
+  }
 
   if (!f.previousFortnight.closed && f.previousFortnight.to < f.today) {
     out.push({

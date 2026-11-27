@@ -4,7 +4,8 @@
  * server actions, so they can't disagree.
  *
  *   operate    front-desk work: log services, vales, tips, products on
- *              credit, record product sales, check-in, preview closings
+ *              credit, record product sales, check-in, preview closings,
+ *              open and close the cash register
  *   view       read pay figures: settlements, reports, history, cash report,
  *              product closing, exports
  *   settle     change what gets paid: close/reopen, carry-overs, pay product
@@ -47,6 +48,7 @@ export function homeOf(role: BarbersRole): string {
 export const PAGE_AREAS: Record<string, BarbersArea[]> = {
   "/barbers/panel": ["overview"],
   "/barbers": ["operate"],
+  "/barbers/register": ["operate", "view"],
   "/barbers/vales": ["operate"],
   "/barbers/product-sales": ["operate"],
   "/barbers/tips": ["operate"],

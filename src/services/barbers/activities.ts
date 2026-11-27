@@ -7,6 +7,7 @@ import { lineCommission } from "@/lib/barbers/settlement";
 import { commissionRateOn } from "@/lib/barbers/rate-schedule";
 import { businessDateOf, todayBusinessDate } from "@/lib/barbers/dates";
 import { loadRateContext } from "./rate-changes";
+import { getActiveShiftId } from "./cash-register";
 import type { InferSelectModel } from "drizzle-orm";
 import { BarbersError } from "@/lib/barbers/errors";
 
@@ -225,15 +226,12 @@ export async function logActivity(
     data.paymentMethodId
   );
 
-  const [effective, feeRate, settings] = await Promise.all([
-    getEffectiveCommissionRate(
-      tenantId,
-      data.barberId,
-      data.serviceId,
-      businessDateOf(data.performedAt ? new Date(data.performedAt) : new Date())
-    ),
+  const saleDate = businessDateOf(data.performedAt ? new Date(data.performedAt) : new Date());
+  const [effective, feeRate, settings, cashShiftId] = await Promise.all([
+    getEffectiveCommissionRate(tenantId, data.barberId, data.serviceId, saleDate),
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
     getBarberSettings(tenantId),
+    getActiveShiftId(tenantId, data.locationId, saleDate),
   ]);
   if (!effective) throw new BarbersError("rateUnresolved");
   if (feeRate == null) throw new BarbersError("rateUnresolved");
@@ -256,6 +254,7 @@ export async function logActivity(
       paymentMethodFeeRate: String(feeRate),
       commissionAmount: String(commissionAmount),
       performedAt: data.performedAt ? new Date(data.performedAt) : new Date(),
+      cashShiftId,
       createdBy,
     })
     .returning();
@@ -333,15 +332,13 @@ export async function prepareActivityBatch(
 
   // Resolve every rate up front: effective commission rates for all services in
   // one batch query, and the payment method's fee rate once for the whole cart.
-  const [rateByService, feeRate, settings] = await Promise.all([
-    resolveEffectiveCommissionRates(
-      tenantId,
-      data.barberId,
-      serviceRows,
-      businessDateOf(data.performedAt ? new Date(data.performedAt) : new Date())
-    ),
+  const saleDate = businessDateOf(data.performedAt ? new Date(data.performedAt) : new Date());
+  const [rateByService, feeRate, settings, cashShiftId] = await Promise.all([
+    resolveEffectiveCommissionRates(tenantId, data.barberId, serviceRows, saleDate),
     getPaymentMethodFeeRate(tenantId, data.paymentMethodId),
     getBarberSettings(tenantId),
+    // The register shift open at this location (null = recorded with it closed).
+    getActiveShiftId(tenantId, data.locationId, saleDate),
   ]);
   if (feeRate == null) throw new BarbersError("rateUnresolved");
 
@@ -364,6 +361,7 @@ export async function prepareActivityBatch(
       paymentMethodFeeRate: String(feeRate),
       commissionAmount: String(computeCommissionAmount(line.priceCharged, resolved.rate, settings.ivaRate)),
       performedAt,
+      cashShiftId,
       createdBy,
     };
   });

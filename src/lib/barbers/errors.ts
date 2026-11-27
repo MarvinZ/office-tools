@@ -48,6 +48,10 @@ export type BarbersErrorCode =
   | "goalNegative"
   | "locationRequired"
   | "locationNotAllowed"
+  | "registerAlreadyOpen"
+  | "registerClosingPending"
+  | "registerShiftClosed"
+  | "valeFromRegister"
   | "ownRole"
   | "notInOrganization";
 

@@ -2,6 +2,7 @@ import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { barbers, locations, paymentMethods, productCustomerSales, products } from "@/db/schema";
 import { getBarberSettings } from "./settings";
+import { getActiveShiftId } from "./cash-register";
 import { productSaleFigures, summarizeProductClosing, type ProductClosingSummary } from "@/lib/barbers/product-commissions";
 import { isDateString } from "@/lib/barbers/dates";
 import { BarbersError } from "@/lib/barbers/errors";
@@ -37,9 +38,10 @@ export async function prepareCustomerSale(
 ): Promise<typeof productCustomerSales.$inferInsert> {
   if (!Number.isInteger(input.quantity) || input.quantity < 1) throw new BarbersError("quantityInvalid");
   if (!isDateString(input.saleDate)) throw new BarbersError("invalidDate");
-  const [[product], settings] = await Promise.all([
+  const [[product], settings, cashShiftId] = await Promise.all([
     db.select().from(products).where(and(eq(products.tenantId, tenantId), eq(products.id, input.productId))).limit(1),
     getBarberSettings(tenantId),
+    getActiveShiftId(tenantId, input.locationId, input.saleDate),
   ]);
   if (!product) throw new BarbersError("notFound");
   if (input.barberId) {
@@ -91,6 +93,7 @@ export async function prepareCustomerSale(
       note: input.note?.trim() || null,
       ticketId: input.ticketId ?? null,
       locationId: input.locationId ?? null,
+      cashShiftId,
       createdBy: userId,
   };
 }

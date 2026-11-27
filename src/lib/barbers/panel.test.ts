@@ -145,6 +145,16 @@ describe("recommendations (§9)", () => {
     expect(recs[1].key).toBe("noSalesYesterday:2026-11-19:loc1");
   });
 
+  it("a register shift left open from an earlier day is the first alert", () => {
+    const recs = buildRecommendations({
+      ...base,
+      previousFortnight: { ...base.previousFortnight, closed: false },
+      pendingClosings: [{ shiftId: "s1", date: "2026-11-19", shiftNumber: 2, locationId: "loc1", locationName: "Concepción" }],
+    });
+    expect(recs.map((r) => r.code)).toEqual(["registerClosingPending", "fortnightUnclosed"]);
+    expect(recs[0]).toMatchObject({ key: "registerClosingPending:s1", category: "alert", href: "/barbers/register?locationId=loc1" });
+  });
+
   it("no 'no sales' follow-up for a day the shop doesn't open", () => {
     const recs = buildRecommendations({
       ...base,
