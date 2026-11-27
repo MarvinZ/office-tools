@@ -3,15 +3,26 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { setMemberRoleAction } from "../actions";
+import { setMemberLocationsAction, setMemberRoleAction } from "../actions";
 import type { BarbersMember } from "@/services/barbers/roles";
 import type { BarbersRole } from "@/lib/barbers/permissions";
 import { unwrap } from "@/lib/barbers/errors";
 
 const ROLES: BarbersRole[] = ["admin", "cashier", "accountant"];
 
-/** Admins give each person in the organization a Barbers role. */
-export default function MemberRoles({ members, me }: { members: BarbersMember[]; me: string }) {
+/**
+ * Admins give each person in the organization a Barbers role and, optionally,
+ * the locations they may work at (none ticked = every location).
+ */
+export default function MemberRoles({
+  members,
+  me,
+  locations,
+}: {
+  members: BarbersMember[];
+  me: string;
+  locations: { id: string; name: string }[];
+}) {
   const t = useTranslations("barbers.roles");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -22,6 +33,21 @@ export default function MemberRoles({ members, me }: { members: BarbersMember[];
     startTransition(async () => {
       try {
         await unwrap(setMemberRoleAction(userId, role));
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t("errorGeneric"));
+      }
+    });
+  }
+
+  function toggleLocation(m: BarbersMember, locationId: string) {
+    const next = m.locationIds.includes(locationId)
+      ? m.locationIds.filter((id) => id !== locationId)
+      : [...m.locationIds, locationId];
+    setError(null);
+    startTransition(async () => {
+      try {
+        await unwrap(setMemberLocationsAction(m.userId, next));
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : t("errorGeneric"));
@@ -41,6 +67,31 @@ export default function MemberRoles({ members, me }: { members: BarbersMember[];
             <div className="min-w-0 flex-1">
               <p className="font-medium text-black dark:text-white">{m.name}</p>
               <p className="truncate text-xs text-zinc-500">{m.email}</p>
+              {locations.length > 1 && (
+                <div role="group" aria-label={t("locationsFor", { name: m.name })} className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-zinc-500">{t("locations")}:</span>
+                  {locations.map((l) => {
+                    const on = m.locationIds.includes(l.id);
+                    return (
+                      <button
+                        key={l.id}
+                        type="button"
+                        aria-pressed={on}
+                        disabled={pending}
+                        onClick={() => toggleLocation(m, l.id)}
+                        className={`rounded-full border px-2 py-0.5 text-xs disabled:opacity-50 ${
+                          on
+                            ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
+                            : "border-zinc-200 text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300"
+                        }`}
+                      >
+                        {l.name}
+                      </button>
+                    );
+                  })}
+                  {m.locationIds.length === 0 && <span className="text-xs text-zinc-400">({t("allLocations")})</span>}
+                </div>
+              )}
             </div>
             {m.userId === me ? (
               <span className="text-xs text-zinc-500">{t(`role.${m.role}`)} · {t("you")}</span>
@@ -68,6 +119,7 @@ export default function MemberRoles({ members, me }: { members: BarbersMember[];
           </div>
         ))}
       </dl>
+      {locations.length > 1 && <p className="text-xs text-zinc-500">{t("locationsHint")}</p>}
       <p className="text-xs text-zinc-500">
         {t("inviteHint")}{" "}
         <a href="/team" className="underline hover:text-black dark:hover:text-white">{t("teamLink")}</a>

@@ -14,6 +14,8 @@ describe("barbers permissions", () => {
     expect(can("accountant", "view")).toBe(true);
     expect(canAny("accountant", ["operate", "settle", "configure", "overview"])).toBe(false);
     expect(homeOf("accountant")).toBe("/barbers/settlements");
+    expect(homeOf("cashier")).toBe("/barbers");
+    expect(homeOf("admin")).toBe("/barbers/panel");
   });
 
   it("admins can do everything", () => {

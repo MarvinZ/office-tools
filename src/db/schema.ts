@@ -881,6 +881,9 @@ export const barberMemberRoles = pgTable("barber_member_roles", {
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   userId: text("user_id").notNull(), // Clerk user id
   role: text("role").notNull(), // admin | cashier | accountant
+  // Locations this person may work at (register services, sales, check-in).
+  // Empty = every location (NOURA Módulo 1 §15 "punto asignado").
+  locationIds: text("location_ids").array().notNull().default([]),
   updatedBy: text("updated_by").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [primaryKey({ columns: [t.tenantId, t.userId] })]);

@@ -3,6 +3,7 @@ import Decimal from "decimal.js";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireBarbersPage } from "@/services/barbers/roles";
 import { getPanelConfig, listSalesDetail } from "@/services/barbers/panel";
+import { userNames } from "@/services/barbers/audit";
 import { PAGE_AREAS } from "@/lib/barbers/permissions";
 import { fmtDay, isDateString, todayBusinessDate } from "@/lib/barbers/dates";
 import { fmtColones } from "@/lib/barbers/currency";
@@ -39,6 +40,7 @@ export default async function PanelDetailPage({
   const locationId = location?.id ?? null;
 
   const rows = await listSalesDetail(me.tenant.id, { from, to, locationId });
+  const names = await userNames([...new Set(rows.map((r) => r.createdBy))]);
   const total = rows.reduce((acc, r) => acc.plus(r.amount), new Decimal(0)).toNumber();
   const backHref = locationId ? `/barbers/panel?locationId=${locationId}` : "/barbers/panel";
 
@@ -71,7 +73,7 @@ export default async function PanelDetailPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
-                  {["colDate", "colKind", "colDescription", "colBarber", "colLocation", "colMethod", "colCustomer"].map((c) => (
+                  {["colDate", "colKind", "colDescription", "colBarber", "colLocation", "colMethod", "colCustomer", "colCreatedBy"].map((c) => (
                     <th key={c} className="px-4 py-3 font-semibold">{t(`detail.${c}`)}</th>
                   ))}
                   <th className="px-4 py-3 text-right font-semibold">{t("detail.colAmount")}</th>
@@ -93,6 +95,7 @@ export default async function PanelDetailPage({
                     <td className="px-4 py-2.5 text-zinc-700 dark:text-zinc-300">
                       {r.customerName ?? <span className="italic text-zinc-400">{t("visits.noName")}</span>}
                     </td>
+                    <td className="px-4 py-2.5 text-zinc-700 dark:text-zinc-300">{names.get(r.createdBy) ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-black dark:text-white">{fmtColones(r.amount)}</td>
                   </tr>
                 ))}

@@ -19,7 +19,7 @@ import { listProducts } from "@/services/barbers/products";
 
 export const dynamic = "force-dynamic";
 
-import { requireBarbersPage } from "@/services/barbers/roles";
+import { canUseLocation, requireBarbersPage } from "@/services/barbers/roles";
 import { PAGE_AREAS } from "@/lib/barbers/permissions";
 
 export default async function BarbersLogPage({
@@ -27,7 +27,7 @@ export default async function BarbersLogPage({
 }: {
   searchParams: Promise<{ locationId?: string }>;
 }) {
-  await requireBarbersPage(PAGE_AREAS["/barbers"]);
+  const me = await requireBarbersPage(PAGE_AREAS["/barbers"]);
   const [{ locationId }, tenant, t, user] = await Promise.all([
     searchParams,
     requireTenant(),
@@ -41,8 +41,14 @@ export default async function BarbersLogPage({
   await ensureDefaultPaymentMethods(tenant.id, user?.id ?? "system");
 
   const allLocations = await listLocations(tenant.id);
-  const activeLocations = allLocations.filter((l) => l.status === "active");
-  const selectedLocation = locationId ? activeLocations.find((l) => l.id === locationId) ?? null : null;
+  // Only the locations this person may work at (Settings → people and roles).
+  const activeLocations = allLocations.filter((l) => l.status === "active" && canUseLocation(me, l.id));
+  // Someone limited to a single location never has to pick it.
+  const selectedLocation = locationId
+    ? activeLocations.find((l) => l.id === locationId) ?? null
+    : me.locationIds !== null && activeLocations.length === 1
+      ? activeLocations[0]
+      : null;
 
   // No location chosen yet (or the remembered one is no longer valid) — show
   // the one-time picker instead of the entry form.

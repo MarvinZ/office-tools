@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createCustomerSaleAction } from "../actions";
@@ -17,12 +17,18 @@ export default function CustomerSaleForm({
   paymentMethods,
   ivaRate,
   today,
+  locations,
+  locationRequired,
 }: {
   products: ProductOption[];
   barbers: { id: string; name: string }[];
   paymentMethods: { id: string; name: string }[];
   ivaRate: number;
   today: string;
+  /** Where it can be sold (only this person's allowed locations). */
+  locations: { id: string; name: string }[];
+  /** The person is limited to some locations, so "no location" isn't offered. */
+  locationRequired: boolean;
 }) {
   const t = useTranslations("barbers.productClosing");
   const router = useRouter();
@@ -32,6 +38,18 @@ export default function CustomerSaleForm({
   const [barberId, setBarberId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0]?.id ?? "");
   const [saleDate, setSaleDate] = useState(today);
+  const [locationId, setLocationId] = useState(locationRequired ? (locations[0]?.id ?? "") : "");
+
+  // Default to the location chosen at the front desk (Registro remembers it).
+  useEffect(() => {
+    try {
+      const remembered = localStorage.getItem("barbers.selectedLocationId");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (remembered && locations.some((l) => l.id === remembered)) setLocationId(remembered);
+    } catch {
+      // localStorage unavailable: keep the default.
+    }
+  }, [locations]);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -67,6 +85,7 @@ export default function CustomerSaleForm({
           barberId: barberId || null,
           paymentMethodId: paymentMethodId || null,
           saleDate,
+          locationId: locationId || null,
         }));
         setSaved(true);
         setQuantity("1");
@@ -87,7 +106,7 @@ export default function CustomerSaleForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <label className={`${label} lg:col-span-2`}>
           {t("product")}
           <select id="saleProduct" value={productId} onChange={(e) => setProductId(e.target.value)} className={input}>
@@ -117,6 +136,15 @@ export default function CustomerSaleForm({
           <select id="saleMethod" value={paymentMethodId} onChange={(e) => setPaymentMethodId(e.target.value)} className={input}>
             {paymentMethods.map((m) => (
               <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className={label}>
+          {t("location")}
+          <select id="saleLocation" value={locationId} onChange={(e) => setLocationId(e.target.value)} className={input}>
+            {!locationRequired && <option value="">{t("noLocation")}</option>}
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>
         </label>
