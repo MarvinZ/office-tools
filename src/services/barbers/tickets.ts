@@ -51,6 +51,7 @@ export async function logTicket(tenantId: string, userId: string, input: TicketI
         saleDate,
         note: input.customerName ?? null,
         ticketId,
+        locationId: input.locationId,
       })
     )
   );

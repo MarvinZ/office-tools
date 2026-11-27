@@ -833,6 +833,179 @@
     }
   },
   "barbers": {
+    "tabPanel": "Overview",
+    "panel": {
+      "title": "Overview",
+      "subtitle": "How today is going, the month's progress, and what needs attention.",
+      "greeting": {
+        "morning": "Good morning, {name}",
+        "afternoon": "Good afternoon, {name}",
+        "evening": "Good evening, {name}"
+      },
+      "allLocations": "All locations",
+      "locationLabel": "Location",
+      "updatedAt": "Data as of {when}",
+      "tzWarning": "Your device is in a different time zone ({zone}). All times are shown in official Costa Rica time.",
+      "cash": "Cash register",
+      "pending": "Not recorded yet",
+      "comingSoon": "Coming soon",
+      "needsAgenda": "Comes with the appointments module.",
+      "needsClients": "Comes with client records.",
+      "needsCash": "Comes with the in-app cash register.",
+      "needsExpenses": "Comes with expense tracking.",
+      "salesDefinition": "Sales = what customers paid, IVA included: services and products. Voided, courtesy and warranty services are left out.",
+      "day": {
+        "title": "Today",
+        "sales": "Today's sales",
+        "goal": "Daily goal",
+        "noGoal": "No daily goal",
+        "progress": "{percent}% of goal",
+        "reservations": "Today's bookings",
+        "nextAppointment": "Next appointment",
+        "services": "{count, plural, =1 {1 service} other {# services}}"
+      },
+      "dayMessage": {
+        "closedToday": "The shop is closed today per the configured days.",
+        "noSalesYet": "No sales recorded yet today.",
+        "dailyGoalReached": "Today's goal reached.",
+        "dailyGoalRemaining": "{amount} to go for today's goal.",
+        "salesSoFar": "{amount} sold so far today."
+      },
+      "actions": {
+        "title": "Quick actions",
+        "sell": "Sell",
+        "newAppointment": "New appointment",
+        "newClient": "New client",
+        "cashRegister": "Open register",
+        "qr": "My QR",
+        "reports": "Reports"
+      },
+      "month": {
+        "title": "Month at a glance",
+        "sales": "Sales this month",
+        "services": "Services",
+        "products": "Products",
+        "reservations": "Bookings",
+        "clients": "Clients",
+        "expenses": "Expenses",
+        "vsPrevious": "{diff} ({percent}) vs. the same days of {month}",
+        "notComparable": "No comparable data",
+        "serviceCount": "{count, plural, =1 {1 service} other {# services}}",
+        "productUnits": "{count, plural, =1 {1 unit} other {# units}}"
+      },
+      "goal": {
+        "title": "Monthly goal",
+        "progress": "{percent}% reached",
+        "goal": "Goal",
+        "sold": "Sold",
+        "remaining": "Remaining",
+        "requiredDaily": "Required daily sales",
+        "daysLeft": "{count, plural, =0 {No operating days left} =1 {1 operating day left} other {# operating days left}}",
+        "reached": "Goal reached",
+        "noDaysLeft": "No operating days left this month.",
+        "noGoal": "No monthly goal set for this filter yet.",
+        "setGoals": "Set goals"
+      },
+      "compare": {
+        "title": "Month comparison",
+        "monthA": "Month",
+        "monthB": "Compared with",
+        "apply": "Compare",
+        "colIndicator": "Indicator",
+        "colDiff": "Difference",
+        "colPercent": "Change",
+        "notComparable": "No comparable data",
+        "rows": {
+          "total": "Sales",
+          "services": "Services (amount)",
+          "products": "Products (amount)",
+          "serviceCount": "Number of services"
+        }
+      },
+      "recs": {
+        "title": "Recommendations",
+        "empty": "Nothing needs attention right now.",
+        "category": {
+          "opportunity": "Opportunity",
+          "alert": "Alert",
+          "followUp": "Follow-up",
+          "info": "Info"
+        },
+        "review": "Review",
+        "attend": "Done",
+        "dismiss": "Dismiss",
+        "restore": "Back to pending",
+        "attended": "Done on {when}",
+        "dismissed": "Dismissed on {when}",
+        "history": "Already decided ({count})",
+        "note": "Recommendations never do anything on their own: they only take you where to act.",
+        "fortnightUnclosed": "Fortnight {period} has ended and isn't closed yet.",
+        "goalBehind": "Sales for {month} are behind the goal: {sales} sold, {expected} expected by now. You need {requiredDaily} a day.",
+        "goalReached": "The goal for {month} is reached: {percent}% of {goal}.",
+        "commissionsPending": "{count, plural, =1 {1 product commission from earlier fortnights is} other {# product commissions from earlier fortnights are}} still unpaid ({amount}).",
+        "noSalesYesterday": "{location} recorded no sales on {date}. Is that day's closing missing?"
+      },
+      "visits": {
+        "title": "Latest visits",
+        "empty": "No visits recorded yet.",
+        "noName": "No name",
+        "colWhen": "Date and time",
+        "colCustomer": "Client",
+        "colService": "Service",
+        "colBarber": "Professional",
+        "colMethod": "Payment method",
+        "colTotal": "Total",
+        "courtesy": "Courtesy",
+        "warranty": "Warranty",
+        "seeDay": "See the day"
+      },
+      "birthdays": "Birthdays this month",
+      "demographics": "Clients by age",
+      "goals": {
+        "title": "Goals and operating days",
+        "subtitle": "Amounts include IVA, like sales. Empty = no goal.",
+        "monthly": "Monthly goal (₡)",
+        "daily": "Daily goal (₡)",
+        "closedDays": "Days the shop is closed",
+        "save": "Save goals",
+        "saved": "Goals saved.",
+        "noLocations": "No active locations.",
+        "invalid": "Check the amounts: they must be positive numbers.",
+        "weekday": {
+          "0": "Sun",
+          "1": "Mon",
+          "2": "Tue",
+          "3": "Wed",
+          "4": "Thu",
+          "5": "Fri",
+          "6": "Sat"
+        }
+      },
+      "detail": {
+        "title": "Sales detail",
+        "back": "Back to overview",
+        "period": "{from} to {to}",
+        "total": "Total",
+        "count": "{count, plural, =1 {1 entry} other {# entries}}",
+        "colDate": "Date",
+        "colKind": "Type",
+        "colDescription": "Description",
+        "colBarber": "Professional",
+        "colLocation": "Location",
+        "colMethod": "Payment method",
+        "colCustomer": "Client",
+        "colAmount": "Amount",
+        "kindService": "Service",
+        "kindProduct": "Product",
+        "empty": "No sales for this filter.",
+        "productsWithoutLocation": "Product sales without a recorded location only show under “All locations”."
+      },
+      "error": {
+        "title": "The overview couldn't load",
+        "body": "This may be a connection problem. Figures are hidden rather than shown incomplete.",
+        "retry": "Try again"
+      }
+    },
     "tabLog": "Log",
     "tabBarbers": "Barbers",
     "tabLocations": "Locations",
@@ -1616,6 +1789,7 @@
     },
     "errors": {
       "generic": "Something went wrong. Please try again.",
+      "goalNegative": "Goals can't be negative.",
       "notAuthenticated": "Your session has ended. Sign in again.",
       "forbidden": "You don't have permission to do this.",
       "notFound": "That record no longer exists. Refresh the page and try again.",

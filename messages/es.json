@@ -833,6 +833,179 @@
     }
   },
   "barbers": {
+    "tabPanel": "Panel",
+    "panel": {
+      "title": "Panel general",
+      "subtitle": "El estado del día, el avance del mes y lo que necesita atención.",
+      "greeting": {
+        "morning": "Buenos días, {name}",
+        "afternoon": "Buenas tardes, {name}",
+        "evening": "Buenas noches, {name}"
+      },
+      "allLocations": "Todos los locales",
+      "locationLabel": "Local",
+      "updatedAt": "Datos al {when}",
+      "tzWarning": "Tu dispositivo está en otra zona horaria ({zone}). Todas las horas se muestran en hora oficial de Costa Rica.",
+      "cash": "Caja",
+      "pending": "Pendiente de registrar",
+      "comingSoon": "Próximamente",
+      "needsAgenda": "Llega con el módulo de citas.",
+      "needsClients": "Llega con las fichas de clientes.",
+      "needsCash": "Llega con la caja en la app.",
+      "needsExpenses": "Llega con el registro de gastos.",
+      "salesDefinition": "Ventas = lo que pagaron los clientes, IVA incluido: servicios y productos. No incluye anulados, cortesías ni garantías.",
+      "day": {
+        "title": "Hoy",
+        "sales": "Ventas del día",
+        "goal": "Meta diaria",
+        "noGoal": "Sin meta diaria",
+        "progress": "{percent}% de la meta",
+        "reservations": "Reservas de hoy",
+        "nextAppointment": "Próxima cita",
+        "services": "{count, plural, =1 {1 servicio} other {# servicios}}"
+      },
+      "dayMessage": {
+        "closedToday": "Hoy el local no abre según los días configurados.",
+        "noSalesYet": "Todavía no hay ventas registradas hoy.",
+        "dailyGoalReached": "Meta del día alcanzada.",
+        "dailyGoalRemaining": "Faltan {amount} para la meta de hoy.",
+        "salesSoFar": "Llevamos {amount} vendidos hoy."
+      },
+      "actions": {
+        "title": "Acciones rápidas",
+        "sell": "Vender",
+        "newAppointment": "Nueva cita",
+        "newClient": "Nuevo cliente",
+        "cashRegister": "Abrir caja",
+        "qr": "Mi QR",
+        "reports": "Informes"
+      },
+      "month": {
+        "title": "Pulso del mes",
+        "sales": "Ventas del mes",
+        "services": "Servicios",
+        "products": "Productos",
+        "reservations": "Reservas",
+        "clients": "Clientes",
+        "expenses": "Gastos",
+        "vsPrevious": "{diff} ({percent}) frente a los mismos días de {month}",
+        "notComparable": "Sin datos comparables",
+        "serviceCount": "{count, plural, =1 {1 servicio} other {# servicios}}",
+        "productUnits": "{count, plural, =1 {1 unidad} other {# unidades}}"
+      },
+      "goal": {
+        "title": "Meta del mes",
+        "progress": "{percent}% alcanzado",
+        "goal": "Meta",
+        "sold": "Vendido",
+        "remaining": "Faltante",
+        "requiredDaily": "Venta diaria requerida",
+        "daysLeft": "{count, plural, =0 {Sin días operativos restantes} =1 {1 día operativo restante} other {# días operativos restantes}}",
+        "reached": "Meta alcanzada",
+        "noDaysLeft": "No quedan días operativos este mes.",
+        "noGoal": "Todavía no hay meta mensual para este filtro.",
+        "setGoals": "Definir metas"
+      },
+      "compare": {
+        "title": "Comparación de meses",
+        "monthA": "Mes",
+        "monthB": "Comparado con",
+        "apply": "Comparar",
+        "colIndicator": "Indicador",
+        "colDiff": "Diferencia",
+        "colPercent": "Variación",
+        "notComparable": "Sin datos comparables",
+        "rows": {
+          "total": "Ventas",
+          "services": "Servicios (monto)",
+          "products": "Productos (monto)",
+          "serviceCount": "Cantidad de servicios"
+        }
+      },
+      "recs": {
+        "title": "Recomendaciones",
+        "empty": "Nada que atender por ahora.",
+        "category": {
+          "opportunity": "Oportunidad",
+          "alert": "Alerta",
+          "followUp": "Seguimiento",
+          "info": "Información"
+        },
+        "review": "Revisar",
+        "attend": "Atendida",
+        "dismiss": "Descartar",
+        "restore": "Volver a pendiente",
+        "attended": "Atendida el {when}",
+        "dismissed": "Descartada el {when}",
+        "history": "Ya decididas ({count})",
+        "note": "Las recomendaciones nunca ejecutan nada: solo llevan al lugar donde actuar.",
+        "fortnightUnclosed": "La quincena {period} terminó y todavía no está cerrada.",
+        "goalBehind": "Las ventas de {month} van detrás de la meta: {sales} vendidos, se esperaban {expected} a esta fecha. Hace falta vender {requiredDaily} por día.",
+        "goalReached": "La meta de {month} está alcanzada: {percent}% de {goal}.",
+        "commissionsPending": "{count, plural, =1 {1 comisión de productos de quincenas anteriores sigue} other {# comisiones de productos de quincenas anteriores siguen}} sin pagar ({amount}).",
+        "noSalesYesterday": "{location} no registró ventas el {date}. ¿Falta registrar o importar el cierre de ese día?"
+      },
+      "visits": {
+        "title": "Últimas visitas",
+        "empty": "Todavía no hay visitas registradas.",
+        "noName": "Sin nombre",
+        "colWhen": "Fecha y hora",
+        "colCustomer": "Cliente",
+        "colService": "Servicio",
+        "colBarber": "Profesional",
+        "colMethod": "Método de pago",
+        "colTotal": "Total",
+        "courtesy": "Cortesía",
+        "warranty": "Garantía",
+        "seeDay": "Ver el día"
+      },
+      "birthdays": "Cumpleaños del mes",
+      "demographics": "Clientes por edad",
+      "goals": {
+        "title": "Metas y días de operación",
+        "subtitle": "Montos con IVA incluido, como las ventas. Vacío = sin meta.",
+        "monthly": "Meta mensual (₡)",
+        "daily": "Meta diaria (₡)",
+        "closedDays": "Días que el local no abre",
+        "save": "Guardar metas",
+        "saved": "Metas guardadas.",
+        "noLocations": "No hay locales activos.",
+        "invalid": "Revisá los montos: deben ser números positivos.",
+        "weekday": {
+          "0": "Dom",
+          "1": "Lun",
+          "2": "Mar",
+          "3": "Mié",
+          "4": "Jue",
+          "5": "Vie",
+          "6": "Sáb"
+        }
+      },
+      "detail": {
+        "title": "Detalle de ventas",
+        "back": "Volver al panel",
+        "period": "Del {from} al {to}",
+        "total": "Total",
+        "count": "{count, plural, =1 {1 movimiento} other {# movimientos}}",
+        "colDate": "Fecha",
+        "colKind": "Tipo",
+        "colDescription": "Descripción",
+        "colBarber": "Profesional",
+        "colLocation": "Local",
+        "colMethod": "Método de pago",
+        "colCustomer": "Cliente",
+        "colAmount": "Monto",
+        "kindService": "Servicio",
+        "kindProduct": "Producto",
+        "empty": "No hay ventas para este filtro.",
+        "productsWithoutLocation": "Las ventas de productos sin local registrado solo aparecen con «Todos los locales»."
+      },
+      "error": {
+        "title": "No se pudo cargar el panel",
+        "body": "Puede ser un problema de conexión. Las cifras no se muestran para no presentar datos incompletos.",
+        "retry": "Reintentar"
+      }
+    },
     "tabLog": "Registro",
     "tabBarbers": "Barberos",
     "tabLocations": "Sucursales",
@@ -1616,6 +1789,7 @@
     },
     "errors": {
       "generic": "Algo salió mal. Intente de nuevo.",
+      "goalNegative": "Las metas no pueden ser negativas.",
       "notAuthenticated": "Su sesión terminó. Vuelva a ingresar.",
       "forbidden": "No tiene permiso para hacer esto.",
       "notFound": "Ese registro ya no existe. Actualice la página e intente de nuevo.",

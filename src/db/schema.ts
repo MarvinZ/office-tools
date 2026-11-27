@@ -668,6 +668,10 @@ export const locations = pgTable("locations", {
   addressCountry: text("address_country"),
   phone: text("phone"),
   status: locationStatusEnum("status").notNull().default("active"),
+  // Sales goals for the admin panel (NOURA Módulo 1 §8), IVA included like
+  // the sales they're compared with. Null = no goal set.
+  monthlyGoal: numeric("monthly_goal", { precision: 12, scale: 2 }),
+  dailyGoal: numeric("daily_goal", { precision: 12, scale: 2 }),
   tags: text("tags").array().notNull().default([]),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -729,6 +733,9 @@ export const barberSettings = pgTable("barber_settings", {
   cardFeeOnGross: boolean("card_fee_on_gross").notNull().default(false),
   // Where professionals send their electronic invoice; printed on settlements.
   invoiceEmail: text("invoice_email"),
+  // Weekdays the shop doesn't open (0 = Sunday … 6 = Saturday). The admin
+  // panel's "required daily sales" divides by the operating days left.
+  closedWeekdays: integer("closed_weekdays").array().notNull().default([]),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -905,6 +912,9 @@ export const productCustomerSales = pgTable("product_customer_sales", {
   note: text("note"),
   // Shared with the services charged on the same ticket (barber_activities.ticket_id).
   ticketId: text("ticket_id"),
+  // Where it was sold, for per-location sales on the admin panel. Null for
+  // sales recorded before this existed or from the product closing form.
+  locationId: text("location_id").references(() => locations.id),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -1041,6 +1051,18 @@ export const productSales = pgTable("product_sales", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// A decision on one admin-panel recommendation (NOURA Módulo 1 §9). The
+// recommendations themselves are computed live from the data by rules
+// (lib/barbers/panel.ts); each has a stable key that includes its period, so
+// this table only records what an admin did with it. No row = pending.
+export const barberPanelAlerts = pgTable("barber_panel_alerts", {
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  key: text("key").notNull(),
+  status: text("status").notNull(), // attended | dismissed
+  decidedBy: text("decided_by").notNull(),
+  decidedAt: timestamp("decided_at").defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.key] })]);
 
 // ── Webhooks ──────────────────────────────────────────────────────────────────
 // A generic inbound-webhook receiver: one endpoint per tenant, HMAC-SHA256
