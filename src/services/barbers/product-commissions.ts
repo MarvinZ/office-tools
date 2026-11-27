@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { barbers, paymentMethods, productCustomerSales, products } from "@/db/schema";
+import { barbers, locations, paymentMethods, productCustomerSales, products } from "@/db/schema";
 import { getBarberSettings } from "./settings";
 import { productSaleFigures, summarizeProductClosing, type ProductClosingSummary } from "@/lib/barbers/product-commissions";
 import { isDateString } from "@/lib/barbers/dates";
@@ -20,6 +20,7 @@ export type CustomerSaleInput = {
   paymentMethodId: string | null;
   saleDate: string; // YYYY-MM-DD
   note?: string | null;
+  locationId?: string | null; // where it was sold (admin panel sales by location)
 };
 
 export async function createCustomerSale(tenantId: string, userId: string, input: CustomerSaleInput) {
@@ -53,6 +54,14 @@ export async function prepareCustomerSale(
       .limit(1);
     if (!m) throw new BarbersError("notFound");
   }
+  if (input.locationId) {
+    const [l] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, input.locationId)))
+      .limit(1);
+    if (!l) throw new BarbersError("notFound");
+  }
 
   // No collaborator → nobody earns a commission on this sale.
   const commissionPerUnit = input.barberId ? product.commissionAmount : "0";
@@ -81,6 +90,7 @@ export async function prepareCustomerSale(
       saleDate: input.saleDate,
       note: input.note?.trim() || null,
       ticketId: input.ticketId ?? null,
+      locationId: input.locationId ?? null,
       createdBy: userId,
   };
 }

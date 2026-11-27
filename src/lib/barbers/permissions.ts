@@ -10,15 +10,17 @@
  *   settle     change what gets paid: close/reopen, carry-overs, pay product
  *              commissions
  *   configure  catalogs, rates, shop settings, roles, importing closings
+ *   overview   the admin panel: shop-wide sales, goals, comparisons and
+ *              recommendations (NOURA Módulo 1: administrators only)
  */
 
 export type BarbersRole = "admin" | "cashier" | "accountant";
-export type BarbersArea = "operate" | "view" | "settle" | "configure";
+export type BarbersArea = "operate" | "view" | "settle" | "configure" | "overview";
 
 export const BARBERS_ROLES: BarbersRole[] = ["admin", "cashier", "accountant"];
 
 const MATRIX: Record<BarbersRole, BarbersArea[]> = {
-  admin: ["operate", "view", "settle", "configure"],
+  admin: ["operate", "view", "settle", "configure", "overview"],
   cashier: ["operate"],
   accountant: ["view"],
 };
@@ -38,6 +40,7 @@ export function homeOf(role: BarbersRole): string {
 
 /** Areas that unlock each page/tab (any one is enough). */
 export const PAGE_AREAS: Record<string, BarbersArea[]> = {
+  "/barbers/panel": ["overview"],
   "/barbers": ["operate"],
   "/barbers/vales": ["operate"],
   "/barbers/product-sales": ["operate"],

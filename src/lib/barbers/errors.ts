@@ -45,6 +45,7 @@ export type BarbersErrorCode =
   | "tooManyFiles"
   | "onlyXlsx"
   | "fileTooLarge"
+  | "goalNegative"
   | "ownRole"
   | "notInOrganization";
 

@@ -24,6 +24,7 @@ import {
   Wallet,
   PieChart,
   FileSpreadsheet,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -35,12 +36,14 @@ type NavEntry = NavLink | NavMenu;
 const isMenu = (e: NavEntry): e is NavMenu => "items" in e;
 
 /**
- * Tabs grouped by job so the row stays short: front-desk work first, then
+ * Tabs grouped by job so the row stays short: the admin panel, front-desk
+ * work, then
  * pay, then setup. Groups open a menu; a group with a single visible item is
  * shown as a plain tab. Which entries a person sees depends on their role
  * (`visible`, from lib/barbers/permissions.ts).
  */
 const NAV: NavEntry[] = [
+  { href: "/barbers/panel", labelKey: "tabPanel", icon: LayoutDashboard },
   { href: "/barbers", labelKey: "tabLog", icon: Scissors, exact: true },
   { href: "/barbers/vales", labelKey: "tabVales", icon: Banknote },
   { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins },
