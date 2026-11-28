@@ -13,11 +13,14 @@ export function MarkPaidControl({
   from,
   to,
   today,
+  registers,
 }: {
   barberId: string;
   from: string;
   to: string;
   today: string;
+  /** Registers open today that the cash can come out of. */
+  registers: { shiftId: string; label: string }[];
 }) {
   const t = useTranslations("barbers.productClosing");
   const router = useRouter();
@@ -25,13 +28,14 @@ export function MarkPaidControl({
   const [open, setOpen] = useState(false);
   const [paidAt, setPaidAt] = useState(today);
   const [asCashOutflow, setAsCashOutflow] = useState(false);
+  const [shiftId, setShiftId] = useState(registers[0]?.shiftId ?? "");
   const [error, setError] = useState<string | null>(null);
 
   function confirm() {
     setError(null);
     startTransition(async () => {
       try {
-        await unwrap(markCommissionsPaidAction({ barberId, from, to, paidAt, asCashOutflow }));
+        await unwrap(markCommissionsPaidAction({ barberId, from, to, paidAt: asCashOutflow ? today : paidAt, asCashOutflow, shiftId: asCashOutflow ? shiftId : null }));
         setOpen(false);
         router.refresh();
       } catch (e) {
@@ -49,17 +53,31 @@ export function MarkPaidControl({
   }
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
-      <input
-        type="date"
-        aria-label={t("paidOn")}
-        value={paidAt}
-        onChange={(e) => setPaidAt(e.target.value)}
-        className="rounded-md border border-zinc-200 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
-      />
+      {!asCashOutflow && (
+        <input
+          type="date"
+          aria-label={t("paidOn")}
+          value={paidAt}
+          onChange={(e) => setPaidAt(e.target.value)}
+          className="rounded-md border border-zinc-200 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+        />
+      )}
       <label className="flex items-center gap-1">
-        <input type="checkbox" checked={asCashOutflow} onChange={(e) => setAsCashOutflow(e.target.checked)} />
-        {t("asCashOutflow")}
+        <input type="checkbox" checked={asCashOutflow} disabled={registers.length === 0} onChange={(e) => setAsCashOutflow(e.target.checked)} />
+        {registers.length === 0 ? t("asCashOutflowNoRegister") : t("asCashOutflow")}
       </label>
+      {asCashOutflow && registers.length > 1 && (
+        <select
+          aria-label={t("fromRegister")}
+          value={shiftId}
+          onChange={(e) => setShiftId(e.target.value)}
+          className="rounded-md border border-zinc-200 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          {registers.map((r) => (
+            <option key={r.shiftId} value={r.shiftId}>{r.label}</option>
+          ))}
+        </select>
+      )}
       <button onClick={confirm} disabled={pending} className="rounded-md bg-black px-2.5 py-1 font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black">
         {t("confirmPaid")}
       </button>

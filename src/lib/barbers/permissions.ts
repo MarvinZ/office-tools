@@ -49,6 +49,7 @@ export const PAGE_AREAS: Record<string, BarbersArea[]> = {
   "/barbers/panel": ["overview"],
   "/barbers": ["operate"],
   "/barbers/register": ["operate", "view"],
+  "/barbers/clients": ["overview"],
   "/barbers/vales": ["operate"],
   "/barbers/product-sales": ["operate"],
   "/barbers/tips": ["operate"],

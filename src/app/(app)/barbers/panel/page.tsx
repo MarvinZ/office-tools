@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { currentUser } from "@clerk/nextjs/server";
-import { CalendarPlus, FileBarChart, QrCode, ShoppingCart, UserPlus, Wallet, type LucideIcon } from "lucide-react";
+import { CalendarPlus, FileBarChart, MessageCircle, QrCode, ShoppingCart, UserPlus, Wallet, type LucideIcon } from "lucide-react";
 import { requireBarbersPage } from "@/services/barbers/roles";
 import { getPanelConfig, getPanelData } from "@/services/barbers/panel";
 import { can, PAGE_AREAS } from "@/lib/barbers/permissions";
@@ -13,6 +13,9 @@ import PanelHeader from "./_components/panel-header";
 import GoalsEditor from "./_components/goals-editor";
 import RecommendationList, { type RecommendationItem } from "./_components/recommendation-list";
 import { detailHref, fmtDateTime, fmtPercent, fmtSignedColones, monthDetailHref, monthLabel } from "./_lib/format";
+import AgeDistribution from "../clients/_components/age-distribution";
+import { ageLabels } from "../clients/_lib/labels";
+import { ageOn, whatsappLink } from "@/lib/barbers/clients";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +32,11 @@ export default async function PanelPage({
   searchParams: Promise<{ locationId?: string; a?: string; b?: string }>;
 }) {
   const me = await requireBarbersPage(PAGE_AREAS["/barbers/panel"]);
-  const [params, t, locale, user] = await Promise.all([
+  const [params, t, locale, tc, user] = await Promise.all([
     searchParams,
     getTranslations("barbers.panel"),
     getLocale(),
+    getTranslations("barbers.clients"),
     currentUser(),
   ]);
 
@@ -162,9 +166,20 @@ export default async function PanelPage({
           <div className={card}>
             <PendingFigure title={t("month.reservations")} note={t("needsAgenda")} pending={t("pending")} />
           </div>
-          <div className={card}>
-            <PendingFigure title={t("month.clients")} note={t("needsClients")} pending={t("pending")} />
-          </div>
+          <Link href="/barbers/clients" className={`${card} group`}>
+            <p className={label}>{t("month.clients")}</p>
+            <p className={`${bigNumber} group-hover:underline`}>{data.clients.current.clients}</p>
+            <p className="text-xs text-zinc-500">
+              {t("month.newReturning", { new: data.clients.current.newClients, returning: data.clients.current.returning })}
+              {" · "}
+              {data.clients.vsPrevious.percent === null
+                ? t("month.notComparable")
+                : t("month.clientsVsPrevious", { percent: fmtPercent(data.clients.vsPrevious.percent, locale, true) })}
+            </p>
+            {data.clients.current.unidentified > 0 && (
+              <p className="text-xs text-zinc-400">{t("month.unidentified", { count: data.clients.current.unidentified })}</p>
+            )}
+          </Link>
           <Link href={`/barbers/expenses?month=${currentMonth}${locationId ? `&locationId=${locationId}` : ""}`} className={`${card} group`}>
             <p className={label}>{t("month.expenses")}</p>
             <p className={`${bigNumber} group-hover:underline`}>{fmtColones(data.month.expenses.current)}</p>
@@ -296,7 +311,11 @@ export default async function PanelPage({
                           </Link>
                         </td>
                         <td className="py-2 pr-3">
-                          {v.customerName ?? <span className="text-zinc-400 italic">{t("visits.noName")}</span>}
+                          {v.clientId ? (
+                            <Link href={`/barbers/clients/${v.clientId}`} className="hover:underline">{v.customerName}</Link>
+                          ) : (
+                            v.customerName ?? <span className="text-zinc-400 italic">{t("visits.noName")}</span>
+                          )}
                         </td>
                         <td className="py-2 pr-3 text-zinc-700 dark:text-zinc-300">
                           {v.service}
@@ -319,10 +338,46 @@ export default async function PanelPage({
         </section>
         <div className="flex flex-col gap-4">
           <section className={card}>
-            <PendingFigure title={t("birthdays")} note={t("needsClients")} pending={t("pending")} />
+            <h2 className={h2}>{t("birthdays")}</h2>
+            {data.clients.birthdays.length === 0 ? (
+              <p className="mt-2 text-sm text-zinc-400">{t("noBirthdays")}</p>
+            ) : (
+              <ul className="mt-2 divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                {data.clients.birthdays.slice(0, 8).map((b) => {
+                  const wa = whatsappLink(b.phone, tc("birthdayMessage", { name: b.fullName.split(" ")[0], business: me.tenant.name }));
+                  return (
+                    <li key={b.id} className="flex items-start gap-2 py-2">
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/barbers/clients/${b.id}`} className="font-medium text-black hover:underline dark:text-white">{b.fullName}</Link>
+                        <p className="text-xs text-zinc-500">
+                          {fmtDay(b.birthday)} · {t("turns", { age: ageOn(b.birthDate, b.birthday) })}
+                          {b.phone && <> · {b.phone}</>}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          {b.lastVisit ? t("lastVisit", { when: fmtDateTime(b.lastVisit, locale) }) : t("noVisits")}
+                          {b.usualBarberName && <> · {b.usualBarberName}</>}
+                        </p>
+                      </div>
+                      {wa && (
+                        <a href={wa} target="_blank" rel="noopener noreferrer" title={t("prepareMessage")} aria-label={t("prepareMessage")} className="rounded-lg border border-zinc-200 p-1.5 text-zinc-600 hover:text-black dark:border-zinc-700 dark:text-zinc-300 dark:hover:text-white">
+                          <MessageCircle size={14} />
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="mt-2 text-xs text-zinc-400">{t("messageNote")}</p>
           </section>
           <section className={card}>
-            <PendingFigure title={t("demographics")} note={t("needsClients")} pending={t("pending")} />
+            <h2 className={`${h2} mb-3`}>{t("demographics")}</h2>
+            <AgeDistribution
+              data={data.clients.ages}
+              labels={ageLabels(tc)}
+              totalLabel={tc("demographicsTotal", { count: data.clients.ages.total, month: monthLabel(currentMonth, locale) })}
+              emptyLabel={tc("demographicsEmpty")}
+            />
           </section>
         </div>
       </div>

@@ -893,7 +893,10 @@
         "vsPrevious": "{diff} ({percent}) vs. the same days of {month}",
         "notComparable": "No comparable data",
         "serviceCount": "{count, plural, =1 {1 service} other {# services}}",
-        "productUnits": "{count, plural, =1 {1 unit} other {# units}}"
+        "productUnits": "{count, plural, =1 {1 unit} other {# units}}",
+        "newReturning": "{new} new, {returning} returning",
+        "clientsVsPrevious": "{percent} vs. last month",
+        "unidentified": "{count, plural, =1 {1 service without a client} other {# services without a client}}"
       },
       "goal": {
         "title": "Monthly goal",
@@ -1016,7 +1019,13 @@
         "open": "Open",
         "closingPending": "Closing pending",
         "shift": "Shift {n}"
-      }
+      },
+      "noBirthdays": "No birthdays this month (among clients with a birth date).",
+      "turns": "turns {age}",
+      "lastVisit": "last visit {when}",
+      "noVisits": "no visits",
+      "prepareMessage": "Prepare WhatsApp message",
+      "messageNote": "The message opens in WhatsApp for you to review; nothing is sent unless you send it."
     },
     "tabLog": "Log",
     "tabBarbers": "Barbers",
@@ -1777,7 +1786,10 @@
       "sheetSales": "Sales",
       "fileName": "Cierre_Productos",
       "location": "Location",
-      "noLocation": "No location"
+      "noLocation": "No location",
+      "shiftN": "Shift {n}",
+      "asCashOutflowNoRegister": "Pay from the register (no register open)",
+      "fromRegister": "Register"
     },
     "tabCash": "Cash shortfalls",
     "roles": {
@@ -1875,7 +1887,12 @@
       "registerShiftClosed": "That shift is already closed.",
       "valeFromRegister": "This vale was paid out of the register. Delete it from the Register while the shift is open.",
       "rejectReasonRequired": "Enter the reason for rejecting.",
-      "expenseFromRegister": "This expense came out of the register: delete it from the Register while the shift is open."
+      "expenseFromRegister": "This expense came out of the register: delete it from the Register while the shift is open.",
+      "oneCollaboratorPerOutflow": "Pay one collaborator's commissions from the register at a time.",
+      "commissionFromRegister": "This commission was paid from the register: to undo it, delete that cash-out in the Register while the shift is open.",
+      "chooseRegister": "Choose the open register the cash comes out of.",
+      "paymentsDontAddUp": "The split payment amounts must add up to the ticket total.",
+      "clientNameRequired": "Enter the client's name."
     },
     "tabGroupProducts": "Products",
     "tabGroupReports": "Cash & reports",
@@ -2016,7 +2033,9 @@
         "goClose": "Close it",
         "openNow": "Register open · Shift {n} · {name}.",
         "goTo": "Go to register"
-      }
+      },
+      "commissionOutflow": "Product commissions",
+      "toExpenses": "→ Expenses"
     },
     "tabExpenses": "Expenses",
     "expenses": {
@@ -2078,6 +2097,88 @@
         "pettyCash": "Petty cash and sundries",
         "other": "Other"
       }
+    },
+    "tabClients": "Clients",
+    "clients": {
+      "title": "Clients",
+      "subtitle": "Client records: visits, birthdays and ages. The front desk picks or creates them when charging.",
+      "newTitle": "New client",
+      "fullName": "Name",
+      "phone": "phone",
+      "birthDate": "birth date",
+      "email": "Email",
+      "notes": "Notes",
+      "saved": "Saved.",
+      "saveChanges": "Save changes",
+      "create": "Create client",
+      "search": "Search by name or phone",
+      "searchButton": "Search",
+      "filterAll": "All",
+      "filterIncomplete": "Incomplete records",
+      "filterBirthdays": "Birthdays this month",
+      "empty": "No clients for this filter.",
+      "birthday": "Born (age)",
+      "visits": "Visits",
+      "lastVisit": "Last visit",
+      "spent": "Total paid",
+      "incomplete": "Incomplete",
+      "birthdayThisMonth": "Birthday this month",
+      "demographicsTitle": "Clients by age",
+      "period": "Period",
+      "location": "Location",
+      "allLocations": "All locations",
+      "professional": "Professional",
+      "allProfessionals": "All",
+      "apply": "Apply",
+      "demographicsTotal": "{count, plural, =1 {1 client served} other {# clients served}} in {month}",
+      "demographicsEmpty": "No clients with a record served in this period.",
+      "ageRange": "{min} to {max}",
+      "ageOrMore": "{min} or older",
+      "ageUnknown": "Age unknown",
+      "ageYears": "{age} years old",
+      "birthdayOn": "birthday on {date}",
+      "prepareMessage": "Prepare birthday message",
+      "birthdayMessage": "Happy birthday, {name}! From all of us at {business}, have a wonderful day.",
+      "missingFields": "Incomplete record: missing {fields}. Fill it in below.",
+      "usualProfessional": "Usual professional",
+      "data": "Details",
+      "history": "History",
+      "noHistory": "No visits recorded yet.",
+      "when": "Date",
+      "item": "Service or product",
+      "method": "Payment method",
+      "amount": "Amount",
+      "status": {
+        "active": "normal",
+        "courtesy": "courtesy",
+        "warranty": "warranty",
+        "voided": "voided"
+      }
+    },
+    "clientPicker": {
+      "label": "Client",
+      "placeholder": "Search by name or phone (optional)",
+      "record": "has a record",
+      "clear": "Remove client",
+      "create": "Create a record for “{name}”",
+      "newTitle": "New record: {name}",
+      "phone": "Phone",
+      "birthDate": "Birth date",
+      "cancel": "Cancel",
+      "save": "Create and use"
+    },
+    "splitPayment": {
+      "title": "Split payment: the amounts must add up to the total",
+      "method": "Method {n}",
+      "amount": "Amount {n}",
+      "remove": "Remove",
+      "add": "Add method",
+      "complete": "Adds up",
+      "missing": "{amount} left",
+      "over": "{amount} over",
+      "mustAddUp": "The split payment amounts must add up to the ticket total.",
+      "open": "Split the payment",
+      "cancel": "Don't split"
     }
   },
   "webhooks": {

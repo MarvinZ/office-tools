@@ -1,11 +1,13 @@
 import { and, desc, eq, gte, inArray, isNull, lte, max, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  barberActivities, barberCashOutflows, barberCashShifts, barberExpenses, barbers, barberVouchers, locations, paymentMethods, productCustomerSales,
+  barberActivities, barberCashOutflows, barberCashShifts, barberExpenses, barbers, barberTicketPayments, barberVouchers, locations, paymentMethods, productCustomerSales,
 } from "@/db/schema";
 import { expenseFromOutflow } from "./expenses";
 import { endOfBusinessDay, startOfBusinessDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { computeShiftClosing, registerState, type RegisterState, type ShiftClosing } from "@/lib/barbers/cash-register";
+import { scaledPayments } from "@/lib/barbers/payments";
+import Decimal from "decimal.js";
 import { BarbersError } from "@/lib/barbers/errors";
 
 /**
@@ -165,6 +167,7 @@ export async function addOutflow(
     concept,
     barberId: input.barberId ?? null,
     voucherId,
+    kind: voucherId ? "vale" : "expense",
     createdBy: userId,
   };
   if (voucherId && input.barberId) {
@@ -213,8 +216,13 @@ export async function deleteOutflow(tenantId: string, shiftId: string, outflowId
   if (!row) throw new BarbersError("notFound");
   const shift = await requireOpenShift(tenantId, row.shiftId);
   // Children first (the expense points at the outflow), all in one batch.
+  // Product commissions paid with it go back to pending.
   await db.batch([
     db.delete(barberExpenses).where(and(eq(barberExpenses.tenantId, tenantId), eq(barberExpenses.cashOutflowId, outflowId))),
+    db
+      .update(productCustomerSales)
+      .set({ commissionPaidAt: null, commissionPaidBy: null, paidAsCashOutflow: false, commissionOutflowId: null })
+      .where(and(eq(productCustomerSales.tenantId, tenantId), eq(productCustomerSales.commissionOutflowId, outflowId))),
     ...(row.voucherId
       ? [db.delete(barberVouchers).where(and(eq(barberVouchers.tenantId, tenantId), eq(barberVouchers.id, row.voucherId)))]
       : []),
@@ -225,7 +233,14 @@ export async function deleteOutflow(tenantId: string, shiftId: string, outflowId
 
 // ── A shift, live or closed ──────────────────────────────────────────────────
 
-export type ShiftOutflow = { id: string; amount: number; concept: string; barberName: string | null; createdAt: Date };
+export type ShiftOutflow = {
+  id: string;
+  amount: number;
+  concept: string;
+  barberName: string | null;
+  kind: "expense" | "vale" | "commission";
+  createdAt: Date;
+};
 
 export type ShiftView = {
   shift: ShiftRow & { locationName: string };
@@ -239,29 +254,53 @@ export type ShiftView = {
 
 /** Sales charged in a shift, per payment method, plus every method the shop uses. */
 async function salesByMethod(tenantId: string, shiftId: string) {
-  const [svc, prod, methods] = await Promise.all([
+  const [svc, prod, pays, methods] = await Promise.all([
     db
-      .select({ paymentMethodId: barberActivities.paymentMethodId, total: sql<string>`sum(${barberActivities.priceCharged})`, n: sql<string>`count(*)` })
+      .select({ ticketId: barberActivities.ticketId, paymentMethodId: barberActivities.paymentMethodId, price: barberActivities.priceCharged, status: barberActivities.status })
       .from(barberActivities)
-      .where(and(eq(barberActivities.tenantId, tenantId), eq(barberActivities.cashShiftId, shiftId), eq(barberActivities.status, "active")))
-      .groupBy(barberActivities.paymentMethodId),
+      .where(and(eq(barberActivities.tenantId, tenantId), eq(barberActivities.cashShiftId, shiftId))),
     db
-      .select({ paymentMethodId: productCustomerSales.paymentMethodId, total: sql<string>`sum(${productCustomerSales.total})`, n: sql<string>`count(*)` })
+      .select({ ticketId: productCustomerSales.ticketId, paymentMethodId: productCustomerSales.paymentMethodId, total: productCustomerSales.total })
       .from(productCustomerSales)
-      .where(and(eq(productCustomerSales.tenantId, tenantId), eq(productCustomerSales.cashShiftId, shiftId)))
-      .groupBy(productCustomerSales.paymentMethodId),
+      .where(and(eq(productCustomerSales.tenantId, tenantId), eq(productCustomerSales.cashShiftId, shiftId))),
+    db
+      .select({ ticketId: barberTicketPayments.ticketId, paymentMethodId: barberTicketPayments.paymentMethodId, amount: barberTicketPayments.amount })
+      .from(barberTicketPayments)
+      .where(and(eq(barberTicketPayments.tenantId, tenantId), eq(barberTicketPayments.cashShiftId, shiftId))),
     db.select({ id: paymentMethods.id, name: paymentMethods.name, status: paymentMethods.status }).from(paymentMethods).where(eq(paymentMethods.tenantId, tenantId)).orderBy(paymentMethods.name),
   ]);
-  const totals = new Map<string | null, number>();
-  for (const r of [...svc, ...prod]) totals.set(r.paymentMethodId, (totals.get(r.paymentMethodId) ?? 0) + Number(r.total));
+  const totals = new Map<string | null, Decimal>();
+  const add = (id: string | null, amount: Decimal.Value) => totals.set(id, (totals.get(id) ?? new Decimal(0)).plus(amount));
+
+  // Tickets with payment rows (incl. split ones): what was paid with each
+  // method, scaled down if some of the ticket's lines were voided since.
+  const paidTickets = new Map<string, { paymentMethodId: string; amount: string }[]>();
+  for (const p of pays) paidTickets.set(p.ticketId, [...(paidTickets.get(p.ticketId) ?? []), p]);
+  const stillCharged = new Map<string, Decimal>();
+  const charge = (ticketId: string, amount: Decimal.Value) =>
+    stillCharged.set(ticketId, (stillCharged.get(ticketId) ?? new Decimal(0)).plus(amount));
+
+  for (const a of svc) {
+    if (a.status !== "active") continue; // voided, courtesy, warranty: no money in
+    if (a.ticketId && paidTickets.has(a.ticketId)) charge(a.ticketId, a.price);
+    else add(a.paymentMethodId, a.price);
+  }
+  for (const p of prod) {
+    if (p.ticketId && paidTickets.has(p.ticketId)) charge(p.ticketId, p.total);
+    else add(p.paymentMethodId, p.total);
+  }
+  for (const [ticketId, payments] of paidTickets) {
+    for (const p of scaledPayments(payments, stillCharged.get(ticketId) ?? 0)) add(p.paymentMethodId, p.amount);
+  }
+
   const list = methods
     .filter((m) => m.status === "active" || totals.has(m.id))
-    .map((m) => ({ paymentMethodId: m.id as string | null, name: m.name, sales: totals.get(m.id) ?? 0 }));
-  if (totals.has(null)) list.push({ paymentMethodId: null, name: "—", sales: totals.get(null)! });
+    .map((m) => ({ paymentMethodId: m.id as string | null, name: m.name, sales: (totals.get(m.id) ?? new Decimal(0)).toFixed(2) }));
+  if (totals.has(null)) list.push({ paymentMethodId: null, name: "—", sales: totals.get(null)!.toFixed(2) });
   return {
     methods: list,
-    serviceCount: svc.reduce((n, r) => n + Number(r.n), 0),
-    productCount: prod.reduce((n, r) => n + Number(r.n), 0),
+    serviceCount: svc.filter((a) => a.status === "active").length,
+    productCount: prod.length,
   };
 }
 
@@ -280,6 +319,8 @@ export async function getShiftView(tenantId: string, shiftId: string, today = to
         id: barberCashOutflows.id,
         amount: barberCashOutflows.amount,
         concept: barberCashOutflows.concept,
+        kind: barberCashOutflows.kind,
+        voucherId: barberCashOutflows.voucherId,
         firstName: barbers.firstName,
         lastName: barbers.lastName,
         createdAt: barberCashOutflows.createdAt,
@@ -294,6 +335,8 @@ export async function getShiftView(tenantId: string, shiftId: string, today = to
     amount: Number(o.amount),
     concept: o.concept,
     barberName: o.firstName ? `${o.firstName} ${o.lastName}` : null,
+    // Rows from before `kind` existed: a vale is the one with a voucher.
+    kind: (o.kind === "commission" ? "commission" : o.voucherId ? "vale" : "expense") as ShiftOutflow["kind"],
     createdAt: o.createdAt,
   }));
   const isOpen = shift.s.status === "open";
@@ -458,4 +501,48 @@ export async function listPendingClosings(tenantId: string, locationIds: string[
     .innerJoin(locations, eq(locations.id, barberCashShifts.locationId))
     .where(and(...conds));
   return rows.filter((r) => r.businessDate < today);
+}
+
+/**
+ * Product commissions paid in cash out of the register (product closing →
+ * "paid as cash outflow"). One outflow for the lot, in today's open shift;
+ * the sales are marked paid with it, in the same batch. Undo = delete the
+ * outflow in the register while the shift is open.
+ */
+export async function payCommissionsFromRegister(
+  tenantId: string,
+  userId: string,
+  shiftId: string,
+  sales: { id: string; commissionTotal: string }[],
+  barber: { id: string; name: string }
+): Promise<{ count: number; amount: number; shift: ShiftRow }> {
+  const shift = await requireOpenShift(tenantId, shiftId);
+  if (shift.businessDate !== todayBusinessDate()) throw new BarbersError("registerClosingPending");
+  if (sales.length === 0) throw new BarbersError("chooseCommissionsToPay");
+  const amount = sales.reduce((n, s) => n + Number(s.commissionTotal), 0);
+  const outflowId = crypto.randomUUID();
+  const updated = db
+    .update(productCustomerSales)
+    .set({ commissionPaidAt: shift.businessDate, commissionPaidBy: userId, paidAsCashOutflow: true, commissionOutflowId: outflowId })
+    .where(
+      and(
+        eq(productCustomerSales.tenantId, tenantId),
+        inArray(productCustomerSales.id, sales.map((s) => s.id)),
+        isNull(productCustomerSales.commissionPaidAt)
+      )
+    );
+  await db.batch([
+    db.insert(barberCashOutflows).values({
+      id: outflowId,
+      tenantId,
+      shiftId,
+      amount: String(amount),
+      concept: barber.name,
+      barberId: barber.id,
+      kind: "commission",
+      createdBy: userId,
+    }),
+    updated,
+  ]);
+  return { count: sales.length, amount, shift };
 }
