@@ -13,6 +13,8 @@ import {
 import { isFortnightClosed } from "./settlements";
 import { getRegisterStatus, type RegisterStatus } from "./cash-register";
 import { countPendingExpenses, getApprovedExpenseTotal } from "./expenses";
+import { getClientMetrics, getDemographics, listBirthdays, type BirthdayItem, type ClientMetrics } from "./clients";
+import type { Demographics } from "@/lib/barbers/clients";
 import { getBarberSettings } from "./settings";
 import { BarbersError } from "@/lib/barbers/errors";
 
@@ -194,6 +196,7 @@ export type RecentVisit = {
   amount: number;
   status: "active" | "courtesy" | "warranty" | "voided";
   locationId: string;
+  clientId: string | null; // links to the client's record (§10.1)
 };
 
 /** The latest services, voided ones left out (§10.1). */
@@ -213,6 +216,7 @@ export async function listRecentVisits(tenantId: string, locationId: string | nu
       amount: barberActivities.priceCharged,
       status: barberActivities.status,
       locationId: barberActivities.locationId,
+      clientId: barberActivities.clientId,
     })
     .from(barberActivities)
     .innerJoin(barbers, eq(barbers.id, barberActivities.barberId))
@@ -231,6 +235,7 @@ export async function listRecentVisits(tenantId: string, locationId: string | nu
     amount: Number(r.amount),
     status: r.status,
     locationId: r.locationId,
+    clientId: r.clientId,
   }));
 }
 
@@ -370,6 +375,7 @@ export type PanelData = {
   recentVisits: RecentVisit[];
   recommendations: PanelRecommendation[];
   register: RegisterStatus;
+  clients: { current: ClientMetrics; previous: ClientMetrics; vsPrevious: Comparison; birthdays: BirthdayItem[]; ages: Demographics };
 };
 
 function sumGoals(locs: PanelLocation[], field: "monthlyGoal" | "dailyGoal"): number | null {
@@ -426,6 +432,12 @@ export async function getPanelData(
     getApprovedExpenseTotal(tenantId, { ...monthRange(opts.compareA), locationId }),
     getApprovedExpenseTotal(tenantId, { ...monthRange(opts.compareB), locationId }),
     countPendingExpenses(tenantId),
+  ]);
+  const [clientsNow, clientsPrev, birthdays, ages] = await Promise.all([
+    getClientMetrics(tenantId, { from: month.from, to: today, locationId }),
+    getClientMetrics(tenantId, { from: prevMonth.from, to: clampDay(prevMonth, today), locationId }),
+    listBirthdays(tenantId, monthKey),
+    getDemographics(tenantId, { from: month.from, to: today, locationId }, today),
   ]);
 
   const operating = isOperatingDay(today, closedWeekdays);
@@ -495,6 +507,13 @@ export async function getPanelData(
     recentVisits,
     recommendations: recs.map((r) => ({ ...r, decision: decisions.get(r.key) ?? null })),
     register,
+    clients: {
+      current: clientsNow,
+      previous: clientsPrev,
+      vsPrevious: compare(clientsNow.clients, clientsPrev.clients),
+      birthdays,
+      ages,
+    },
   };
 }
 

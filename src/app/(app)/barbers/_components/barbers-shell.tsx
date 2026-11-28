@@ -27,6 +27,7 @@ import {
   LayoutDashboard,
   Coins,
   Receipt,
+  Contact,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -48,6 +49,7 @@ const NAV: NavEntry[] = [
   { href: "/barbers/panel", labelKey: "tabPanel", icon: LayoutDashboard },
   { href: "/barbers", labelKey: "tabLog", icon: Scissors, exact: true },
   { href: "/barbers/register", labelKey: "tabRegister", icon: Wallet },
+  { href: "/barbers/clients", labelKey: "tabClients", icon: Contact },
   { href: "/barbers/vales", labelKey: "tabVales", icon: Banknote },
   { href: "/barbers/tips", labelKey: "tabTips", icon: HandCoins },
   {

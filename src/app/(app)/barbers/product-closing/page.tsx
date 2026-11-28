@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { requireTenant } from "@/services/tenants";
 import { canUseLocation, getMyBarbersRole } from "@/services/barbers/roles";
 import { listLocations } from "@/services/barbers/locations";
+import { getRegisterStatus } from "@/services/barbers/cash-register";
 import { getProductClosing } from "@/services/barbers/product-commissions";
 import { listProducts } from "@/services/barbers/products";
 import { listPaymentMethods } from "@/services/barbers/payment-methods";
@@ -53,6 +54,10 @@ export default async function ProductClosingPage({
     listLocations(tenant.id),
     getMyBarbersRole(tenant),
   ]);
+  // Registers open today, for commissions paid in cash out of the drawer.
+  const openRegisters = (await getRegisterStatus(tenant.id, null, today)).shifts
+    .filter((s) => s.state === "open" && canUseLocation(me, s.locationId))
+    .map((s) => ({ shiftId: s.id, label: `${s.locationName} · ${t("shiftN", { n: s.shiftNumber })}` }));
   const saleLocations = allLocations
     .filter((l) => l.status === "active" && canUseLocation(me, l.id))
     .map((l) => ({ id: l.id, name: l.name }));
@@ -161,7 +166,7 @@ export default async function ProductClosingPage({
                       <td className={`${td} text-right tabular-nums`}>{fmtColones(b.paid)}</td>
                       <td className={`${td} text-right tabular-nums`}>{fmtColones(b.pending)}</td>
                       <td className={`${td} text-right`}>
-                        {b.pending > 0 && <MarkPaidControl barberId={b.barberId} from={from} to={to} today={today} />}
+                        {b.pending > 0 && <MarkPaidControl barberId={b.barberId} from={from} to={to} today={today} registers={openRegisters} />}
                       </td>
                     </tr>
                   ))}

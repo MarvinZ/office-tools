@@ -679,3 +679,13 @@ export async function logWarrantyRedo(
     .returning();
   return row;
 }
+
+/** The location a service was performed at (for location-limited people), or null. */
+export async function getActivityLocationId(tenantId: string, id: string): Promise<string | null> {
+  const [row] = await db
+    .select({ locationId: barberActivities.locationId })
+    .from(barberActivities)
+    .where(and(eq(barberActivities.tenantId, tenantId), eq(barberActivities.id, id)))
+    .limit(1);
+  return row?.locationId ?? null;
+}

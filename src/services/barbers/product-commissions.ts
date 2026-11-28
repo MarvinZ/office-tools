@@ -1,8 +1,8 @@
-import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { barbers, locations, paymentMethods, productCustomerSales, products } from "@/db/schema";
 import { getBarberSettings } from "./settings";
-import { getActiveShiftId } from "./cash-register";
+import { getActiveShiftId, payCommissionsFromRegister } from "./cash-register";
 import { productSaleFigures, summarizeProductClosing, type ProductClosingSummary } from "@/lib/barbers/product-commissions";
 import { isDateString } from "@/lib/barbers/dates";
 import { BarbersError } from "@/lib/barbers/errors";
@@ -195,9 +195,19 @@ export async function getProductClosing(tenantId: string, from: string, to: stri
 export async function markCommissionsPaid(
   tenantId: string,
   userId: string,
-  input: { barberId?: string; from?: string; to?: string; saleIds?: string[]; paidAt: string; asCashOutflow: boolean }
+  input: {
+    barberId?: string;
+    from?: string;
+    to?: string;
+    saleIds?: string[];
+    paidAt: string;
+    asCashOutflow: boolean;
+    /** With asCashOutflow: today's open register shift the cash comes out of. */
+    shiftId?: string | null;
+  }
 ): Promise<{ count: number; amount: number }> {
   if (!isDateString(input.paidAt)) throw new BarbersError("invalidDate");
+  if (input.asCashOutflow && !input.shiftId) throw new BarbersError("chooseRegister");
   const conditions = [eq(productCustomerSales.tenantId, tenantId), isNull(productCustomerSales.commissionPaidAt)];
   if (input.saleIds?.length) conditions.push(inArray(productCustomerSales.id, input.saleIds));
   else if (input.barberId && input.from && input.to) {
@@ -208,6 +218,23 @@ export async function markCommissionsPaid(
     );
   } else throw new BarbersError("chooseCommissionsToPay");
 
+  // Paid in cash from the register: one outflow per collaborator, so the
+  // shift's cash count includes it.
+  if (input.asCashOutflow && input.shiftId) {
+    const rows = await db
+      .select({ id: productCustomerSales.id, commissionTotal: productCustomerSales.commissionTotal, barberId: productCustomerSales.barberId, firstName: barbers.firstName, lastName: barbers.lastName })
+      .from(productCustomerSales)
+      .leftJoin(barbers, eq(barbers.id, productCustomerSales.barberId))
+      .where(and(...conditions));
+    const ids = new Set(rows.map((r) => r.barberId));
+    if (ids.size !== 1 || !rows[0].barberId) throw new BarbersError("oneCollaboratorPerOutflow");
+    const r = await payCommissionsFromRegister(tenantId, userId, input.shiftId, rows, {
+      id: rows[0].barberId,
+      name: `${rows[0].firstName ?? ""} ${rows[0].lastName ?? ""}`.trim(),
+    });
+    return { count: r.count, amount: r.amount };
+  }
+
   const paid = await db
     .update(productCustomerSales)
     .set({ commissionPaidAt: input.paidAt, commissionPaidBy: userId, paidAsCashOutflow: input.asCashOutflow })
@@ -216,8 +243,17 @@ export async function markCommissionsPaid(
   return { count: paid.length, amount: paid.reduce((n, r) => n + Number(r.amount), 0) };
 }
 
-/** Undo a payment (a mistake): the sale's commission goes back to pending. */
+/**
+ * Undo a payment (a mistake): the sale's commission goes back to pending.
+ * One paid from the register is undone there (deleting its outflow).
+ */
 export async function unmarkCommissionPaid(tenantId: string, saleId: string) {
+  const [paidFromRegister] = await db
+    .select({ id: productCustomerSales.id })
+    .from(productCustomerSales)
+    .where(and(eq(productCustomerSales.tenantId, tenantId), eq(productCustomerSales.id, saleId), isNotNull(productCustomerSales.commissionOutflowId)))
+    .limit(1);
+  if (paidFromRegister) throw new BarbersError("commissionFromRegister");
   const [row] = await db
     .update(productCustomerSales)
     .set({ commissionPaidAt: null, commissionPaidBy: null, paidAsCashOutflow: false })

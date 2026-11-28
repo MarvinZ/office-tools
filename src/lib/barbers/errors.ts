@@ -54,6 +54,11 @@ export type BarbersErrorCode =
   | "valeFromRegister"
   | "rejectReasonRequired"
   | "expenseFromRegister"
+  | "oneCollaboratorPerOutflow"
+  | "commissionFromRegister"
+  | "chooseRegister"
+  | "paymentsDontAddUp"
+  | "clientNameRequired"
   | "ownRole"
   | "notInOrganization";
 

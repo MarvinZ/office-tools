@@ -820,7 +820,10 @@ export const barberActivities = pgTable("barber_activities", {
   // Snapshot of the payment method's fee rate at log time, for the same reason
   // commissionRate is snapshotted: re-pricing a payment method later must never
   // retroactively change what a barber was already owed for past work.
-  paymentMethodFeeRate: numeric("payment_method_fee_rate", { precision: 5, scale: 4 }).notNull(),
+  // With a split payment (several methods on one ticket) this is the blended
+  // rate: Σ(amount × fee) ÷ ticket total, so the card fee only falls on the
+  // part paid by card. Extra decimals keep that exact.
+  paymentMethodFeeRate: numeric("payment_method_fee_rate", { precision: 12, scale: 10 }).notNull(),
   // price ÷ (1 + IVA) × commissionRate, computed server-side, rounded for
   // display. Settlements recompute from the raw fields instead of summing this.
   // Rows logged before the settlement engine hold the old fee-reduced figure.
@@ -842,6 +845,7 @@ export const barberActivities = pgTable("barber_activities", {
   // The cash-register shift open at this location when it was recorded (null:
   // recorded with the register closed, or imported). See barberCashShifts.
   cashShiftId: text("cash_shift_id"),
+  clientId: text("client_id"), // barber_clients record of the customer, when picked
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -922,6 +926,9 @@ export const productCustomerSales = pgTable("product_customer_sales", {
   // sales recorded before this existed or from the product closing form.
   locationId: text("location_id").references(() => locations.id),
   cashShiftId: text("cash_shift_id"), // register shift it was charged in (see barberCashShifts)
+  // Its commission was paid in cash from the register (that outflow's id).
+  commissionOutflowId: text("commission_outflow_id"),
+  clientId: text("client_id"), // barber_clients record of the customer, when picked
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -1112,6 +1119,9 @@ export const barberCashOutflows = pgTable("barber_cash_outflows", {
   concept: text("concept").notNull(),
   barberId: text("barber_id").references(() => barbers.id),
   voucherId: text("voucher_id"),
+  // expense (salon expense → pending in Gastos) | vale (→ barber_vouchers) |
+  // commission (product commissions paid in cash, see product_customer_sales)
+  kind: text("kind").notNull().default("expense"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -1138,6 +1148,38 @@ export const barberExpenses = pgTable("barber_expenses", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("barber_expenses_outflow_uq").on(t.cashOutflowId)]);
+
+// How a ticket was paid: one row per payment method (several = split payment,
+// NOURA Módulo 1 §5). The register counts these, not the lines' method, for
+// tickets that have them; voided lines reduce them proportionally.
+export const barberTicketPayments = pgTable("barber_ticket_payments", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  ticketId: text("ticket_id").notNull(),
+  paymentMethodId: text("payment_method_id").notNull().references(() => paymentMethods.id),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  locationId: text("location_id").references(() => locations.id),
+  cashShiftId: text("cash_shift_id"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// A customer of the shop (NOURA Módulo 1 §10–11: client activity, birthdays,
+// ages). Picked or created at the front desk; services and product sales point
+// at it with client_id (customer_name keeps the name as written). Personal
+// data: tenant-only. Only data from when the shop starts using it.
+export const barberClients = pgTable("barber_clients", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  fullName: text("full_name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  birthDate: date("birth_date"),
+  notes: text("notes"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // ── Webhooks ──────────────────────────────────────────────────────────────────
 // A generic inbound-webhook receiver: one endpoint per tenant, HMAC-SHA256

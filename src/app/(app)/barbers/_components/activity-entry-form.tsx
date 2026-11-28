@@ -16,6 +16,8 @@ import type { ActivityListItem } from "@/services/barbers/activities";
 import Decimal from "decimal.js";
 import { lineCommission } from "@/lib/barbers/settlement";
 import { unwrap } from "@/lib/barbers/errors";
+import ClientPicker, { type PickedClient } from "./client-picker";
+import SplitPayment, { remainingOf, type PaymentRow } from "./split-payment";
 
 type PriceEntry = { serviceId: string; price: number };
 /**
@@ -97,7 +99,9 @@ export default function ActivityEntryForm({
   // Header fields — picked once per submission, shared by every cart line.
   const [barberId, setBarberId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0]?.id ?? "");
-  const [customerName, setCustomerName] = useState("");
+  const [client, setClient] = useState<PickedClient>({ id: null, name: "" });
+  // Split payment: off = everything with paymentMethodId.
+  const [splitRows, setSplitRows] = useState<PaymentRow[] | null>(null);
   const [performedAt, setPerformedAt] = useState(nowLocalDatetime());
 
   const [lines, setLines] = useState<CartLine[]>([]);
@@ -160,6 +164,8 @@ export default function ActivityEntryForm({
     () => lines.reduce((sum, l) => sum + (parseFloat(l.priceCharged) || 0), 0),
     [lines]
   );
+  // What the customer pays for the whole ticket (exact, for split payments).
+  const ticketTotal = new Decimal(cartTotal).plus(productsTotal).toDecimalPlaces(2).toNumber();
 
   /**
    * Display-only preview of the commission the server will store: commission on
@@ -225,6 +231,10 @@ export default function ActivityEntryForm({
       setError(t("log.errorInvalidNumbers"));
       return;
     }
+    if (splitRows && remainingOf(ticketTotal, splitRows) !== 0) {
+      setError(t("splitPayment.mustAddUp"));
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -233,7 +243,9 @@ export default function ActivityEntryForm({
           barberId,
           locationId,
           paymentMethodId,
-          customerName: customerName || undefined,
+          payments: splitRows?.map((r) => ({ paymentMethodId: r.paymentMethodId, amount: Number(r.amount) })),
+          clientId: client.id,
+          customerName: client.name.trim() || undefined,
           // No commissionRate / feeRate / prices of products: the server resolves them.
           performedAt: performedAt ? new Date(performedAt).toISOString() : undefined,
           services: parsed,
@@ -279,7 +291,8 @@ export default function ActivityEntryForm({
         setLines([]);
         setProductLines([]);
         setSavedNote(t("log.ticketSaved", { services: rows.length, products: salesCount }));
-        setCustomerName("");
+        setClient({ id: null, name: "" });
+        setSplitRows(null);
         setPerformedAt(nowLocalDatetime());
       } catch (e) {
         // Nothing was written (the ticket is one atomic batch), so the cart is
@@ -329,7 +342,7 @@ export default function ActivityEntryForm({
           </div>
           <div>
             <label className={labelCls}>{t("log.fieldCustomerName")}</label>
-            <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t("log.fieldCustomerNamePlaceholder")} className={inputCls} />
+            <ClientPicker value={client} onChange={setClient} />
           </div>
           <div>
             <label className={labelCls}>{t("log.fieldPerformedAt")}</label>
@@ -479,8 +492,34 @@ export default function ActivityEntryForm({
             )}
             <div className="flex items-center justify-between">
               <span className="text-zinc-500">{t("log.totalToCharge")}</span>
-              <span className="text-base font-semibold tabular-nums text-black dark:text-white">{fmtColones(cartTotal + productsTotal)}</span>
+              <span className="text-base font-semibold tabular-nums text-black dark:text-white">{fmtColones(ticketTotal)}</span>
             </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  setSplitRows((rows) =>
+                    rows
+                      ? null
+                      : [
+                          { key: crypto.randomUUID(), paymentMethodId, amount: String(ticketTotal) },
+                          { key: crypto.randomUUID(), paymentMethodId: paymentMethods.find((m) => m.id !== paymentMethodId)?.id ?? paymentMethodId, amount: "" },
+                        ]
+                  )
+                }
+                className="text-xs text-zinc-600 underline decoration-dotted hover:text-black dark:text-zinc-300 dark:hover:text-white"
+              >
+                {splitRows ? t("splitPayment.cancel") : t("splitPayment.open")}
+              </button>
+            </div>
+            {splitRows && (
+              <SplitPayment
+                total={ticketTotal}
+                rows={splitRows}
+                onChange={setSplitRows}
+                methods={paymentMethods.map((m) => ({ id: m.id, name: m.name }))}
+              />
+            )}
             {lines.length > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">{t("log.cartEstimatedCommission")}</span>

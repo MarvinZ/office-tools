@@ -86,7 +86,12 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
           <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
             {view.outflows.map((o) => (
               <li key={o.id} className="flex justify-between py-1.5">
-                <span>{o.concept}{o.barberName && <span className="ml-2 text-xs text-zinc-500">{t("valeFor", { name: o.barberName })}</span>}</span>
+                <span>
+                  {o.kind === "commission" ? t("commissionOutflow") : o.concept}
+                  {o.barberName && (
+                    <span className="ml-2 text-xs text-zinc-500">{o.kind === "commission" ? o.barberName : t("valeFor", { name: o.barberName })}</span>
+                  )}
+                </span>
                 <span className="tabular-nums">{fmtColones(o.amount)}</span>
               </li>
             ))}

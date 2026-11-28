@@ -8,7 +8,7 @@ import { unwrap } from "@/lib/barbers/errors";
 import { fmtColones } from "@/lib/barbers/currency";
 import { addOutflowAction, deleteOutflowAction } from "../actions";
 
-type Outflow = { id: string; amount: number; concept: string; barberName: string | null };
+type Outflow = { id: string; amount: number; concept: string; barberName: string | null; kind: "expense" | "vale" | "commission" };
 
 /**
  * Cash taken out of the drawer during the shift ("salidas de efectivo").
@@ -75,8 +75,13 @@ export default function Outflows({
           {outflows.map((o) => (
             <li key={o.id} className="flex items-center gap-3 py-2">
               <span className="flex-1 text-black dark:text-white">
-                {o.concept}
-                {o.barberName && <span className="ml-2 text-xs text-zinc-500">{t("valeFor", { name: o.barberName })}</span>}
+                {o.kind === "commission" ? t("commissionOutflow") : o.concept}
+                {o.barberName && (
+                  <span className="ml-2 text-xs text-zinc-500">
+                    {o.kind === "commission" ? o.barberName : t("valeFor", { name: o.barberName })}
+                  </span>
+                )}
+                {o.kind === "expense" && <span className="ml-2 text-xs text-zinc-500">{t("toExpenses")}</span>}
               </span>
               <span className="tabular-nums">{fmtColones(o.amount)}</span>
               {canEdit && (

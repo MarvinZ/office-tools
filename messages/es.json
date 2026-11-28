@@ -893,7 +893,10 @@
         "vsPrevious": "{diff} ({percent}) frente a los mismos días de {month}",
         "notComparable": "Sin datos comparables",
         "serviceCount": "{count, plural, =1 {1 servicio} other {# servicios}}",
-        "productUnits": "{count, plural, =1 {1 unidad} other {# unidades}}"
+        "productUnits": "{count, plural, =1 {1 unidad} other {# unidades}}",
+        "newReturning": "{new} nuevos, {returning} recurrentes",
+        "clientsVsPrevious": "{percent} frente al mes anterior",
+        "unidentified": "{count, plural, =1 {1 servicio sin cliente} other {# servicios sin cliente}}"
       },
       "goal": {
         "title": "Meta del mes",
@@ -1016,7 +1019,13 @@
         "open": "Abierta",
         "closingPending": "Cierre pendiente",
         "shift": "Corte {n}"
-      }
+      },
+      "noBirthdays": "Nadie cumple años este mes (entre los clientes con fecha de nacimiento).",
+      "turns": "cumple {age}",
+      "lastVisit": "última visita {when}",
+      "noVisits": "sin visitas",
+      "prepareMessage": "Preparar mensaje por WhatsApp",
+      "messageNote": "El mensaje se abre en WhatsApp para revisarlo; nada se envía sin que usted lo envíe."
     },
     "tabLog": "Registro",
     "tabBarbers": "Barberos",
@@ -1777,7 +1786,10 @@
       "sheetSales": "Ventas",
       "fileName": "Cierre_Productos",
       "location": "Local",
-      "noLocation": "Sin local"
+      "noLocation": "Sin local",
+      "shiftN": "Corte {n}",
+      "asCashOutflowNoRegister": "Pagar desde la caja (no hay caja abierta)",
+      "fromRegister": "Caja"
     },
     "tabCash": "Faltantes de caja",
     "roles": {
@@ -1875,7 +1887,12 @@
       "registerShiftClosed": "Ese corte ya está cerrado.",
       "valeFromRegister": "Este vale salió de la caja. Elimínelo desde la Caja mientras el corte esté abierto.",
       "rejectReasonRequired": "Escriba el motivo del rechazo.",
-      "expenseFromRegister": "Este gasto salió de la caja: elimínelo desde la Caja mientras el corte esté abierto."
+      "expenseFromRegister": "Este gasto salió de la caja: elimínelo desde la Caja mientras el corte esté abierto.",
+      "oneCollaboratorPerOutflow": "Pague desde la caja las comisiones de un colaborador a la vez.",
+      "commissionFromRegister": "Esta comisión se pagó desde la caja: para deshacerlo, elimine esa salida en la Caja mientras el corte esté abierto.",
+      "chooseRegister": "Escoja la caja abierta de la que sale el efectivo.",
+      "paymentsDontAddUp": "Los montos del pago dividido deben sumar el total del ticket.",
+      "clientNameRequired": "Escriba el nombre del cliente."
     },
     "tabGroupProducts": "Productos",
     "tabGroupReports": "Caja y reportes",
@@ -2016,7 +2033,9 @@
         "goClose": "Cerrarlo",
         "openNow": "Caja abierta · Corte {n} · {name}.",
         "goTo": "Ir a caja"
-      }
+      },
+      "commissionOutflow": "Comisiones de productos",
+      "toExpenses": "→ Gastos"
     },
     "tabExpenses": "Gastos",
     "expenses": {
@@ -2078,6 +2097,88 @@
         "pettyCash": "Caja chica y varios",
         "other": "Otro"
       }
+    },
+    "tabClients": "Clientes",
+    "clients": {
+      "title": "Clientes",
+      "subtitle": "Fichas de clientes: visitas, cumpleaños y edades. Recepción los escoge o crea al cobrar.",
+      "newTitle": "Nuevo cliente",
+      "fullName": "Nombre",
+      "phone": "teléfono",
+      "birthDate": "fecha de nacimiento",
+      "email": "Correo",
+      "notes": "Notas",
+      "saved": "Guardado.",
+      "saveChanges": "Guardar cambios",
+      "create": "Crear cliente",
+      "search": "Buscar por nombre o teléfono",
+      "searchButton": "Buscar",
+      "filterAll": "Todos",
+      "filterIncomplete": "Fichas incompletas",
+      "filterBirthdays": "Cumpleaños del mes",
+      "empty": "No hay clientes para este filtro.",
+      "birthday": "Nacimiento (edad)",
+      "visits": "Visitas",
+      "lastVisit": "Última visita",
+      "spent": "Total pagado",
+      "incomplete": "Incompleta",
+      "birthdayThisMonth": "Cumple años este mes",
+      "demographicsTitle": "Clientes por edad",
+      "period": "Periodo",
+      "location": "Local",
+      "allLocations": "Todos los locales",
+      "professional": "Profesional",
+      "allProfessionals": "Todos",
+      "apply": "Aplicar",
+      "demographicsTotal": "{count, plural, =1 {1 cliente atendido} other {# clientes atendidos}} en {month}",
+      "demographicsEmpty": "Sin clientes atendidos con ficha en este periodo.",
+      "ageRange": "{min} a {max}",
+      "ageOrMore": "{min} o más",
+      "ageUnknown": "Edad desconocida",
+      "ageYears": "{age} años",
+      "birthdayOn": "cumple el {date}",
+      "prepareMessage": "Preparar mensaje de cumpleaños",
+      "birthdayMessage": "¡Feliz cumpleaños, {name}! De parte de todo el equipo de {business}, le deseamos un excelente día.",
+      "missingFields": "Ficha incompleta: falta {fields}. Complétela abajo.",
+      "usualProfessional": "Profesional habitual",
+      "data": "Datos",
+      "history": "Historial",
+      "noHistory": "Todavía no tiene visitas registradas.",
+      "when": "Fecha",
+      "item": "Servicio o producto",
+      "method": "Método de pago",
+      "amount": "Monto",
+      "status": {
+        "active": "normal",
+        "courtesy": "cortesía",
+        "warranty": "garantía",
+        "voided": "anulado"
+      }
+    },
+    "clientPicker": {
+      "label": "Cliente",
+      "placeholder": "Buscar por nombre o teléfono (opcional)",
+      "record": "con ficha",
+      "clear": "Quitar cliente",
+      "create": "Crear ficha para «{name}»",
+      "newTitle": "Nueva ficha: {name}",
+      "phone": "Teléfono",
+      "birthDate": "Fecha de nacimiento",
+      "cancel": "Cancelar",
+      "save": "Crear y usar"
+    },
+    "splitPayment": {
+      "title": "Pago dividido: los montos deben sumar el total",
+      "method": "Método {n}",
+      "amount": "Monto {n}",
+      "remove": "Quitar",
+      "add": "Agregar método",
+      "complete": "Suma el total",
+      "missing": "Faltan {amount}",
+      "over": "Sobran {amount}",
+      "mustAddUp": "Los montos del pago dividido deben sumar el total del ticket.",
+      "open": "Dividir el pago",
+      "cancel": "No dividir"
     }
   },
   "webhooks": {

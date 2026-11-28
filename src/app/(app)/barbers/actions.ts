@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { currentUser } from "@clerk/nextjs/server";
 import { requireTenant } from "@/services/tenants";
-import { logActivity, logActivityBatch, logWarrantyRedo, setActivityStatus } from "@/services/barbers/activities";
+import { getActivityLocationId, logActivity, logActivityBatch, logWarrantyRedo, setActivityStatus } from "@/services/barbers/activities";
 import { checkInBarber, checkOutBarber } from "@/services/barbers/roster";
 import { auditBarbers } from "@/services/barbers/audit";
 import { businessDateOf } from "@/lib/barbers/dates";
 import type { LogActivityInput, LogActivityBatchInput } from "@/services/barbers/activities";
-import { requireBarbersAccess, requireBarbersLocation } from "@/services/barbers/roles";
+import { requireBarbersLocation } from "@/services/barbers/roles";
 import { BarbersError } from "@/lib/barbers/errors";
 import { barbersAction } from "@/services/barbers/action";
 import { logTicket, type TicketInput } from "@/services/barbers/tickets";
@@ -17,6 +17,12 @@ async function requireUserAndTenant() {
   const [user, tenant] = await Promise.all([currentUser(), requireTenant()]);
   if (!user) throw new BarbersError("notAuthenticated");
   return { userId: user.id, tenant };
+}
+
+async function requireActivityLocation(tenantId: string, activityId: string): Promise<string> {
+  const locationId = await getActivityLocationId(tenantId, activityId);
+  if (!locationId) throw new BarbersError("notFound");
+  return locationId;
 }
 
 /** Everywhere a service's pay shows up. */
@@ -99,8 +105,9 @@ export async function setActivityStatusAction(
   reason?: string
 ) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
     const { userId, tenant } = await requireUserAndTenant();
+    // Only at a location the person may work at (Settings → people and roles).
+    await requireBarbersLocation(["operate"], await requireActivityLocation(tenant.id, id));
     const { before, after } = await setActivityStatus(tenant.id, userId, id, status, reason);
     await auditBarbers(tenant.id, userId, "activity.status", {
       barberId: after.barberId,
@@ -115,8 +122,8 @@ export async function setActivityStatusAction(
 
 export async function logWarrantyRedoAction(originalId: string, correctorBarberId: string, reason?: string) {
   return barbersAction(async () => {
-    await requireBarbersAccess(["operate"]);
     const { userId, tenant } = await requireUserAndTenant();
+    await requireBarbersLocation(["operate"], await requireActivityLocation(tenant.id, originalId));
     const row = await logWarrantyRedo(tenant.id, userId, originalId, correctorBarberId, reason);
     await auditBarbers(tenant.id, userId, "activity.warranty", {
       barberId: row.barberId,
