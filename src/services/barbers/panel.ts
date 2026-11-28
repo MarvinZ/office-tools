@@ -12,6 +12,7 @@ import {
 } from "@/lib/barbers/panel";
 import { isFortnightClosed } from "./settlements";
 import { getRegisterStatus, type RegisterStatus } from "./cash-register";
+import { countPendingExpenses, getApprovedExpenseTotal } from "./expenses";
 import { getBarberSettings } from "./settings";
 import { BarbersError } from "@/lib/barbers/errors";
 
@@ -357,12 +358,14 @@ export type PanelData = {
     previousSales: SalesTotals;
     vsPrevious: Comparison;
     goal: GoalProgress | null;
+    /** Approved expenses this month to date, vs. the same days last month. */
+    expenses: Comparison;
   };
   comparison: {
     a: string;
     b: string;
     totals: { a: SalesTotals; b: SalesTotals };
-    rows: { key: "total" | "services" | "products" | "serviceCount"; cmp: Comparison }[];
+    rows: { key: "total" | "services" | "products" | "serviceCount" | "expenses"; cmp: Comparison }[];
   };
   recentVisits: RecentVisit[];
   recommendations: PanelRecommendation[];
@@ -417,6 +420,13 @@ export async function getPanelData(
       Promise.all(scopeLocations.map((l) => getSalesTotals(tenantId, { from: month.from, to: yesterday, locationId: l.id }))),
       getRegisterStatus(tenantId, locationId, today),
     ]);
+  const [expensesMonth, expensesPrev, expensesA, expensesB, pendingExpenses] = await Promise.all([
+    getApprovedExpenseTotal(tenantId, { from: month.from, to: today, locationId }),
+    getApprovedExpenseTotal(tenantId, { from: prevMonth.from, to: clampDay(prevMonth, today), locationId }),
+    getApprovedExpenseTotal(tenantId, { ...monthRange(opts.compareA), locationId }),
+    getApprovedExpenseTotal(tenantId, { ...monthRange(opts.compareB), locationId }),
+    countPendingExpenses(tenantId),
+  ]);
 
   const operating = isOperatingDay(today, closedWeekdays);
   const dayGoal = goalProgress(daySales.total, sumGoals(scopeLocations, "dailyGoal"), operating ? 1 : 0);
@@ -447,6 +457,7 @@ export async function getPanelData(
     pendingClosings: register.shifts
       .filter((s) => s.state === "closingPending")
       .map((s) => ({ shiftId: s.id, date: s.businessDate, shiftNumber: s.shiftNumber, locationId: s.locationId, locationName: s.locationName })),
+    pendingExpenses,
   });
   const decisions = await getAlertDecisions(tenantId, recs.map((r) => r.key));
 
@@ -467,6 +478,7 @@ export async function getPanelData(
       previousSales: previousMonthSales,
       vsPrevious: compare(monthSales.total, previousMonthSales.total),
       goal: monthGoal,
+      expenses: compare(expensesMonth, expensesPrev),
     },
     comparison: {
       a: opts.compareA,
@@ -477,6 +489,7 @@ export async function getPanelData(
         { key: "services", cmp: compare(cmpA.services.amount, cmpB.services.amount) },
         { key: "products", cmp: compare(cmpA.products.amount, cmpB.products.amount) },
         { key: "serviceCount", cmp: compare(cmpA.services.count, cmpB.services.count) },
+        { key: "expenses", cmp: compare(expensesA, expensesB) },
       ],
     },
     recentVisits,

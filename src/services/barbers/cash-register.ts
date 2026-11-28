@@ -1,8 +1,9 @@
 import { and, desc, eq, gte, inArray, isNull, lte, max, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  barberActivities, barberCashOutflows, barberCashShifts, barbers, barberVouchers, locations, paymentMethods, productCustomerSales,
+  barberActivities, barberCashOutflows, barberCashShifts, barberExpenses, barbers, barberVouchers, locations, paymentMethods, productCustomerSales,
 } from "@/db/schema";
+import { expenseFromOutflow } from "./expenses";
 import { endOfBusinessDay, startOfBusinessDay, todayBusinessDate } from "@/lib/barbers/dates";
 import { computeShiftClosing, registerState, type RegisterState, type ShiftClosing } from "@/lib/barbers/cash-register";
 import { BarbersError } from "@/lib/barbers/errors";
@@ -136,7 +137,11 @@ async function requireOpenShift(tenantId: string, shiftId: string): Promise<Shif
   return shift;
 }
 
-/** Cash taken out of the drawer. Made out to a professional, it's also a vale. */
+/**
+ * Cash taken out of the drawer. Made out to a professional, it's also a vale;
+ * otherwise it's a salon expense, recorded as a pending expense for an admin
+ * to approve. Either way both rows are written together.
+ */
 export async function addOutflow(
   tenantId: string,
   userId: string,
@@ -177,13 +182,26 @@ export async function addOutflow(
       db.insert(barberCashOutflows).values(outflow),
     ]);
   } else {
-    await db.insert(barberCashOutflows).values(outflow);
+    await db.batch([
+      db.insert(barberCashOutflows).values(outflow),
+      db.insert(barberExpenses).values(
+        expenseFromOutflow({
+          tenantId,
+          outflowId: outflow.id,
+          locationId: shift.locationId,
+          date: shift.businessDate,
+          concept,
+          amount: input.amount,
+          createdBy: userId,
+        })
+      ),
+    ]);
   }
   return { ...outflow, shift };
 }
 
 /**
- * Only while the shift is open; removes its vale too. `shiftId` must be the
+ * Only while the shift is open; removes its vale or expense too. `shiftId` must be the
  * outflow's own shift: callers check access against that shift's location.
  */
 export async function deleteOutflow(tenantId: string, shiftId: string, outflowId: string) {
@@ -194,12 +212,14 @@ export async function deleteOutflow(tenantId: string, shiftId: string, outflowId
     .limit(1);
   if (!row) throw new BarbersError("notFound");
   const shift = await requireOpenShift(tenantId, row.shiftId);
-  const del = db.delete(barberCashOutflows).where(and(eq(barberCashOutflows.tenantId, tenantId), eq(barberCashOutflows.id, outflowId)));
-  if (row.voucherId) {
-    await db.batch([del, db.delete(barberVouchers).where(and(eq(barberVouchers.tenantId, tenantId), eq(barberVouchers.id, row.voucherId)))]);
-  } else {
-    await del;
-  }
+  // Children first (the expense points at the outflow), all in one batch.
+  await db.batch([
+    db.delete(barberExpenses).where(and(eq(barberExpenses.tenantId, tenantId), eq(barberExpenses.cashOutflowId, outflowId))),
+    ...(row.voucherId
+      ? [db.delete(barberVouchers).where(and(eq(barberVouchers.tenantId, tenantId), eq(barberVouchers.id, row.voucherId)))]
+      : []),
+    db.delete(barberCashOutflows).where(and(eq(barberCashOutflows.tenantId, tenantId), eq(barberCashOutflows.id, outflowId))),
+  ]);
   return { ...row, shift };
 }
 

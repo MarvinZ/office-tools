@@ -155,6 +155,12 @@ describe("recommendations (§9)", () => {
     expect(recs[0]).toMatchObject({ key: "registerClosingPending:s1", category: "alert", href: "/barbers/register?locationId=loc1" });
   });
 
+  it("expenses waiting for approval are a follow-up", () => {
+    const [r] = buildRecommendations({ ...base, pendingExpenses: { count: 2, amount: 5_000 } });
+    expect(r).toMatchObject({ code: "expensesPending", category: "followUp", key: "expensesPending:2026-11", href: "/barbers/expenses?status=pending" });
+    expect(buildRecommendations({ ...base, pendingExpenses: { count: 0, amount: 0 } })).toEqual([]);
+  });
+
   it("no 'no sales' follow-up for a day the shop doesn't open", () => {
     const recs = buildRecommendations({
       ...base,

@@ -26,6 +26,7 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   Coins,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -66,6 +67,7 @@ const NAV: NavEntry[] = [
     icon: PieChart,
     items: [
       { href: "/barbers/cash", labelKey: "tabCash", icon: Coins },
+      { href: "/barbers/expenses", labelKey: "tabExpenses", icon: Receipt },
       { href: "/barbers/reports", labelKey: "tabReports", icon: BarChart3 },
     ],
   },

@@ -165,9 +165,19 @@ export default async function PanelPage({
           <div className={card}>
             <PendingFigure title={t("month.clients")} note={t("needsClients")} pending={t("pending")} />
           </div>
-          <div className={card}>
-            <PendingFigure title={t("month.expenses")} note={t("needsExpenses")} pending={t("pending")} />
-          </div>
+          <Link href={`/barbers/expenses?month=${currentMonth}${locationId ? `&locationId=${locationId}` : ""}`} className={`${card} group`}>
+            <p className={label}>{t("month.expenses")}</p>
+            <p className={`${bigNumber} group-hover:underline`}>{fmtColones(data.month.expenses.current)}</p>
+            <p className="text-xs text-zinc-500">
+              {data.month.expenses.percent === null
+                ? t("month.notComparable")
+                : t("month.vsPrevious", {
+                    diff: fmtSignedColones(data.month.expenses.diff),
+                    percent: fmtPercent(data.month.expenses.percent, locale, true),
+                    month: monthLabel(shiftMonth(currentMonth, -1), locale),
+                  })}
+            </p>
+          </Link>
         </div>
       </section>
 
@@ -224,14 +234,18 @@ export default async function PanelPage({
                 {data.comparison.rows.map(({ key, cmp }) => {
                   const money = key !== "serviceCount";
                   const fmt = (n: number) => (money ? fmtColones(n) : String(n));
+                  const hrefFor = (m: string) =>
+                    key === "expenses"
+                      ? `/barbers/expenses?month=${m}${locationId ? `&locationId=${locationId}` : ""}`
+                      : monthDetailHref(m, locationId);
                   return (
                     <tr key={key} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                       <td className="py-2 pr-3 text-zinc-700 dark:text-zinc-300">{t(`compare.rows.${key}`)}</td>
                       <td className="py-2 pr-3 text-right tabular-nums">
-                        <Link href={monthDetailHref(compareA, locationId)} className="hover:underline">{fmt(cmp.current)}</Link>
+                        <Link href={hrefFor(compareA)} className="hover:underline">{fmt(cmp.current)}</Link>
                       </td>
                       <td className="py-2 pr-3 text-right tabular-nums">
-                        <Link href={monthDetailHref(compareB, locationId)} className="hover:underline">{fmt(cmp.base)}</Link>
+                        <Link href={hrefFor(compareB)} className="hover:underline">{fmt(cmp.base)}</Link>
                       </td>
                       <td className="py-2 pr-3 text-right tabular-nums">{money ? fmtSignedColones(cmp.diff) : `${cmp.diff > 0 ? "+" : ""}${cmp.diff}`}</td>
                       <td className="py-2 text-right tabular-nums">
@@ -361,6 +375,8 @@ function fortnightLabel(key: string): string {
 function recommendationMessage(r: Recommendation, t: T, locale: string): string {
   const v = r.values;
   switch (r.code) {
+    case "expensesPending":
+      return t("recs.expensesPending", { count: Number(v.count), amount: fmtColones(Number(v.amount)) });
     case "registerClosingPending":
       return t("recs.registerClosingPending", { location: String(v.location), shift: Number(v.shift), date: fmtDay(String(v.date)) });
     case "fortnightUnclosed":
