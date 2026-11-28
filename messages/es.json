@@ -921,7 +921,8 @@
           "total": "Ventas",
           "services": "Servicios (monto)",
           "products": "Productos (monto)",
-          "serviceCount": "Cantidad de servicios"
+          "serviceCount": "Cantidad de servicios",
+          "expenses": "Gastos aprobados"
         }
       },
       "recs": {
@@ -946,7 +947,8 @@
         "goalReached": "La meta de {month} está alcanzada: {percent}% de {goal}.",
         "commissionsPending": "{count, plural, =1 {1 comisión de productos de quincenas anteriores sigue} other {# comisiones de productos de quincenas anteriores siguen}} sin pagar ({amount}).",
         "noSalesYesterday": "{location} no registró ventas el {date}. ¿Falta registrar o importar el cierre de ese día?",
-        "registerClosingPending": "{location}: el Corte {shift} del {date} sigue abierto. Hay que cerrarlo antes de abrir la caja."
+        "registerClosingPending": "{location}: el Corte {shift} del {date} sigue abierto. Hay que cerrarlo antes de abrir la caja.",
+        "expensesPending": "{count, plural, =1 {1 gasto espera} other {# gastos esperan}} aprobación ({amount}). No cuentan en el panel hasta aprobarlos."
       },
       "visits": {
         "title": "Últimas visitas",
@@ -1554,7 +1556,12 @@
         "cardFeeOnGross": "Datáfono sobre precio con IVA",
         "invoiceEmail": "Correo de facturas",
         "role": "Rol",
-        "locations": "Locales"
+        "locations": "Locales",
+        "expenseDate": "Fecha",
+        "category": "Categoría",
+        "description": "Descripción",
+        "amount": "Monto",
+        "paidWith": "Pagado con"
       },
       "actions": {
         "activity": {
@@ -1620,6 +1627,12 @@
           "closed": "Caja cerrada · Corte {shift} del {date} · esperado {expected}, contado {counted}, diferencia {difference}",
           "outflow": "Salida de efectivo {amount} · {concept}",
           "outflowDeleted": "Salida de efectivo eliminada: {amount} · {concept}"
+        },
+        "expense": {
+          "created": "Gasto registrado {amount} · {description} · {date}",
+          "updated": "Gasto modificado {amount} · {description}",
+          "deleted": "Gasto eliminado {amount} · {description} · {date}",
+          "reviewed": "Gasto revisado {amount} · {description}"
         }
       }
     },
@@ -1860,7 +1873,9 @@
       "registerAlreadyOpen": "La caja de este local ya está abierta.",
       "registerClosingPending": "Hay un corte de un día anterior sin cerrar. Ciérrelo antes de abrir la caja.",
       "registerShiftClosed": "Ese corte ya está cerrado.",
-      "valeFromRegister": "Este vale salió de la caja. Elimínelo desde la Caja mientras el corte esté abierto."
+      "valeFromRegister": "Este vale salió de la caja. Elimínelo desde la Caja mientras el corte esté abierto.",
+      "rejectReasonRequired": "Escriba el motivo del rechazo.",
+      "expenseFromRegister": "Este gasto salió de la caja: elimínelo desde la Caja mientras el corte esté abierto."
     },
     "tabGroupProducts": "Productos",
     "tabGroupReports": "Caja y reportes",
@@ -1957,7 +1972,7 @@
       "amount": "Monto",
       "concept": "Concepto",
       "outflowBarber": "¿Es un vale?",
-      "notAVale": "Gasto del salón",
+      "notAVale": "Gasto del salón (va a Gastos)",
       "addOutflow": "Registrar salida",
       "errorOutflow": "Escriba el monto y el concepto.",
       "closeTitle": "Cerrar el Corte {n}",
@@ -2001,6 +2016,67 @@
         "goClose": "Cerrarlo",
         "openNow": "Caja abierta · Corte {n} · {name}.",
         "goTo": "Ir a caja"
+      }
+    },
+    "tabExpenses": "Gastos",
+    "expenses": {
+      "title": "Gastos",
+      "subtitle": "Gastos operativos del negocio. Solo los aprobados cuentan en el panel; lo que sale de la caja como gasto del salón llega aquí pendiente de aprobar.",
+      "newTitle": "Registrar un gasto",
+      "date": "Fecha",
+      "category": "Categoría",
+      "description": "Descripción",
+      "amount": "Monto (₡)",
+      "paidWithLabel": "Pagado con",
+      "location": "Local",
+      "wholeBusiness": "Todo el negocio",
+      "record": "Registrar gasto",
+      "saveChanges": "Guardar cambios",
+      "cancel": "Cancelar",
+      "saved": "Guardado.",
+      "errorRequired": "Escriba la descripción y un monto mayor que cero.",
+      "lockedHint": "Este gasto salió de la caja: el monto, la fecha, el local y el método se corrigen en la caja mientras el corte esté abierto.",
+      "prev": "Mes anterior",
+      "next": "Mes siguiente",
+      "allLocations": "Todos los locales",
+      "approvedTotal": "Gastos aprobados",
+      "pendingTotal": "{count, plural, =0 {Sin pendientes} =1 {1 pendiente de aprobar} other {# pendientes de aprobar}}",
+      "byCategory": "Por categoría (aprobados)",
+      "all": "Todos",
+      "empty": "No hay gastos para este filtro.",
+      "fromRegister": "salió de la caja",
+      "rejectedBecause": "Rechazado: {reason}",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "rejectReason": "Motivo del rechazo",
+      "confirmReject": "Confirmar rechazo",
+      "backToPending": "Volver a pendiente",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "confirmDelete": "¿Eliminar este gasto?",
+      "footnote": "Los gastos registrados por un administrador quedan aprobados. Los gastos de un local solo aparecen al filtrar por ese local; los de todo el negocio, en «Todos los locales».",
+      "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobado",
+        "rejected": "Rechazado"
+      },
+      "paidWith": {
+        "cash": "Efectivo",
+        "transfer": "Transferencia o SINPE",
+        "card": "Tarjeta",
+        "other": "Otro"
+      },
+      "categories": {
+        "rent": "Alquiler",
+        "utilities": "Servicios (luz, agua, internet)",
+        "supplies": "Insumos y productos",
+        "cleaning": "Limpieza",
+        "maintenance": "Mantenimiento y reparaciones",
+        "payroll": "Salarios y cargas sociales",
+        "marketing": "Publicidad",
+        "taxes": "Impuestos y permisos",
+        "pettyCash": "Caja chica y varios",
+        "other": "Otro"
       }
     }
   },

@@ -52,6 +52,8 @@ export type BarbersErrorCode =
   | "registerClosingPending"
   | "registerShiftClosed"
   | "valeFromRegister"
+  | "rejectReasonRequired"
+  | "expenseFromRegister"
   | "ownRole"
   | "notInOrganization";
 

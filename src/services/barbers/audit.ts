@@ -45,6 +45,10 @@ export type BarberAuditAction =
   | "cash.closed"
   | "cash.outflow"
   | "cash.outflowDeleted"
+  | "expense.created"
+  | "expense.updated"
+  | "expense.deleted"
+  | "expense.reviewed"
   | "catalog.pricesImported";
 
 /** field → [old, new]. Only fields that actually changed. */

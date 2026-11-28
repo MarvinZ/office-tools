@@ -4,7 +4,7 @@ import { fmtColones } from "@/lib/barbers/currency";
 import type { BarberAuditEntry } from "@/services/barbers/audit";
 
 const RATE_FIELDS = new Set(["commissionRate", "defaultCommissionRate", "ivaBaseRate", "ivaRate", "feeRate", "fixedCommissionRate"]);
-const MONEY_FIELDS = new Set(["fortnightlyAddition", "maintenanceDailyFee"]);
+const MONEY_FIELDS = new Set(["fortnightlyAddition", "maintenanceDailyFee", "amount"]);
 const SUMMARY_MONEY = new Set(["amount", "total", "totalTransfer", "commission", "openingCash", "expected", "counted", "difference"]);
 
 const whenFmt = new Intl.DateTimeFormat("en-GB", {
@@ -31,6 +31,7 @@ export default async function AuditList({
 }) {
   const t = await getTranslations("barbers.audit");
   const ts = await getTranslations("barbers.activityStatus.status");
+  const tx = await getTranslations("barbers.expenses");
 
   if (entries.length === 0) {
     return <p className="rounded-xl border border-zinc-200 p-4 text-sm text-zinc-400 dark:border-zinc-800">{t("empty")}</p>;
@@ -40,6 +41,11 @@ export default async function AuditList({
     if (v == null || v === "") return "—";
     if (typeof v === "boolean") return t(v ? "yes" : "no");
     if (e.action === "activity.status" && field === "status" && typeof v === "string") return ts(v);
+    if (e.action.startsWith("expense.") && typeof v === "string") {
+      if (field === "status") return tx(`status.${v}`);
+      if (field === "category") return tx(`categories.${v}`);
+      if (field === "paidWith") return tx(`paidWith.${v}`);
+    }
     if (RATE_FIELDS.has(field) && typeof v === "number") return `${Math.round(v * 10000) / 100}%`;
     if (MONEY_FIELDS.has(field) && typeof v === "number") return fmtColones(v);
     return String(v);

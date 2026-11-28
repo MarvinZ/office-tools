@@ -1116,6 +1116,29 @@ export const barberCashOutflows = pgTable("barber_cash_outflows", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// An operating expense of the business (NOURA Módulo 1 §6 "Total de gastos":
+// recorded and authorized). Admins record and approve them; cash a cashier
+// takes out of the register as a salon expense arrives here as "pending" via
+// cash_outflow_id, so nothing is typed twice. Only approved expenses count.
+export const barberExpenses = pgTable("barber_expenses", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  locationId: text("location_id").references(() => locations.id), // null = the whole business
+  expenseDate: date("expense_date").notNull(),
+  category: text("category").notNull(), // key from lib/barbers/expenses.ts
+  description: text("description").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  paidWith: text("paid_with").notNull(), // cash | transfer | card | other
+  status: text("status").notNull().default("pending"), // pending | approved | rejected
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectReason: text("reject_reason"),
+  cashOutflowId: text("cash_outflow_id"), // set when it came out of the register
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("barber_expenses_outflow_uq").on(t.cashOutflowId)]);
+
 // ── Webhooks ──────────────────────────────────────────────────────────────────
 // A generic inbound-webhook receiver: one endpoint per tenant, HMAC-SHA256
 // signed, for testing payloads from other systems. Every request that hits the

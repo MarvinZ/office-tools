@@ -182,7 +182,7 @@ export type Recommendation = {
   key: string;
   category: RecommendationCategory;
   /** Translation key under barbers.panel.recs, plus the values it shows. */
-  code: "registerClosingPending" | "fortnightUnclosed" | "commissionsPending" | "goalBehind" | "goalReached" | "noSalesYesterday";
+  code: "registerClosingPending" | "expensesPending" | "fortnightUnclosed" | "commissionsPending" | "goalBehind" | "goalReached" | "noSalesYesterday";
   values: Record<string, string | number>;
   /** Where "Revisar" takes the admin. Recommendations never act by themselves. */
   href: string;
@@ -202,6 +202,8 @@ export type RecommendationFacts = {
   yesterday: { date: string; operating: boolean; locationsWithoutSales: { id: string; name: string }[] };
   /** Register shifts left open from an earlier day (§13 "Cierre pendiente"). */
   pendingClosings?: { shiftId: string; date: string; shiftNumber: number; locationId: string; locationName: string }[];
+  /** Expenses waiting for an admin's approval (they don't count until then). */
+  pendingExpenses?: { count: number; amount: number };
 };
 
 /** How far behind the expected pace (as a share of the goal) counts as "behind". */
@@ -255,6 +257,16 @@ export function buildRecommendations(f: RecommendationFacts): Recommendation[] {
         href: `/barbers/panel/detail?month=${f.month.key}&locationId=${f.scope}`,
       });
     }
+  }
+
+  if (f.pendingExpenses && f.pendingExpenses.count > 0) {
+    out.push({
+      key: `expensesPending:${f.month.key}`,
+      category: "followUp",
+      code: "expensesPending",
+      values: { count: f.pendingExpenses.count, amount: f.pendingExpenses.amount },
+      href: "/barbers/expenses?status=pending",
+    });
   }
 
   if (f.pendingCommissions.count > 0) {
